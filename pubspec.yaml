@@ -1,0 +1,29 @@
+name: oembed
+description: "A new Flutter package project."
+version: 0.0.1
+homepage:
+
+environment:
+  sdk: ^3.7.2
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  webview_flutter: any
+  visibility_detector: any
+  flutter_svg: any
+  google_fonts: any
+  http: any
+  url_launcher: any
+  equatable: any
+  collection: ^1.19.1
+  flutter_cache_manager: ^3.4.1
+  webview_flutter_wkwebview: ^3.23.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: any
+
+flutter:
