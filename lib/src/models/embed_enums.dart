@@ -1,0 +1,67 @@
+// ignore_for_file: constant_identifier_names
+
+enum EmbedType {
+  x,
+  tiktok,
+  instagram,
+  facebook_post,
+  facebook_video,
+  facebook,
+  youtube,
+  spotify,
+  vimeo,
+  dailymotion,
+  soundcloud,
+  threads,
+  reddit,
+  other,
+}
+
+extension FBEmbedChecker on EmbedType {
+  bool get isFacebook =>
+      this == EmbedType.facebook ||
+      this == EmbedType.facebook_post ||
+      this == EmbedType.facebook_video;
+
+  bool get isTikTok => this == EmbedType.tiktok;
+}
+
+enum EmbedButtonLocation { embed_bottom_link, embed_error, embed_body }
+
+enum EmbedLoadingState { loading, noConnection, error, loaded }
+
+EmbedType? getEmbedTypeFromString(String typeString) {
+  final type = typeString.toLowerCase();
+
+  switch (type) {
+    case 'x':
+    case 'twitter':
+      return EmbedType.x;
+    case 'tiktok':
+      return EmbedType.tiktok;
+    case 'instagram':
+      return EmbedType.instagram;
+    case 'facebook':
+      return EmbedType.facebook;
+    case 'facebook_post':
+      return EmbedType.facebook_post;
+    case 'facebook_video':
+      return EmbedType.facebook_video;
+    case 'youtube':
+      return EmbedType.youtube;
+    case 'spotify':
+      return EmbedType.spotify;
+    case 'vimeo':
+      return EmbedType.vimeo;
+    case 'dailymotion':
+      return EmbedType.dailymotion;
+    case 'soundcloud':
+      return EmbedType.soundcloud;
+    case 'threads':
+      return EmbedType.threads;
+    case 'reddit':
+      return EmbedType.reddit;
+  }
+
+  return null;
+}

@@ -1,0 +1,286 @@
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
+import 'package:markdown/markdown.dart' as md;
+import 'package:markdown_widget/markdown_widget.dart';
+import 'package:oembed/oembed.dart';
+import 'package:oembed_example/widgets/config_menu_action.dart';
+import 'package:oembed_example/utils/url_launcher_utils.dart';
+
+
+class OembedBlockSyntax extends md.BlockSyntax {
+  const OembedBlockSyntax();
+
+  static final RegExp _tagPattern = RegExp(
+    r'^\s*<oembed\b[^>]*>(?:.*</oembed>\s*)?$|^\s*<oembed\b[^>]*/>\s*$',
+    caseSensitive: false,
+  );
+
+  @override
+  RegExp get pattern => _tagPattern;
+
+  @override
+  md.Node? parse(md.BlockParser parser) {
+    final raw = parser.current.content.trim();
+    parser.advance();
+
+    final url = _extractOembedUrl(raw);
+    if (url == null) {
+      return md.Text(raw);
+    }
+
+    final element = md.Element('oembed', [md.Text(url)]);
+    element.attributes['url'] = url;
+    return element;
+  }
+}
+
+String? _extractOembedUrl(String rawTag) {
+  final attributePatterns = <RegExp>[
+    RegExp(r'\burl\s*=\s*"([^"]+)"', caseSensitive: false),
+    RegExp(r"\burl\s*=\s*'([^']+)'", caseSensitive: false),
+    RegExp(r'\bhref\s*=\s*"([^"]+)"', caseSensitive: false),
+    RegExp(r"\bhref\s*=\s*'([^']+)'", caseSensitive: false),
+    RegExp(r'\bsrc\s*=\s*"([^"]+)"', caseSensitive: false),
+    RegExp(r"\bsrc\s*=\s*'([^']+)'", caseSensitive: false),
+    RegExp(r'\bdata-url\s*=\s*"([^"]+)"', caseSensitive: false),
+    RegExp(r"\bdata-url\s*=\s*'([^']+)'", caseSensitive: false),
+  ];
+
+  for (final pattern in attributePatterns) {
+    final match = pattern.firstMatch(rawTag);
+    if (match != null) {
+      final candidate = match.group(1)?.trim();
+      if (_isValidHttpUrl(candidate)) return candidate;
+    }
+  }
+
+  final innerTextMatch = RegExp(
+    r'<oembed\b[^>]*>([\s\S]*?)</oembed>',
+    caseSensitive: false,
+  ).firstMatch(rawTag);
+
+  final innerText = innerTextMatch?.group(1)?.trim();
+  if (_isValidHttpUrl(innerText)) return innerText;
+  return null;
+}
+
+bool _isValidHttpUrl(String? value) {
+  if (value == null || value.isEmpty) return false;
+  final uri = Uri.tryParse(value);
+  return uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
+}
+
+class SmartLinkNode extends ElementNode {
+  final Map<String, String> attributes;
+  final LinkConfig linkConfig;
+
+  SmartLinkNode(this.attributes, this.linkConfig);
+
+  @override
+  InlineSpan build() {
+    final url = attributes['href'] ?? '';
+
+    // Check if the link text is "embed" to trigger an embed instead of a link
+    if (_isEmbedLink()) {
+      return OembedNode(url).build();
+    }
+
+    // Default to regular link
+    return TextSpan(
+      children: List.generate(
+        children.length,
+        (index) => _toLinkInlineSpan(
+          children[index].build(),
+          () => _onLinkTap(linkConfig, url),
+        ),
+      ),
+    );
+  }
+
+  bool _isEmbedLink() {
+    // Case 1: Title attribute is "embed" (e.g. [Link](url "embed"))
+    if (attributes['title']?.toLowerCase() == 'embed') {
+      return true;
+    }
+
+    // Case 2: Link text is "embed" (e.g. [embed](url))
+    if (children.length == 1) {
+      final child = children.first;
+      if (child is TextNode) {
+        return child.text.toLowerCase() == 'embed';
+      }
+    }
+
+    return false;
+  }
+
+  void _onLinkTap(LinkConfig linkConfig, String url) {
+    if (linkConfig.onTap != null) {
+      linkConfig.onTap?.call(url);
+    } else {
+      openUrl(url);
+    }
+  }
+
+
+  InlineSpan _toLinkInlineSpan(InlineSpan span, VoidCallback onTap) {
+    if (span is TextSpan) {
+      return TextSpan(
+        text: span.text,
+        children:
+            span.children?.map((e) => _toLinkInlineSpan(e, onTap)).toList(),
+        style: span.style,
+        recognizer: TapGestureRecognizer()..onTap = onTap,
+      );
+    }
+    return span;
+  }
+}
+
+// Custom generator for smart links
+final smartLinkGenerator = SpanNodeGeneratorWithTag(
+  tag: MarkdownTag.a.name,
+  generator: (element, config, visitor) {
+    // Get the LinkConfig from the config object
+    final linkConfig = config.a;
+    return SmartLinkNode(element.attributes, linkConfig);
+  },
+);
+
+// Custom generator for oembed tags
+final oembedGenerator = SpanNodeGeneratorWithTag(
+  tag: 'oembed',
+  generator: (element, config, visitor) {
+    final url = element.attributes['url'] ?? element.textContent;
+    return OembedNode(url);
+  },
+);
+
+class MarkdownIntegrationPage extends StatefulWidget {
+  const MarkdownIntegrationPage({super.key});
+
+  @override
+  State<MarkdownIntegrationPage> createState() =>
+      _MarkdownIntegrationPageState();
+}
+
+class _MarkdownIntegrationPageState extends State<MarkdownIntegrationPage> {
+  String _locale = 'en';
+  Brightness _brightness = Brightness.light;
+  bool _scrollable = false;
+  bool _showFooter = false;
+
+  @override
+  Widget build(BuildContext context) {
+    const markdownData = '''
+# Markdown Integration Example
+
+This example demonstrates how to use the `oembed` package within a `markdown_widget`.
+
+## Twitter Embed
+<oembed url="https://twitter.com/X/status/1328842765115920384"></oembed>
+
+## YouTube Embed
+<oembed>https://www.youtube.com/watch?v=dQw4w9WgXcQ</oembed>
+
+## TikTok Embed
+<oembed data-url="https://www.tiktok.com/@scout2015/video/6718335390845095173" />
+
+## Spotify Embed (via Link Title)
+[Spotify Track](https://open.spotify.com/track/4cOdK2wGvV9m9X7S7O0WhS "embed")
+
+## Vimeo Embed (via Link Text)
+[embed](https://vimeo.com/76979871)
+
+## X (Twitter) Embed
+<oembed>https://x.com/X/status/1328842765115920384</oembed>
+
+You can add any OEmbed-supported URL using `url`, `href`, `src`, `data-url`, as inner text, or using the `[embed](url)` / `[title](url "embed")` link syntax.
+''';
+
+    return OembedScope(
+      config:
+          OembedScope.configOf(context)?.copyWith(
+            locale: _locale,
+            brightness: _brightness,
+          ) ??
+          OembedConfig(locale: _locale, brightness: _brightness),
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Markdown Integration'),
+          actions: [
+            ConfigMenuAction(
+              currentLocale: _locale,
+              currentBrightness: _brightness,
+              currentScrollable: _scrollable,
+              currentShowFooter: _showFooter,
+              onChanged: (locale, brightness, scrollable, showFooter) {
+                setState(() {
+                  _locale = locale;
+                  _brightness = brightness;
+                  _scrollable = scrollable;
+                  _showFooter = showFooter;
+                });
+              },
+            ),
+          ],
+        ),
+        body: MarkdownWidget(
+          key: ValueKey('markdown_$_locale-$_brightness'),
+          data: markdownData,
+          config: MarkdownConfig(
+            configs: [
+              SmartLinkConfig(
+                style: const TextStyle(
+                  color: Colors.blue,
+                  decoration: TextDecoration.underline,
+                ),
+                onTap: (url) {},
+              ),
+            ],
+          ),
+          markdownGenerator: MarkdownGenerator(
+            generators: [smartLinkGenerator, oembedGenerator],
+            blockSyntaxList: const [OembedBlockSyntax()],
+            extensionSet: md.ExtensionSet.gitHubFlavored,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class OembedNode extends SpanNode {
+  final String url;
+
+  OembedNode(this.url);
+
+  @override
+  InlineSpan build() {
+    return WidgetSpan(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        child: EmbedCard(
+          url: url,
+          pageIdentifier: 'markdown_page',
+          source: 'markdown',
+          contentId: 'markdown_content_${url.hashCode}',
+          elementId: 'markdown_element_${url.hashCode}',
+          extraIdentifier: '',
+          // You can pass global config here or rely on OembedScope if provided at the root
+        ),
+      ),
+    );
+  }
+}
+
+// Custom LinkConfig (optional, to use default just omit this)
+class SmartLinkConfig extends LinkConfig {
+  const SmartLinkConfig({
+    super.style = const TextStyle(
+      color: Color(0xff0969da),
+      decoration: TextDecoration.underline,
+    ),
+    super.onTap,
+  });
+}
