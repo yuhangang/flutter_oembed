@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:oembed/src/controllers/embed_controller.dart';
-import 'package:oembed/src/core/oembed_scope.dart';
-import 'package:oembed/src/models/embed_enums.dart';
-import 'package:oembed/src/models/oembed_cache_config.dart';
-import 'package:oembed/src/models/oembed_data.dart';
-import 'package:oembed/src/models/oembed_style.dart';
-import 'package:oembed/src/models/social_embed_param.dart';
-import 'package:oembed/src/widgets/embed_surface.dart';
-import 'package:oembed/src/widgets/embed_widget_loader.dart';
-import 'package:oembed/src/utils/embed_matchers.dart';
-import 'package:oembed/src/utils/embed_link_utils.dart';
+import 'package:flutter_embed/src/controllers/embed_controller.dart';
+import 'package:flutter_embed/src/core/embed_scope.dart';
+import 'package:flutter_embed/src/models/embed_enums.dart';
+import 'package:flutter_embed/src/models/embed_cache_config.dart';
+import 'package:flutter_embed/src/models/embed_data.dart';
+import 'package:flutter_embed/src/models/embed_style.dart';
+import 'package:flutter_embed/src/models/social_embed_param.dart';
+import 'package:flutter_embed/src/widgets/embed_surface.dart';
+import 'package:flutter_embed/src/widgets/embed_widget_loader.dart';
+import 'package:flutter_embed/src/utils/embed_matchers.dart';
+import 'package:flutter_embed/src/utils/embed_link_utils.dart';
 
 /// The primary widget for embedding social media content.
 ///
 /// Provide a [url] and (optionally) an [embedType]. The library will auto-detect
 /// the embed type when [embedType] is omitted.
 ///
-/// Wrap your app (or a subtree) with [OembedScope] to supply global
+/// Wrap your app (or a subtree) with [EmbedScope] to supply global
 /// configuration and delegate builders.
 ///
 /// ```dart
@@ -59,16 +59,16 @@ class EmbedCard extends StatefulWidget {
 
   /// Pre-fetched OEmbed data. When provided, the card skips the API fetch
   /// and renders this data directly.
-  final OembedData? preloadedData;
+  final EmbedData? preloadedData;
 
-  /// Per-widget visual customization. Overrides [OembedConfig.style].
-  final OembedStyle? style;
+  /// Per-widget visual customization. Overrides [EmbedConfig.style].
+  final EmbedStyle? style;
 
-  /// Per-widget cache configuration. Overrides [OembedConfig.cache].
-  final OembedCacheConfig? cacheConfig;
+  /// Per-widget cache configuration. Overrides [EmbedConfig.cache].
+  final EmbedCacheConfig? cacheConfig;
 
   /// Whether the WebView should be scrollable internally.
-  /// Overrides [OembedConfig.scrollable].
+  /// Overrides [EmbedConfig.scrollable].
   final bool? scrollable;
 
   const EmbedCard({
@@ -121,12 +121,12 @@ class _EmbedCardState extends State<EmbedCard> {
     if (widget.controller == null && _internalController == null) {
       final config =
           widget.cacheConfig != null
-              ? OembedScope.configOf(context)?.copyWith(cache: widget.cacheConfig)
-              : OembedScope.configOf(context);
+              ? EmbedScope.configOf(context)?.copyWith(cache: widget.cacheConfig)
+              : EmbedScope.configOf(context);
 
       _internalController = EmbedController(
         param: param,
-        delegate: OembedScope.delegateOf(context),
+        delegate: EmbedScope.delegateOf(context),
         config: config,
         preloadedData: widget.preloadedData,
       );
@@ -138,7 +138,7 @@ class _EmbedCardState extends State<EmbedCard> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && widget.embedType != EmbedType.other) {
-        OembedScope.delegateOf(context)?.initEmbedPost(param.url);
+        EmbedScope.delegateOf(context)?.initEmbedPost(param.url);
       }
     });
   }
@@ -151,10 +151,10 @@ class _EmbedCardState extends State<EmbedCard> {
 
   @override
   Widget build(BuildContext context) {
-    final config = OembedScope.configOf(context);
+    final config = EmbedScope.configOf(context);
     final style = widget.style ?? config?.style;
     final scrollable = widget.scrollable ?? config?.scrollable ?? false;
-    final delegate = OembedScope.delegateOf(context);
+    final delegate = EmbedScope.delegateOf(context);
 
     return EmbedSurface(
       style: style,

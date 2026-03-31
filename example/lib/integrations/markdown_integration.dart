@@ -2,13 +2,12 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:markdown_widget/markdown_widget.dart';
-import 'package:oembed/oembed.dart';
-import 'package:oembed_example/widgets/config_menu_action.dart';
-import 'package:oembed_example/utils/url_launcher_utils.dart';
+import 'package:flutter_embed/flutter_embed.dart';
+import 'package:embed_example/widgets/config_menu_action.dart';
+import 'package:embed_example/utils/url_launcher_utils.dart';
 
-
-class OembedBlockSyntax extends md.BlockSyntax {
-  const OembedBlockSyntax();
+class EmbedBlockSyntax extends md.BlockSyntax {
+  const EmbedBlockSyntax();
 
   static final RegExp _tagPattern = RegExp(
     r'^\s*<oembed\b[^>]*>(?:.*</oembed>\s*)?$|^\s*<oembed\b[^>]*/>\s*$',
@@ -23,7 +22,7 @@ class OembedBlockSyntax extends md.BlockSyntax {
     final raw = parser.current.content.trim();
     parser.advance();
 
-    final url = _extractOembedUrl(raw);
+    final url = _extractEmbedUrl(raw);
     if (url == null) {
       return md.Text(raw);
     }
@@ -34,7 +33,7 @@ class OembedBlockSyntax extends md.BlockSyntax {
   }
 }
 
-String? _extractOembedUrl(String rawTag) {
+String? _extractEmbedUrl(String rawTag) {
   final attributePatterns = <RegExp>[
     RegExp(r'\burl\s*=\s*"([^"]+)"', caseSensitive: false),
     RegExp(r"\burl\s*=\s*'([^']+)'", caseSensitive: false),
@@ -82,7 +81,7 @@ class SmartLinkNode extends ElementNode {
 
     // Check if the link text is "embed" to trigger an embed instead of a link
     if (_isEmbedLink()) {
-      return OembedNode(url).build();
+      return EmbedNode(url).build();
     }
 
     // Default to regular link
@@ -122,7 +121,6 @@ class SmartLinkNode extends ElementNode {
     }
   }
 
-
   InlineSpan _toLinkInlineSpan(InlineSpan span, VoidCallback onTap) {
     if (span is TextSpan) {
       return TextSpan(
@@ -152,7 +150,7 @@ final oembedGenerator = SpanNodeGeneratorWithTag(
   tag: 'oembed',
   generator: (element, config, visitor) {
     final url = element.attributes['url'] ?? element.textContent;
-    return OembedNode(url);
+    return EmbedNode(url);
   },
 );
 
@@ -198,13 +196,12 @@ This example demonstrates how to use the `oembed` package within a `markdown_wid
 You can add any OEmbed-supported URL using `url`, `href`, `src`, `data-url`, as inner text, or using the `[embed](url)` / `[title](url "embed")` link syntax.
 ''';
 
-    return OembedScope(
+    return EmbedScope(
       config:
-          OembedScope.configOf(context)?.copyWith(
-            locale: _locale,
-            brightness: _brightness,
-          ) ??
-          OembedConfig(locale: _locale, brightness: _brightness),
+          EmbedScope.configOf(
+            context,
+          )?.copyWith(locale: _locale, brightness: _brightness) ??
+          EmbedConfig(locale: _locale, brightness: _brightness),
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Markdown Integration'),
@@ -241,7 +238,7 @@ You can add any OEmbed-supported URL using `url`, `href`, `src`, `data-url`, as 
           ),
           markdownGenerator: MarkdownGenerator(
             generators: [smartLinkGenerator, oembedGenerator],
-            blockSyntaxList: const [OembedBlockSyntax()],
+            blockSyntaxList: const [EmbedBlockSyntax()],
             extensionSet: md.ExtensionSet.gitHubFlavored,
           ),
         ),
@@ -250,10 +247,10 @@ You can add any OEmbed-supported URL using `url`, `href`, `src`, `data-url`, as 
   }
 }
 
-class OembedNode extends SpanNode {
+class EmbedNode extends SpanNode {
   final String url;
 
-  OembedNode(this.url);
+  EmbedNode(this.url);
 
   @override
   InlineSpan build() {
@@ -267,7 +264,7 @@ class OembedNode extends SpanNode {
           contentId: 'markdown_content_${url.hashCode}',
           elementId: 'markdown_element_${url.hashCode}',
           extraIdentifier: '',
-          // You can pass global config here or rely on OembedScope if provided at the root
+          // You can pass global config here or rely on EmbedScope if provided at the root
         ),
       ),
     );

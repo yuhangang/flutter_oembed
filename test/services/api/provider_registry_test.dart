@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oembed/src/models/provider_rule.dart';
-import 'package:oembed/src/services/provider_registry.dart';
+import 'package:flutter_embed/src/models/provider_rule.dart';
+import 'package:flutter_embed/src/services/provider_registry.dart';
 
 void main() {
-  group('kDefaultOembedProviders', () {
+  group('kDefaultEmbedProviders', () {
     test('YouTube pattern matches standard watch URLs', () {
-      final youtubeRules = kDefaultOembedProviders.where(
+      final youtubeRules = kDefaultEmbedProviders.where(
         (r) => r.providerName == 'YouTube',
       );
       expect(
@@ -23,7 +23,7 @@ void main() {
     });
 
     test('TikTok iframeUrlBuilder returns v3 embed URL for videos', () {
-      final tiktok = kDefaultOembedProviders.firstWhere(
+      final tiktok = kDefaultEmbedProviders.firstWhere(
         (r) => r.providerName == 'TikTok',
       );
       final result = tiktok.iframeUrlBuilder!(
@@ -33,7 +33,7 @@ void main() {
     });
 
     test('YouTube iframeUrlBuilder extracts video ID correctly', () {
-      final yt = kDefaultOembedProviders.firstWhere(
+      final yt = kDefaultEmbedProviders.firstWhere(
         (r) => r.providerName == 'YouTube',
       );
       final result = yt.iframeUrlBuilder!(
@@ -43,7 +43,7 @@ void main() {
     });
 
     test('Vimeo iframeUrlBuilder extracts video ID', () {
-      final vimeo = kDefaultOembedProviders.firstWhere(
+      final vimeo = kDefaultEmbedProviders.firstWhere(
         (r) => r.providerName == 'Vimeo',
       );
       final result = vimeo.iframeUrlBuilder!('https://vimeo.com/22439234');
@@ -51,7 +51,7 @@ void main() {
     });
 
     test('Spotify iframeUrlBuilder builds correct embed URL', () {
-      final spotify = kDefaultOembedProviders.firstWhere(
+      final spotify = kDefaultEmbedProviders.firstWhere(
         (r) => r.providerName == 'Spotify',
       );
       final result = spotify.iframeUrlBuilder!(
@@ -61,27 +61,27 @@ void main() {
     });
 
     test('Facebook sub-rules resolve video endpoint for video URLs', () {
-      final fb = kDefaultOembedProviders.firstWhere(
+      final fb = kDefaultEmbedProviders.firstWhere(
         (r) => r.providerName == 'Facebook',
       );
       final endpoint = fb.resolveEndpoint(
         'https://www.facebook.com/user/videos/123456',
       );
-      expect(endpoint, contains('oembed_video'));
+      expect(endpoint, contains('embed_video'));
     });
 
     test('Facebook sub-rules resolve post endpoint for post URLs', () {
-      final fb = kDefaultOembedProviders.firstWhere(
+      final fb = kDefaultEmbedProviders.firstWhere(
         (r) => r.providerName == 'Facebook',
       );
       final endpoint = fb.resolveEndpoint(
         'https://www.facebook.com/user/posts/123456',
       );
-      expect(endpoint, contains('oembed_post'));
+      expect(endpoint, contains('embed_post'));
     });
 
-    test('OembedProviderRule.matches uses cached regex correctly', () {
-      final rule = const OembedProviderRule(
+    test('EmbedProviderRule.matches uses cached regex correctly', () {
+      final rule = const EmbedProviderRule(
         pattern: r'https?:\/\/(www\.)?example\.com\/.*',
         endpoint: 'https://example.com/oembed',
         providerName: 'Example',

@@ -1,29 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:oembed/src/models/oembed_cache_config.dart';
-import 'package:oembed/src/models/oembed_provider_config.dart';
-import 'package:oembed/src/models/oembed_style.dart';
-import 'package:oembed/src/logging/oembed_logger.dart';
-import 'package:oembed/src/models/oembed_data.dart';
+import 'package:flutter_embed/src/models/embed_cache_config.dart';
+import 'package:flutter_embed/src/models/embed_provider_config.dart';
+import 'package:flutter_embed/src/models/embed_style.dart';
+import 'package:flutter_embed/src/logging/embed_logger.dart';
+import 'package:flutter_embed/src/models/embed_data.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:async';
 
 /// Unified configuration for the OEmbed library.
 ///
-/// Pass this to [OembedScope] to configure the entire embed system in one place.
+/// Pass this to [EmbedScope] to configure the entire embed system in one place.
 ///
 /// ```dart
-/// OembedScope(
-///   config: OembedConfig(
+/// EmbedScope(
+///   config: EmbedConfig(
 ///     facebookAppId: 'YOUR_APP_ID',
 ///     facebookClientToken: 'YOUR_CLIENT_TOKEN',
-///     cache: OembedCacheConfig(enabled: false),
-///     providers: OembedProviderConfig(
+///     cache: EmbedCacheConfig(enabled: false),
+///     providers: EmbedProviderConfig(
 ///       enabledProviders: {'YouTube', 'Spotify', 'Vimeo'},
 ///       providerRenderModes: {
-///         'YouTube': OembedRenderMode.iframe,
+///         'YouTube': EmbedRenderMode.iframe,
 ///       },
 ///     ),
-///     style: OembedStyle(
+///     style: EmbedStyle(
 ///       borderRadius: BorderRadius.circular(12),
 ///       footerBuilder: (context, url) => TextButton(
 ///         child: Text('Open link'),
@@ -34,15 +34,15 @@ import 'dart:async';
 ///   child: ...,
 /// )
 /// ```
-class OembedConfig {
+class EmbedConfig {
   /// Provider registry — controls which providers are active and how they render.
-  final OembedProviderConfig providers;
+  final EmbedProviderConfig providers;
 
   /// Cache settings.
-  final OembedCacheConfig cache;
+  final EmbedCacheConfig cache;
 
   /// Global visual customization. Can be overridden per-widget via [EmbedCard.style].
-  final OembedStyle? style;
+  final EmbedStyle? style;
 
   /// Facebook App ID — required for Facebook and Instagram embeds.
   final String facebookAppId;
@@ -69,10 +69,10 @@ class OembedConfig {
 
   /// A simpler callback for handling link clicks.
   /// If provided, this is called when a user clicks a link that would normally
-  /// trigger [OembedDelegate.openSocialEmbedLinkClick].
+  /// trigger [EmbedDelegate.openSocialEmbedLinkClick].
   ///
   /// This is easier to use than [onNavigationRequest] as it only provides the URL.
-  final void Function(String url, OembedData? data)? onLinkTap;
+  final void Function(String url, EmbedData? data)? onLinkTap;
 
   /// Whether to use dynamic discovery via the official OEmbed providers.json registry.
   /// Defaults to `false`.
@@ -89,13 +89,13 @@ class OembedConfig {
   /// Optional logger used by the library to emit provider resolution, cache,
   /// navigation, and loading diagnostics.
   ///
-  /// Use [OembedLogger.debug] to print debug-only logs to the console, or
-  /// [OembedLogger.enabled] with a custom sink to forward logs elsewhere.
-  final OembedLogger logger;
+  /// Use [EmbedLogger.debug] to print debug-only logs to the console, or
+  /// [EmbedLogger.enabled] with a custom sink to forward logs elsewhere.
+  final EmbedLogger logger;
 
-  const OembedConfig({
-    this.providers = const OembedProviderConfig(),
-    this.cache = const OembedCacheConfig(),
+  const EmbedConfig({
+    this.providers = const EmbedProviderConfig(),
+    this.cache = const EmbedCacheConfig(),
     this.style,
     this.facebookAppId = '',
     this.facebookClientToken = '',
@@ -107,20 +107,20 @@ class OembedConfig {
     this.useDynamicDiscovery = false,
     this.loadTimeout = const Duration(seconds: 10),
     this.scrollable = false,
-    this.logger = const OembedLogger.disabled(),
+    this.logger = const EmbedLogger.disabled(),
   });
 
   /// Internal getter that returns the providers config with the discovery flag synced.
-  OembedProviderConfig get resolvedProviders =>
+  EmbedProviderConfig get resolvedProviders =>
       providers.useDynamicDiscovery == useDynamicDiscovery
           ? providers
           : providers.copyWith(useDynamicDiscovery: useDynamicDiscovery);
 
   /// Returns a copy with the given fields replaced.
-  OembedConfig copyWith({
-    OembedProviderConfig? providers,
-    OembedCacheConfig? cache,
-    OembedStyle? style,
+  EmbedConfig copyWith({
+    EmbedProviderConfig? providers,
+    EmbedCacheConfig? cache,
+    EmbedStyle? style,
     String? facebookAppId,
     String? facebookClientToken,
     String? proxyUrl,
@@ -128,13 +128,13 @@ class OembedConfig {
     Brightness? brightness,
     FutureOr<NavigationDecision>? Function(NavigationRequest)?
     onNavigationRequest,
-    void Function(String url, OembedData? data)? onLinkTap,
+    void Function(String url, EmbedData? data)? onLinkTap,
     bool? useDynamicDiscovery,
     Duration? loadTimeout,
     bool? scrollable,
-    OembedLogger? logger,
+    EmbedLogger? logger,
   }) {
-    return OembedConfig(
+    return EmbedConfig(
       providers: providers ?? this.providers,
       cache: cache ?? this.cache,
       style: style ?? this.style,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oembed/src/services/api/reddit_embed_api.dart';
+import 'package:flutter_embed/src/services/api/reddit_embed_api.dart';
 
 void main() {
   group('RedditEmbedApi', () {
@@ -27,7 +27,7 @@ void main() {
     });
 
     test('headers includes required User-Agent for Reddit', () {
-      expect(api.headers['User-Agent'], contains('flutter_oembed'));
+      expect(api.headers['User-Agent'], contains('flutter_embed'));
     });
 
     test('baseUrl points to reddit oembed endpoint', () {

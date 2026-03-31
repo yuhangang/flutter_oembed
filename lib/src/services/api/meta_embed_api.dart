@@ -2,13 +2,13 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:oembed/src/models/embed_enums.dart';
-import 'package:oembed/src/models/oembed_data.dart';
-import 'package:oembed/src/services/api/base_oembed_api.dart';
-import 'package:oembed/src/utils/embed_errors.dart';
+import 'package:flutter_embed/src/models/embed_enums.dart';
+import 'package:flutter_embed/src/models/embed_data.dart';
+import 'package:flutter_embed/src/services/api/base_embed_api.dart';
+import 'package:flutter_embed/src/utils/embed_errors.dart';
 
 /// OEmbed API client for Meta platforms (Facebook + Instagram).
-class MetaEmbedApi extends BaseOembedApi {
+class MetaEmbedApi extends BaseEmbedApi {
   const MetaEmbedApi(
     this.embedType,
     this.width,
@@ -25,9 +25,9 @@ class MetaEmbedApi extends BaseOembedApi {
   final String appId;
   final String clientToken;
 
-  static const String pageEndPoint = 'oembed_page';
-  static const String postEndPoint = 'oembed_post';
-  static const String videoEndPoint = 'oembed_video';
+  static const String pageEndPoint = 'embed_page';
+  static const String postEndPoint = 'embed_post';
+  static const String videoEndPoint = 'embed_video';
   static const String instagramEndPoint = 'instagram_oembed';
 
   @override
@@ -71,7 +71,7 @@ class MetaEmbedApi extends BaseOembedApi {
   }
 
   @override
-  OembedData ombedResponseModifier(OembedData response) {
+  EmbedData ombedResponseModifier(EmbedData response) {
     return response.copyWith(
       html: response.html.replaceAll('src="//', 'src="https://'),
     );

@@ -1,40 +1,48 @@
-# flutter_oembed
+# flutter_embed
 
-A powerful, easy-to-use Flutter package for embedding social media content and other rich media using the OEmbed protocol.
+A powerful, easy-to-use Flutter package for embedding social media content and other rich media using the oEmbed protocol.
 
 ## Features
 
 - **Multi-provider Support:** X (Twitter), TikTok, Instagram, Facebook, YouTube, Spotify, Vimeo, and more.
 - **Dynamic Sizing:** Automatically adjusts height to fit embedded content.
-- **Smart Caching:** Built-in caching for OEmbed responses to improve performance and respect rate limits.
+- **Smart Caching:** Built-in caching for oEmbed responses to improve performance and respect rate limits.
 - **Iframe Optimization:** Direct iframe rendering support for YouTube and Spotify to skip API round-trips.
 - **Privacy & Security:** Securely handles authentication tokens and implements Content Security Policy (CSP).
 - **Extensible:** Easily add custom providers and render rules.
 
 ## Getting started
 
-Add `oembed` to your `pubspec.yaml`:
+Add `flutter_embed` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  oembed: ^0.0.1
+  flutter_embed: ^0.0.1
 ```
 
 ## Usage
 
 ### Basic Usage
 
-Wrap your app in an `OembedScope` to provide global configuration:
+Wrap your app in an `EmbedScope` to provide global configuration:
 
 ```dart
-OembedScope(
-  config: OembedConfig(
+EmbedScope(
+  config: EmbedConfig(
     facebookAppId: 'YOUR_APP_ID',
     facebookClientToken: 'YOUR_CLIENT_TOKEN',
   ),
   child: MyApp(),
 )
 ```
+
+#### Meta (Facebook / Instagram / Threads) Setup
+
+Facebook, Instagram and Threads embeds require a Meta App ID and Client Token. You can obtain these from the [Meta for Developers](https://developers.facebook.com/) portal. For more details on the oEmbed API requirements and setup, see:
+- [Meta oEmbed Documentation](https://developers.facebook.com/docs/graph-api/reference/v22.0/oembed-read/)
+- [Facebook oEmbed API Guide](https://developers.facebook.com/docs/plugins/oembed)
+- [Instagram oEmbed API Guide](https://developers.facebook.com/docs/instagram/oembed)
+- [Threads oEmbed API Guide](https://developers.facebook.com/docs/threads/tools-and-resources/embed-a-threads-post)
 
 Then use the `EmbedCard` widget anywhere in your app:
 
@@ -56,18 +64,18 @@ EmbedCard(
 You can customize caching, render modes, and styles:
 
 ```dart
-OembedConfig(
-  providers: OembedProviderConfig(
+EmbedConfig(
+  providers: EmbedProviderConfig(
     providerRenderModes: {
-      'YouTube': OembedRenderMode.iframe,
-      'Spotify': OembedRenderMode.iframe,
+      'YouTube': EmbedRenderMode.iframe,
+      'Spotify': EmbedRenderMode.iframe,
     },
   ),
-  cache: OembedCacheConfig(
+  cache: EmbedCacheConfig(
     enabled: true,
     defaultCacheDuration: Duration(days: 7),
   ),
-  style: OembedStyle(
+  style: EmbedStyle(
     borderRadius: BorderRadius.circular(12),
   ),
 )
@@ -79,22 +87,22 @@ Enable debug logging when you want to trace provider resolution, cache hits,
 network requests, and WebView loading events:
 
 ```dart
-OembedConfig(
-  logger: const OembedLogger.debug(),
+EmbedConfig(
+  logger: const EmbedLogger.debug(),
 )
 ```
 
 You can also forward logs to your own logger:
 
 ```dart
-OembedConfig(
+EmbedConfig(
   onLinkTap: (url, data) {
     debugPrint('Clicked $url on $data');
   },
-  logger: OembedLogger.enabled(
-    level: OembedLogLevel.info,
+  logger: EmbedLogger.enabled(
+    level: EmbedLogLevel.info,
     sink: ({
-      required OembedLogLevel level,
+      required EmbedLogLevel level,
       required String message,
       Object? error,
       StackTrace? stackTrace,
@@ -116,8 +124,8 @@ OembedConfig(
 syntax for `<oembed>` and a tag generator:
 
 ```dart
-class OembedBlockSyntax extends md.BlockSyntax {
-  const OembedBlockSyntax();
+class EmbedBlockSyntax extends md.BlockSyntax {
+  const EmbedBlockSyntax();
 
   @override
   RegExp get pattern => RegExp(
@@ -146,11 +154,11 @@ class OembedBlockSyntax extends md.BlockSyntax {
 MarkdownWidget(
   data: content,
   markdownGenerator: MarkdownGenerator(
-    blockSyntaxList: const [OembedBlockSyntax()],
+    blockSyntaxList: const [EmbedBlockSyntax()],
     generators: [
       SpanNodeGeneratorWithTag(
         tag: 'oembed',
-        generator: (e, config, visitor) => OembedNode(
+        generator: (e, config, visitor) => EmbedNode(
           e.attributes['url'] ?? e.textContent,
         ),
       ),
@@ -158,9 +166,9 @@ MarkdownWidget(
   ),
 )
 
-class OembedNode extends SpanNode {
+class EmbedNode extends SpanNode {
   final String url;
-  OembedNode(this.url);
+  EmbedNode(this.url);
 
   @override
   InlineSpan build() {
@@ -185,7 +193,7 @@ Use a `TagExtension` and extract URL from `url`, `href`, `src`, `data-url`, or
 inner text:
 
 ```dart
-String? extractOembedUrl(ExtensionContext context) {
+String? extractEmbedUrl(ExtensionContext context) {
   final attrs = context.attributes;
   final candidates = [
     attrs['url'],
@@ -209,7 +217,7 @@ Html(
     TagExtension(
       tagsToExtend: {"oembed"},
       builder: (context) {
-        final url = extractOembedUrl(context);
+        final url = extractEmbedUrl(context);
         if (url == null) return const SizedBox.shrink();
         return EmbedCard(
           url: url,

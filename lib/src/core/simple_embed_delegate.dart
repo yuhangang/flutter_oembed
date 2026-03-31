@@ -1,27 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:oembed/src/core/oembed_delegate.dart';
-import 'package:oembed/src/models/social_embed_param.dart';
-import 'package:oembed/src/models/embed_enums.dart';
+import 'package:flutter_embed/src/core/embed_delegate.dart';
+import 'package:flutter_embed/src/models/social_embed_param.dart';
+import 'package:flutter_embed/src/models/embed_enums.dart';
 
-/// A ready-to-use [OembedDelegate] with sensible defaults.
+/// A ready-to-use [EmbedDelegate] with sensible defaults.
 ///
 /// Use this if you want to set up an embed with minimal boilerplate.
 /// Override only the methods you care about.
 ///
-/// For most cases, prefer using [OembedConfig] via [OembedScope] which
+/// For most cases, prefer using [EmbedConfig] via [EmbedScope] which
 /// doesn't require a delegate at all.
 ///
 /// ```dart
-/// OembedScope(
-///   delegate: SimpleOembedDelegate(
+/// EmbedScope(
+///   delegate: SimpleEmbedDelegate(
 ///     facebookAppId: 'YOUR_APP_ID',
 ///     facebookClientToken: 'YOUR_CLIENT_TOKEN',
 ///   ),
 ///   child: ...,
 /// )
 /// ```
-class SimpleOembedDelegate implements OembedDelegate {
-  const SimpleOembedDelegate({
+class SimpleEmbedDelegate implements EmbedDelegate {
+  const SimpleEmbedDelegate({
     this.facebookAppId = '',
     this.facebookClientToken = '',
     this.offlineToastOffset = 0,

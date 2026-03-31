@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:oembed/src/services/api/base_oembed_api.dart';
+import 'package:flutter_embed/src/services/api/base_embed_api.dart';
 
 /// Internal cache for compiled [RegExp] objects to avoid redundant parsing.
 final Map<String, RegExp> _oembedRegexCache = {};
 
-/// Context passed to [OembedProviderRule.apiFactory] when constructing an API client.
-class OembedProviderContext {
+/// Context passed to [EmbedProviderRule.apiFactory] when constructing an API client.
+class EmbedProviderContext {
   final String url;
   final String resolvedEndpoint;
   final double width;
@@ -15,7 +15,7 @@ class OembedProviderContext {
   final String facebookClientToken;
   final String? proxyUrl;
 
-  const OembedProviderContext({
+  const EmbedProviderContext({
     required this.url,
     required this.resolvedEndpoint,
     required this.width,
@@ -31,11 +31,11 @@ class OembedProviderContext {
 ///
 /// Used when a single provider (e.g. Facebook) has multiple URL shapes
 /// that each go to different API endpoints.
-class OembedSubRule {
+class EmbedSubRule {
   final String pattern;
   final String endpoint;
 
-  const OembedSubRule({required this.pattern, required this.endpoint});
+  const EmbedSubRule({required this.pattern, required this.endpoint});
 
   /// Returns true if [url] matches this sub-rule's pattern.
   bool matches(String url) {
@@ -49,7 +49,7 @@ class OembedSubRule {
 
 /// Describes how the library should discover and call the OEmbed API for a
 /// specific provider.
-class OembedProviderRule {
+class EmbedProviderRule {
   /// Regex pattern that matches URLs served by this provider.
   final String pattern;
 
@@ -58,27 +58,27 @@ class OembedProviderRule {
 
   /// Human-readable provider name, e.g. `'YouTube'` or `'Vimeo'`.
   ///
-  /// Used as the key for [OembedProviderConfig.enabledProviders] and
-  /// [OembedProviderConfig.providerRenderModes].
+  /// Used as the key for [EmbedProviderConfig.enabledProviders] and
+  /// [EmbedProviderConfig.providerRenderModes].
   final String providerName;
 
   /// Optional sub-rules that override [endpoint] for specific URL shapes.
-  final List<OembedSubRule>? subRules;
+  final List<EmbedSubRule>? subRules;
 
   /// Whether this provider has been verified to work correctly.
   ///
   /// Unverified providers are excluded by default; set
-  /// [OembedProviderConfig.includeUnverified] to `true` to include them.
+  /// [EmbedProviderConfig.includeUnverified] to `true` to include them.
   final bool isVerified;
 
-  /// Factory that constructs the [BaseOembedApi] client for this provider.
+  /// Factory that constructs the [BaseEmbedApi] client for this provider.
   ///
-  /// When `null`, falls back to [GenericOembedApi].
-  final BaseOembedApi Function(OembedProviderContext ctx)? apiFactory;
+  /// When `null`, falls back to [GenericEmbedApi].
+  final BaseEmbedApi Function(EmbedProviderContext ctx)? apiFactory;
 
   /// Converts a content URL into an iframe `src` URL.
   ///
-  /// When non-null and the provider's render mode is [OembedRenderMode.iframe],
+  /// When non-null and the provider's render mode is [EmbedRenderMode.iframe],
   /// the library loads this URL directly in a `WebView`, bypassing the OEmbed
   /// API entirely.
   final String? Function(String url)? iframeUrlBuilder;
@@ -90,7 +90,7 @@ class OembedProviderRule {
   /// (external links are opened in the host app).
   final bool Function(String url)? shouldAllowNavigation;
 
-  const OembedProviderRule({
+  const EmbedProviderRule({
     required this.pattern,
     required this.endpoint,
     required this.providerName,

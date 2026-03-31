@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:oembed/oembed.dart';
-import 'package:oembed_example/integrations/markdown_integration.dart';
+import 'package:flutter_embed/flutter_embed.dart';
+import 'package:embed_example/integrations/markdown_integration.dart';
 
-import 'package:oembed_example/integrations/html_integration.dart';
-import 'package:oembed_example/integrations/tiktok_player_integration.dart';
-import 'package:oembed_example/integrations/youtube_player_integration.dart';
-import 'package:oembed_example/integrations/quill_integration.dart';
-import 'package:oembed_example/widgets/config_menu_action.dart';
-import 'package:oembed_example/utils/url_launcher_utils.dart';
+import 'package:embed_example/integrations/html_integration.dart';
+import 'package:embed_example/integrations/tiktok_player_integration.dart';
+import 'package:embed_example/integrations/youtube_player_integration.dart';
+import 'package:embed_example/integrations/quill_integration.dart';
+import 'package:embed_example/widgets/config_menu_action.dart';
+import 'package:embed_example/utils/url_launcher_utils.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 
@@ -26,18 +26,18 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
-    return OembedScope(
-      config: OembedConfig(
-        providers: OembedProviderConfig(
+    return EmbedScope(
+      config: EmbedConfig(
+        providers: EmbedProviderConfig(
           // Only allow these providers (comment out to enable all)
           // enabledProviders: {'YouTube', 'Spotify', 'Vimeo', 'TikTok', 'SoundCloud'},
           providerRenderModes: {
             // Use iframe mode for YouTube & Spotify (skips OEmbed API)
-            'YouTube': OembedRenderMode.iframe,
-            'Spotify': OembedRenderMode.iframe,
+            'YouTube': EmbedRenderMode.iframe,
+            'Spotify': EmbedRenderMode.iframe,
           },
         ),
-        cache: const OembedCacheConfig(
+        cache: const EmbedCacheConfig(
           enabled: true,
           defaultCacheDuration: Duration(hours: 12),
           respectApiCacheAge: true,
@@ -56,7 +56,7 @@ class _MyAppState extends State<MyApp> {
             openUrl(url);
           }
         },
-        style: OembedStyle(
+        style: EmbedStyle(
           errorBuilder: (context, error) {
             return const SocialEmbedErrorPlaceholder(
               embedType: EmbedType.other,
@@ -134,7 +134,7 @@ class _MyHomePageState extends State<MyHomePage> {
     },
     {
       'url':
-          'https://www.reddit.com/r/flutterdev/comments/17yv8y8/how_to_implement_oembed_in_flutter/',
+          'https://www.reddit.com/r/flutterdev/comments/17yv8y8/how_to_implement_embed_in_flutter/',
       'type': EmbedType.reddit,
       'source': 'Reddit',
     },
@@ -416,12 +416,12 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return OembedScope(
+    return EmbedScope(
       config:
-          OembedScope.configOf(
+          EmbedScope.configOf(
             context,
           )?.copyWith(locale: _locale, brightness: _brightness) ??
-          OembedConfig(locale: _locale, brightness: _brightness),
+          EmbedConfig(locale: _locale, brightness: _brightness),
       child: Scaffold(
         appBar: AppBar(
           title: Text('${widget.sample['source']} Embed'),
@@ -468,7 +468,7 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
                 elementId: 'element_${widget.index}',
                 extraIdentifier: 'extra_${widget.index}',
                 scrollable: _scrollable,
-                style: OembedStyle(
+                style: EmbedStyle(
                   loadingBuilder:
                       (context) => SocialEmbedPlaceholder(
                         embedType: widget.sample['type'] ?? EmbedType.other,

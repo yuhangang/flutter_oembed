@@ -1,23 +1,23 @@
 import 'dart:io';
 
-import 'package:oembed/src/controllers/embed_controller.dart';
-import 'package:oembed/src/services/oembed_service.dart';
-import 'package:oembed/src/models/oembed_data.dart';
-import 'package:oembed/src/models/oembed_config.dart';
-import 'package:oembed/src/models/oembed_style.dart';
-import 'package:oembed/src/models/embed_loader_param.dart';
-import 'package:oembed/src/models/social_embed_param.dart';
-import 'package:oembed/src/widgets/embed_webview.dart';
-import 'package:oembed/src/utils/embed_errors.dart';
+import 'package:flutter_embed/src/controllers/embed_controller.dart';
+import 'package:flutter_embed/src/services/embed_service.dart';
+import 'package:flutter_embed/src/models/embed_data.dart';
+import 'package:flutter_embed/src/models/embed_config.dart';
+import 'package:flutter_embed/src/models/embed_style.dart';
+import 'package:flutter_embed/src/models/embed_loader_param.dart';
+import 'package:flutter_embed/src/models/social_embed_param.dart';
+import 'package:flutter_embed/src/widgets/embed_webview.dart';
+import 'package:flutter_embed/src/utils/embed_errors.dart';
 import 'package:flutter/material.dart';
-import 'package:oembed/src/core/oembed_scope.dart';
+import 'package:flutter_embed/src/core/embed_scope.dart';
 
 class EmbedDataLoader extends StatefulWidget {
   final SocialEmbedParam param;
   final EmbedLoaderParam loaderParam;
   final EmbedController controller;
-  final OembedConfig? config;
-  final OembedStyle? style;
+  final EmbedConfig? config;
+  final EmbedStyle? style;
   final bool scrollable;
 
   const EmbedDataLoader({
@@ -35,7 +35,7 @@ class EmbedDataLoader extends StatefulWidget {
 }
 
 class _EmbedDataLoaderState extends State<EmbedDataLoader> {
-  late Future<OembedData> _embedFeature;
+  late Future<EmbedData> _embedFeature;
 
   @override
   void didChangeDependencies() {
@@ -44,9 +44,9 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
   }
 
   void _loadData() {
-    final delegate = OembedScope.delegateOf(context);
-    final config = widget.config ?? OembedScope.configOf(context);
-    _embedFeature = OembedService.getResult(
+    final delegate = EmbedScope.delegateOf(context);
+    final config = widget.config ?? EmbedScope.configOf(context);
+    _embedFeature = EmbedService.getResult(
       param: widget.loaderParam,
       delegate: delegate,
       config: config,
@@ -56,7 +56,7 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<OembedData>(
+    return FutureBuilder<EmbedData>(
       future: _embedFeature,
       builder: (context, snapshot) {
         return AnimatedBuilder(
@@ -67,7 +67,7 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               final loadingWidget =
                   widget.style?.loadingBuilder?.call(context) ??
-                  OembedScope.delegateOf(context)?.buildSocialEmbedPlaceholder(
+                  EmbedScope.delegateOf(context)?.buildSocialEmbedPlaceholder(
                     context: context,
                     embedType: widget.param.embedType,
                   );
@@ -81,7 +81,7 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
                   error is EmbedDataRestrictedAccessException) {
                 final errorWidget =
                     widget.style?.errorBuilder?.call(context, error) ??
-                    OembedScope.delegateOf(
+                    EmbedScope.delegateOf(
                       context,
                     )?.buildSocialEmbedErrorPlaceholder(
                       context: context,
@@ -92,13 +92,13 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
               }
 
               if (!didRetry) {
-                return OembedScope.of(
+                return EmbedScope.of(
                   context,
                 ).buildSocialEmbedRefreshPlaceholder(
                   context: context,
                   param: widget.param,
                   onTap: () async {
-                    final delegate = OembedScope.delegateOf(context);
+                    final delegate = EmbedScope.delegateOf(context);
                     final hasConnection = delegate?.checkConnection() ?? true;
 
                     if (hasConnection) {
@@ -115,7 +115,7 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
 
               final errorWidget =
                   widget.style?.errorBuilder?.call(context, error) ??
-                  OembedScope.delegateOf(
+                  EmbedScope.delegateOf(
                     context,
                   )?.buildSocialEmbedErrorPlaceholder(
                     context: context,

@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:collection/collection.dart';
-import 'package:oembed/src/models/embed_enums.dart';
-import 'package:oembed/src/models/oembed_config.dart';
-import 'package:oembed/src/models/social_embed_param.dart';
-import 'package:oembed/src/core/oembed_delegate.dart';
-import 'package:oembed/src/logging/oembed_logger.dart';
-import 'package:oembed/src/models/oembed_data.dart';
+import 'package:flutter_embed/src/models/embed_enums.dart';
+import 'package:flutter_embed/src/models/embed_config.dart';
+import 'package:flutter_embed/src/models/social_embed_param.dart';
+import 'package:flutter_embed/src/core/embed_delegate.dart';
+import 'package:flutter_embed/src/logging/embed_logger.dart';
+import 'package:flutter_embed/src/models/embed_data.dart';
 
 /// Encapsulates the [NavigationDelegate] creation logic, keeping
 /// [EmbedController] focused on state management.
 class EmbedNavigationHandler {
   final SocialEmbedParam param;
-  final OembedConfig? config;
-  final OembedDelegate? delegate;
+  final EmbedConfig? config;
+  final EmbedDelegate? delegate;
 
   /// Resolved scaffold background color — captured at build time to avoid
   /// using [BuildContext] across async gaps.
@@ -23,7 +23,7 @@ class EmbedNavigationHandler {
   bool isVisible = true;
 
   /// The OEmbed data being displayed, passed to link-click callbacks for analysis.
-  OembedData? oembedData;
+  EmbedData? oembedData;
 
   EmbedNavigationHandler({
     required this.param,
@@ -42,7 +42,7 @@ class EmbedNavigationHandler {
     required Future<void> Function() onPageFinished,
     required EmbedLoadingState Function() loadingStateGetter,
   }) {
-    final logger = config?.logger ?? const OembedLogger.disabled();
+    final logger = config?.logger ?? const EmbedLogger.disabled();
     return NavigationDelegate(
       onPageFinished: (_) => onPageFinished(),
       onNavigationRequest: (request) async {

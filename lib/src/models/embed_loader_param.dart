@@ -1,7 +1,7 @@
-import 'package:oembed/src/models/embed_enums.dart';
+import 'package:flutter_embed/src/models/embed_enums.dart';
 import 'package:equatable/equatable.dart';
 
-import 'package:oembed/src/utils/embed_matchers.dart';
+import 'package:flutter_embed/src/utils/embed_matchers.dart';
 
 class EmbedLoaderParam extends Equatable {
   final String url;

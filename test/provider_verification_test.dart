@@ -1,11 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oembed/src/models/oembed_provider_config.dart';
-import 'package:oembed/src/models/provider_rule.dart';
+import 'package:flutter_embed/src/models/embed_provider_config.dart';
+import 'package:flutter_embed/src/models/provider_rule.dart';
 
 void main() {
-  group('OembedProviderConfig Verification', () {
+  group('EmbedProviderConfig Verification', () {
     test('effectiveProviders filters out unverified providers by default', () {
-      const config = OembedProviderConfig();
+      const config = EmbedProviderConfig();
       final providers = config.effectiveProviders;
 
       // Check that known unverified providers like Reddit are not in the list
@@ -20,7 +20,7 @@ void main() {
     test(
       'effectiveProviders includes unverified providers when includeUnverified is true',
       () {
-        const config = OembedProviderConfig(includeUnverified: true);
+        const config = EmbedProviderConfig(includeUnverified: true);
         final providers = config.effectiveProviders;
 
         // Reddit should be included now
@@ -32,12 +32,12 @@ void main() {
     test(
       'effectiveProviders includes custom providers regardless of verification',
       () {
-        final customRule = const OembedProviderRule(
+        final customRule = const EmbedProviderRule(
           pattern: 'custom',
           endpoint: 'custom',
           providerName: 'Custom',
         );
-        final config = OembedProviderConfig(customProviders: [customRule]);
+        final config = EmbedProviderConfig(customProviders: [customRule]);
         final providers = config.effectiveProviders;
 
         final custom = providers.any((p) => p.providerName == 'Custom');

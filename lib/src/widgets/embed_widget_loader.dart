@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:oembed/src/controllers/embed_controller.dart';
-import 'package:oembed/src/core/oembed_scope.dart';
-import 'package:oembed/src/models/embed_enums.dart';
-import 'package:oembed/src/models/embed_loader_param.dart';
-import 'package:oembed/src/models/oembed_style.dart';
-import 'package:oembed/src/models/social_embed_param.dart';
-import 'package:oembed/src/services/oembed_service.dart';
-import 'package:oembed/src/widgets/embed_data_loader.dart';
-import 'package:oembed/src/widgets/embed_webview.dart';
+import 'package:flutter_embed/src/controllers/embed_controller.dart';
+import 'package:flutter_embed/src/core/embed_scope.dart';
+import 'package:flutter_embed/src/models/embed_enums.dart';
+import 'package:flutter_embed/src/models/embed_loader_param.dart';
+import 'package:flutter_embed/src/models/embed_style.dart';
+import 'package:flutter_embed/src/models/social_embed_param.dart';
+import 'package:flutter_embed/src/services/embed_service.dart';
+import 'package:flutter_embed/src/widgets/embed_data_loader.dart';
+import 'package:flutter_embed/src/widgets/embed_webview.dart';
 
 class EmbedWidgetLoader extends StatelessWidget {
   const EmbedWidgetLoader({
@@ -20,12 +20,12 @@ class EmbedWidgetLoader extends StatelessWidget {
 
   final SocialEmbedParam param;
   final EmbedController controller;
-  final OembedStyle? style;
+  final EmbedStyle? style;
   final bool scrollable;
 
   @override
   Widget build(BuildContext context) {
-    final config = controller.config ?? OembedScope.configOf(context);
+    final config = controller.config ?? EmbedScope.configOf(context);
     final style = this.style ?? config?.style;
     final logger = config?.logger;
 
@@ -39,7 +39,7 @@ class EmbedWidgetLoader extends StatelessWidget {
         if (showErrorWidget) {
           final errorWidget =
               style?.errorBuilder?.call(context, null) ??
-              OembedScope.delegateOf(context)?.buildSocialEmbedErrorPlaceholder(
+              EmbedScope.delegateOf(context)?.buildSocialEmbedErrorPlaceholder(
                 context: context,
                 param: param,
               );
@@ -48,7 +48,7 @@ class EmbedWidgetLoader extends StatelessWidget {
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            final iframeUrl = OembedService.resolveIframeUrl(
+            final iframeUrl = EmbedService.resolveIframeUrl(
               param.url,
               config: config,
               logger: logger,

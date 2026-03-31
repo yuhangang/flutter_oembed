@@ -1,41 +1,41 @@
 import 'package:flutter/material.dart';
-import 'package:oembed/src/services/oembed_apis.dart';
-import 'package:oembed/src/models/oembed_data.dart';
-import 'package:oembed/src/models/embed_enums.dart';
-import 'package:oembed/src/models/embed_loader_param.dart';
-import 'package:oembed/src/models/oembed_config.dart';
-import 'package:oembed/src/models/oembed_provider_config.dart';
-import 'package:oembed/src/core/oembed_delegate.dart';
-import 'package:oembed/src/logging/oembed_logger.dart';
-import 'package:oembed/src/services/providers_snapshot.dart';
-import 'package:oembed/src/services/api/reddit_embed_api.dart';
+import 'package:flutter_embed/src/services/embed_apis.dart';
+import 'package:flutter_embed/src/models/embed_data.dart';
+import 'package:flutter_embed/src/models/embed_enums.dart';
+import 'package:flutter_embed/src/models/embed_loader_param.dart';
+import 'package:flutter_embed/src/models/embed_config.dart';
+import 'package:flutter_embed/src/models/embed_provider_config.dart';
+import 'package:flutter_embed/src/core/embed_delegate.dart';
+import 'package:flutter_embed/src/logging/embed_logger.dart';
+import 'package:flutter_embed/src/services/providers_snapshot.dart';
+import 'package:flutter_embed/src/services/api/reddit_embed_api.dart';
 import 'package:collection/collection.dart';
 
 /// Result of resolving how to render an embed.
-sealed class OembedResolvedRender {}
+sealed class EmbedResolvedRender {}
 
 /// The OEmbed API should be called to get the embed HTML.
-final class OembedRenderData extends OembedResolvedRender {
-  final BaseOembedApi api;
-  OembedRenderData(this.api);
+final class EmbedRenderData extends EmbedResolvedRender {
+  final BaseEmbedApi api;
+  EmbedRenderData(this.api);
 }
 
 /// The embed should be loaded directly via an iframe URL.
-final class OembedRenderIframe extends OembedResolvedRender {
+final class EmbedRenderIframe extends EmbedResolvedRender {
   final String iframeUrl;
-  OembedRenderIframe(this.iframeUrl);
+  EmbedRenderIframe(this.iframeUrl);
 }
 
-class OembedService {
-  /// Fetches OEmbed data using either [OembedConfig] or [OembedDelegate].
-  static Future<OembedData> getResult({
+class EmbedService {
+  /// Fetches OEmbed data using either [EmbedConfig] or [EmbedDelegate].
+  static Future<EmbedData> getResult({
     required EmbedLoaderParam param,
-    OembedDelegate? delegate,
-    OembedConfig? config,
-    OembedLogger? logger,
+    EmbedDelegate? delegate,
+    EmbedConfig? config,
+    EmbedLogger? logger,
   }) async {
     final resolvedLogger =
-        logger ?? config?.logger ?? const OembedLogger.disabled();
+        logger ?? config?.logger ?? const EmbedLogger.disabled();
     final cacheConfig = config?.cache;
     final locale = config?.locale ?? delegate?.getLocaleLanguageCode() ?? 'en';
     final brightness =
@@ -52,7 +52,7 @@ class OembedService {
       logger: resolvedLogger,
     );
 
-    return api.getOembedData(
+    return api.getEmbedData(
       param.url,
       locale: locale,
       brightness: brightness,
@@ -61,23 +61,23 @@ class OembedService {
     );
   }
 
-  /// Resolves the appropriate [BaseOembedApi] for the given [param].
-  static BaseOembedApi getOembedApiByEmbedType(
+  /// Resolves the appropriate [BaseEmbedApi] for the given [param].
+  static BaseEmbedApi getEmbedApiByEmbedType(
     EmbedLoaderParam param,
-    OembedDelegate delegate, {
-    OembedLogger? logger,
+    EmbedDelegate delegate, {
+    EmbedLogger? logger,
   }) {
     return _resolveApi(param, delegate: delegate, logger: logger);
   }
 
-  static BaseOembedApi _resolveApi(
+  static BaseEmbedApi _resolveApi(
     EmbedLoaderParam param, {
-    OembedDelegate? delegate,
-    OembedConfig? config,
-    OembedLogger? logger,
+    EmbedDelegate? delegate,
+    EmbedConfig? config,
+    EmbedLogger? logger,
   }) {
     final resolvedLogger =
-        logger ?? config?.logger ?? const OembedLogger.disabled();
+        logger ?? config?.logger ?? const EmbedLogger.disabled();
     final facebookAppId =
         config?.facebookAppId ?? delegate?.facebookAppId ?? '';
     final facebookClientToken =
@@ -86,16 +86,16 @@ class OembedService {
     final brightness =
         config?.brightness ?? delegate?.getAppBrightness() ?? Brightness.light;
 
-    OembedProviderRule? rule;
+    EmbedProviderRule? rule;
 
-    // 1. Check OembedProviderConfig rules first
+    // 1. Check EmbedProviderConfig rules first
     if (config != null) {
       rule = config.providers.effectiveProviders.firstWhereOrNull(
         (r) => r.matches(param.url),
       );
     } else {
       // Fallback for when no config is provided
-      rule = kDefaultOembedProviders.firstWhereOrNull(
+      rule = kDefaultEmbedProviders.firstWhereOrNull(
         (r) => r.matches(param.url),
       );
     }
@@ -116,7 +116,7 @@ class OembedService {
       resolvedLogger.debug(
         'Matched provider "${rule.providerName}" for ${param.url} -> $endpoint',
       );
-      final ctx = OembedProviderContext(
+      final ctx = EmbedProviderContext(
         url: param.url,
         resolvedEndpoint: endpoint,
         width: param.width,
@@ -129,7 +129,7 @@ class OembedService {
 
       final api =
           rule.apiFactory?.call(ctx) ??
-          GenericOembedApi(
+          GenericEmbedApi(
             endpoint,
             proxyUrl: config?.proxyUrl,
             width: param.width,
@@ -165,7 +165,7 @@ class OembedService {
         return const SpotifyEmbedApi();
 
       case EmbedType.youtube:
-        return GenericOembedApi(
+        return GenericEmbedApi(
           'https://www.youtube.com/oembed',
           width: param.width,
         );
@@ -174,18 +174,18 @@ class OembedService {
         return VimeoEmbedApi(param.width);
 
       case EmbedType.dailymotion:
-        return GenericOembedApi(
+        return GenericEmbedApi(
           'https://www.dailymotion.com/services/oembed',
           width: param.width,
         );
 
       case EmbedType.soundcloud:
-        return GenericOembedApi(
+        return GenericEmbedApi(
           'https://soundcloud.com/oembed',
           width: param.width,
         );
       case EmbedType.threads:
-        return GenericOembedApi(
+        return GenericEmbedApi(
           'https://graph.threads.net/v1.0/oembed',
           width: param.width,
         );
@@ -200,9 +200,9 @@ class OembedService {
   /// Returns null if the provider doesn't support iframe mode or isn't enabled.
   static String? resolveIframeUrl(
     String url, {
-    OembedConfig? config,
+    EmbedConfig? config,
     EmbedType? embedType,
-    OembedLogger? logger,
+    EmbedLogger? logger,
   }) {
     if (config == null) return null;
     final resolvedLogger = logger ?? config.logger;
@@ -216,7 +216,7 @@ class OembedService {
     }
 
     final mode = config.resolvedProviders.getRenderMode(rule.providerName);
-    if (mode != OembedRenderMode.iframe) {
+    if (mode != EmbedRenderMode.iframe) {
       resolvedLogger.debug(
         'Provider "${rule.providerName}" is configured for $mode, not iframe',
       );
@@ -231,7 +231,7 @@ class OembedService {
   }
 
   /// Performs an O(1) domain-based lookup in the static snapshot.
-  static OembedProviderRule? _findRuleInSnapshot(String url) {
+  static EmbedProviderRule? _findRuleInSnapshot(String url) {
     final uri = Uri.tryParse(url);
     if (uri == null) return null;
 
@@ -241,7 +241,7 @@ class OembedService {
     // Check host and parent domains (e.g., 'www.youtube.com' -> 'youtube.com')
     for (int i = 0; i < parts.length - 1; i++) {
       final domain = parts.sublist(i).join('.');
-      final rules = kOembedProvidersSnapshot[domain];
+      final rules = kEmbedProvidersSnapshot[domain];
       if (rules != null) {
         final match = rules.firstWhereOrNull((r) => r.matches(url));
         if (match != null) return match;

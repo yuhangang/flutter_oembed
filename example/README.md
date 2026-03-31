@@ -1,4 +1,4 @@
-# oembed_example
+# embed_example
 
 Example app for the `oembed` package.
 

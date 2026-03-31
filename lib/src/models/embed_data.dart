@@ -1,4 +1,4 @@
-class OembedData {
+class EmbedData {
   final String html;
   final String? thumbnailUrl;
   final String? title;
@@ -11,7 +11,7 @@ class OembedData {
   final double? height;
   final double? cacheAge;
 
-  OembedData({
+  EmbedData({
     required this.html,
     this.thumbnailUrl,
     this.title,
@@ -33,8 +33,8 @@ class OembedData {
     return null;
   }
 
-  factory OembedData.fromJson(Map<String, dynamic> json) {
-    return OembedData(
+  factory EmbedData.fromJson(Map<String, dynamic> json) {
+    return EmbedData(
       html: json['html'] ?? '',
       thumbnailUrl: json['thumbnail_url'],
       title: json['title'],
@@ -65,7 +65,7 @@ class OembedData {
     };
   }
 
-  OembedData copyWith({
+  EmbedData copyWith({
     String? html,
     String? thumbnailUrl,
     String? title,
@@ -78,7 +78,7 @@ class OembedData {
     double? height,
     double? cacheAge,
   }) {
-    return OembedData(
+    return EmbedData(
       html: html ?? this.html,
       thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
       title: title ?? this.title,

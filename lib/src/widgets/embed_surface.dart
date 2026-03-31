@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:oembed/src/models/oembed_style.dart';
+import 'package:flutter_embed/src/models/embed_style.dart';
 
 /// Shared presentation shell for embed widgets.
 ///
@@ -7,7 +7,7 @@ import 'package:oembed/src/models/oembed_style.dart';
 /// the different public entry points.
 class EmbedSurface extends StatelessWidget {
   final WidgetBuilder childBuilder;
-  final OembedStyle? style;
+  final EmbedStyle? style;
   final String footerUrl;
   final Widget Function(BuildContext context, Widget child)?
   fallbackWrapperBuilder;

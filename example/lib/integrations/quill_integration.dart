@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill/quill_delta.dart';
-import 'package:oembed/oembed.dart';
-import 'package:oembed_example/widgets/config_menu_action.dart';
+import 'package:flutter_embed/flutter_embed.dart';
+import 'package:embed_example/widgets/config_menu_action.dart';
 
 class OEmbedBlockEmbed extends CustomBlockEmbed {
   const OEmbedBlockEmbed(String url) : super('oembed', url);
@@ -217,12 +217,12 @@ class _QuillIntegrationPageState extends State<QuillIntegrationPage> {
 
   @override
   Widget build(BuildContext context) {
-    return OembedScope(
+    return EmbedScope(
       config:
-          OembedScope.configOf(
+          EmbedScope.configOf(
             context,
           )?.copyWith(locale: _locale, brightness: _brightness) ??
-          OembedConfig(locale: _locale, brightness: _brightness),
+          EmbedConfig(locale: _locale, brightness: _brightness),
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Quill Integration'),

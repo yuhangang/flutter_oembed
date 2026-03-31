@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-/// Severity levels supported by [OembedLogger].
-enum OembedLogLevel {
+/// Severity levels supported by [EmbedLogger].
+enum EmbedLogLevel {
   off,
   error,
   warning,
@@ -10,8 +10,8 @@ enum OembedLogLevel {
 }
 
 /// Signature used for custom log sinks.
-typedef OembedLogSink = void Function({
-  required OembedLogLevel level,
+typedef EmbedLogSink = void Function({
+  required EmbedLogLevel level,
   required String message,
   Object? error,
   StackTrace? stackTrace,
@@ -19,55 +19,55 @@ typedef OembedLogSink = void Function({
 
 /// Configurable logger for the OEmbed package.
 ///
-/// By default the logger is disabled. Use [OembedLogger.debug] for a debug-only
-/// console logger, or [OembedLogger.enabled] to emit logs in all build modes
+/// By default the logger is disabled. Use [EmbedLogger.debug] for a debug-only
+/// console logger, or [EmbedLogger.enabled] to emit logs in all build modes
 /// with a custom sink.
-class OembedLogger {
+class EmbedLogger {
   final bool enabled;
-  final OembedLogLevel level;
+  final EmbedLogLevel level;
   final bool debugOnly;
   final String tag;
-  final OembedLogSink? sink;
+  final EmbedLogSink? sink;
 
-  const OembedLogger({
+  const EmbedLogger({
     this.enabled = false,
-    this.level = OembedLogLevel.debug,
+    this.level = EmbedLogLevel.debug,
     this.debugOnly = true,
     this.tag = 'OEmbed',
     this.sink,
   });
 
-  const OembedLogger.disabled()
+  const EmbedLogger.disabled()
       : enabled = false,
-        level = OembedLogLevel.off,
+        level = EmbedLogLevel.off,
         debugOnly = true,
         tag = 'OEmbed',
         sink = null;
 
-  const OembedLogger.debug({
-    this.level = OembedLogLevel.debug,
+  const EmbedLogger.debug({
+    this.level = EmbedLogLevel.debug,
     this.tag = 'OEmbed',
     this.sink,
   })  : enabled = true,
         debugOnly = true;
 
-  const OembedLogger.enabled({
-    this.level = OembedLogLevel.debug,
+  const EmbedLogger.enabled({
+    this.level = EmbedLogLevel.debug,
     this.debugOnly = false,
     this.tag = 'OEmbed',
     this.sink,
   })  : enabled = true;
 
   bool get isActive =>
-      enabled && level != OembedLogLevel.off && (!debugOnly || kDebugMode);
+      enabled && level != EmbedLogLevel.off && (!debugOnly || kDebugMode);
 
-  bool shouldLog(OembedLogLevel messageLevel) {
+  bool shouldLog(EmbedLogLevel messageLevel) {
     if (!isActive) return false;
     return messageLevel.index <= level.index;
   }
 
   void log(
-    OembedLogLevel messageLevel,
+    EmbedLogLevel messageLevel,
     String message, {
     Object? error,
     StackTrace? stackTrace,
@@ -88,7 +88,7 @@ class OembedLogger {
     Object? error,
     StackTrace? stackTrace,
   }) =>
-      log(OembedLogLevel.error, message, error: error, stackTrace: stackTrace);
+      log(EmbedLogLevel.error, message, error: error, stackTrace: stackTrace);
 
   void warning(
     String message, {
@@ -96,7 +96,7 @@ class OembedLogger {
     StackTrace? stackTrace,
   }) =>
       log(
-        OembedLogLevel.warning,
+        EmbedLogLevel.warning,
         message,
         error: error,
         stackTrace: stackTrace,
@@ -107,17 +107,17 @@ class OembedLogger {
     Object? error,
     StackTrace? stackTrace,
   }) =>
-      log(OembedLogLevel.info, message, error: error, stackTrace: stackTrace);
+      log(EmbedLogLevel.info, message, error: error, stackTrace: stackTrace);
 
   void debug(
     String message, {
     Object? error,
     StackTrace? stackTrace,
   }) =>
-      log(OembedLogLevel.debug, message, error: error, stackTrace: stackTrace);
+      log(EmbedLogLevel.debug, message, error: error, stackTrace: stackTrace);
 
   void _defaultSink({
-    required OembedLogLevel level,
+    required EmbedLogLevel level,
     required String message,
     Object? error,
     StackTrace? stackTrace,

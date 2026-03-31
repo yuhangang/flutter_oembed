@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:oembed/src/models/social_embed_param.dart';
-import 'package:oembed/src/models/embed_enums.dart';
+import 'package:flutter_embed/src/models/social_embed_param.dart';
+import 'package:flutter_embed/src/models/embed_enums.dart';
 
-/// **Deprecated.** Use [OembedConfig] and [OembedStyle] instead.
+/// **Deprecated.** Use [EmbedConfig] and [EmbedStyle] instead.
 ///
 /// Migration guide:
-/// - `facebookAppId` / `facebookClientToken` → [OembedConfig.facebookAppId] / [OembedConfig.facebookClientToken]
-/// - `onLinkTap` / `openSocialEmbedLinkClick` → [OembedConfig.onLinkTap]
-/// - Visual builders → [OembedStyle.loadingBuilder] / [OembedStyle.errorBuilder] / [OembedStyle.footerBuilder]
+/// - `facebookAppId` / `facebookClientToken` → [EmbedConfig.facebookAppId] / [EmbedConfig.facebookClientToken]
+/// - `onLinkTap` / `openSocialEmbedLinkClick` → [EmbedConfig.onLinkTap]
+/// - Visual builders → [EmbedStyle.loadingBuilder] / [EmbedStyle.errorBuilder] / [EmbedStyle.footerBuilder]
 /// - `getAppBrightness` / `scaffoldBackgroundColor` → Theme your app with Flutter's built-in theming.
 @Deprecated(
-  'OembedDelegate is deprecated. Use OembedConfig + OembedStyle instead. '
+  'EmbedDelegate is deprecated. Use EmbedConfig + EmbedStyle instead. '
   'See https://github.com/yuhangang/flutter_oembed for migration guide.'
 )
-abstract class OembedDelegate {
+abstract class EmbedDelegate {
   Future<void> openSocialEmbedLinkClick({
     required String url,
     required String embedType,

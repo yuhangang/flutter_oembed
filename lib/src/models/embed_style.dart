@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 /// Per-widget visual customization for OEmbed embeds.
 ///
-/// When provided to [EmbedCard] or [OembedRenderer], these builders override
-/// the global [OembedDelegate] builders, making [OembedScope] optional for
+/// When provided to [EmbedCard] or [EmbedRenderer], these builders override
+/// the global [EmbedDelegate] builders, making [EmbedScope] optional for
 /// users who want standalone embeds.
-class OembedStyle {
+class EmbedStyle {
   /// Wraps the entire embed widget. Use this to add borders, border radius,
   /// shadows, padding, etc.
   ///
@@ -49,7 +49,7 @@ class OembedStyle {
   /// Defaults to 400.0.
   final double maxScrollableHeight;
 
-  const OembedStyle({
+  const EmbedStyle({
     this.wrapperBuilder,
     this.loadingBuilder,
     this.errorBuilder,
@@ -59,7 +59,7 @@ class OembedStyle {
   });
 
   /// Returns a copy of this style with the given fields replaced.
-  OembedStyle copyWith({
+  EmbedStyle copyWith({
     Widget Function(BuildContext context, Widget child)? wrapperBuilder,
     WidgetBuilder? loadingBuilder,
     Widget Function(BuildContext context, Object? error)? errorBuilder,
@@ -67,7 +67,7 @@ class OembedStyle {
     BorderRadius? borderRadius,
     double? maxScrollableHeight,
   }) {
-    return OembedStyle(
+    return EmbedStyle(
       wrapperBuilder: wrapperBuilder ?? this.wrapperBuilder,
       loadingBuilder: loadingBuilder ?? this.loadingBuilder,
       errorBuilder: errorBuilder ?? this.errorBuilder,

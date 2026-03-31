@@ -1,4 +1,4 @@
-import 'package:oembed/src/models/embed_enums.dart';
+import 'package:flutter_embed/src/models/embed_enums.dart';
 
 String loadEmbedHtmlDocument(
   String embedData, {

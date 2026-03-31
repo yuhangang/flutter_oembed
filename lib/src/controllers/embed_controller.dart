@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'dart:async';
-import 'package:oembed/src/models/oembed_config.dart';
-import 'package:oembed/src/models/social_embed_param.dart';
-import 'package:oembed/src/models/embed_enums.dart';
-import 'package:oembed/src/core/oembed_delegate.dart';
-import 'package:oembed/src/models/oembed_data.dart';
-import 'package:oembed/src/utils/embed_html_utils.dart';
-import 'package:oembed/src/utils/embed_webview_controller_utils.dart';
-import 'package:oembed/src/controllers/embed_navigation_handler.dart';
-import 'package:oembed/src/logging/oembed_logger.dart';
+import 'package:flutter_embed/src/models/embed_config.dart';
+import 'package:flutter_embed/src/models/social_embed_param.dart';
+import 'package:flutter_embed/src/models/embed_enums.dart';
+import 'package:flutter_embed/src/core/embed_delegate.dart';
+import 'package:flutter_embed/src/models/embed_data.dart';
+import 'package:flutter_embed/src/utils/embed_html_utils.dart';
+import 'package:flutter_embed/src/utils/embed_webview_controller_utils.dart';
+import 'package:flutter_embed/src/controllers/embed_navigation_handler.dart';
+import 'package:flutter_embed/src/logging/embed_logger.dart';
 
 class EmbedController extends ChangeNotifier {
   final SocialEmbedParam param;
-  final OembedDelegate? delegate;
-  final OembedConfig? config;
-  final OembedData? preloadedData;
+  final EmbedDelegate? delegate;
+  final EmbedConfig? config;
+  final EmbedData? preloadedData;
 
   EmbedLoadingState loadingState = EmbedLoadingState.loading;
   bool didRetry = false;
@@ -24,7 +24,7 @@ class EmbedController extends ChangeNotifier {
   bool _isDisposed = false;
   Timer? _timeoutTimer;
   late final EmbedNavigationHandler _navigationHandler;
-  OembedLogger get _logger => config?.logger ?? const OembedLogger.disabled();
+  EmbedLogger get _logger => config?.logger ?? const EmbedLogger.disabled();
 
   late final WebViewController webViewController;
 
@@ -102,7 +102,7 @@ class EmbedController extends ChangeNotifier {
   /// so we never hold a [BuildContext] across an async boundary.
   Future<void> initEmbedWebview({
     required Color backgroundColor,
-    required OembedData? embedData,
+    required EmbedData? embedData,
     required String? embedUrl,
     required double maxWidth,
     bool scrollable = false,
@@ -129,7 +129,7 @@ class EmbedController extends ChangeNotifier {
 
   Future<void> _initWebViewController({
     required Color backgroundColor,
-    required OembedData? embedData,
+    required EmbedData? embedData,
     bool scrollable = false,
   }) async {
     final resolvedData = embedData ?? preloadedData;
@@ -150,7 +150,7 @@ class EmbedController extends ChangeNotifier {
     if (param.embedType == EmbedType.x) {
       await webViewController.addJavaScriptChannel(
         'OnTwitterLoaded',
-        onMessageReceived: (_) async => _handleOembedPageFinished(),
+        onMessageReceived: (_) async => _handleEmbedPageFinished(),
       );
     }
 
@@ -171,9 +171,9 @@ class EmbedController extends ChangeNotifier {
             if (param.isTikTokPhoto) {
               await webViewController.muteAudioWidget();
             }
-            _handleOembedPageFinished();
+            _handleEmbedPageFinished();
           } else {
-            await _handleOembedPageFinished();
+            await _handleEmbedPageFinished();
           }
         },
       ),
@@ -181,7 +181,7 @@ class EmbedController extends ChangeNotifier {
   }
 
   Future<void> _loadEmbedWebview(
-    OembedData? embedData,
+    EmbedData? embedData,
     double maxWidth,
     String? embedUrl,
     bool scrollable,
@@ -207,7 +207,7 @@ class EmbedController extends ChangeNotifier {
     }
   }
 
-  Future<void> _handleOembedPageFinished() async {
+  Future<void> _handleEmbedPageFinished() async {
     await Future.delayed(const Duration(milliseconds: 1000));
     if (_isDisposed) return;
 

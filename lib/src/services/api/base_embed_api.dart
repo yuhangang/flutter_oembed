@@ -3,19 +3,19 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:http/http.dart' as http;
-import 'package:oembed/src/models/embed_constant.dart';
-import 'package:oembed/src/models/oembed_cache_config.dart';
-import 'package:oembed/src/models/oembed_data.dart';
-import 'package:oembed/src/logging/oembed_logger.dart';
-import 'package:oembed/src/utils/embed_errors.dart';
+import 'package:flutter_embed/src/models/embed_constant.dart';
+import 'package:flutter_embed/src/models/embed_cache_config.dart';
+import 'package:flutter_embed/src/models/embed_data.dart';
+import 'package:flutter_embed/src/logging/embed_logger.dart';
+import 'package:flutter_embed/src/utils/embed_errors.dart';
 
 /// Base class for all OEmbed API clients.
 ///
 /// Subclasses implement [constructUrl] and [handleErrorResponse] to provide
-/// provider-specific behaviour. The [getOembedData] method handles caching
+/// provider-specific behaviour. The [getEmbedData] method handles caching
 /// and HTTP execution, so subclasses rarely need to override it.
-abstract class BaseOembedApi {
-  const BaseOembedApi();
+abstract class BaseEmbedApi {
+  const BaseEmbedApi();
 
   /// The base URL of the provider's OEmbed endpoint.
   String get baseUrl;
@@ -32,8 +32,8 @@ abstract class BaseOembedApi {
 
   /// Called after a successful API response.
   ///
-  /// Use this to normalise or post-process the [OembedData] before caching.
-  OembedData ombedResponseModifier(OembedData response) => response;
+  /// Use this to normalise or post-process the [EmbedData] before caching.
+  EmbedData ombedResponseModifier(EmbedData response) => response;
 
   // ---------------------------------------------------------------------------
   // Caching helpers — override to inject a custom cache manager in tests.
@@ -41,13 +41,13 @@ abstract class BaseOembedApi {
 
   BaseCacheManager get _cacheManager => DefaultCacheManager();
 
-  Future<OembedData?> getCachedResult(Uri uri, {OembedLogger? logger}) async {
+  Future<EmbedData?> getCachedResult(Uri uri, {EmbedLogger? logger}) async {
     try {
       final cache = await _cacheManager.getFileFromCache(uri.toString());
       final bytes = await cache?.file.readAsBytes();
       if (bytes != null) {
         logger?.debug('Cache hit for $uri');
-        return OembedData.fromJson(jsonDecode(utf8.decode(bytes)));
+        return EmbedData.fromJson(jsonDecode(utf8.decode(bytes)));
       }
       logger?.debug('Cache miss for $uri');
       return null;
@@ -63,9 +63,9 @@ abstract class BaseOembedApi {
 
   Future<void> setCachedResult(
     Uri uri,
-    OembedData oembedData, {
+    EmbedData oembedData, {
     Duration? maxAge,
-    OembedLogger? logger,
+    EmbedLogger? logger,
   }) async {
     try {
       final resolvedMaxAge =
@@ -91,14 +91,14 @@ abstract class BaseOembedApi {
   Exception handleErrorResponse(http.Response response);
 
   /// Fetches OEmbed data for [url], using the cache when available.
-  Future<OembedData> getOembedData(
+  Future<EmbedData> getEmbedData(
     String url, {
     String locale = 'en',
     Brightness brightness = Brightness.light,
-    OembedCacheConfig? cacheConfig,
-    OembedLogger? logger,
+    EmbedCacheConfig? cacheConfig,
+    EmbedLogger? logger,
   }) async {
-    final config = cacheConfig ?? const OembedCacheConfig();
+    final config = cacheConfig ?? const EmbedCacheConfig();
     final uri = constructUrl(url, locale: locale, brightness: brightness);
     logger?.debug('Resolving OEmbed request for $url -> $uri');
 
@@ -117,7 +117,7 @@ abstract class BaseOembedApi {
 
     if (response.statusCode == 200) {
       final decoded = ombedResponseModifier(
-        OembedData.fromJson(json.decode(response.body)),
+        EmbedData.fromJson(json.decode(response.body)),
       );
 
       if (config.enabled) {
@@ -141,8 +141,8 @@ abstract class BaseOembedApi {
 // ---------------------------------------------------------------------------
 
 /// A generic OEmbed API client that works with any standard OEmbed endpoint.
-class GenericOembedApi extends BaseOembedApi {
-  const GenericOembedApi(
+class GenericEmbedApi extends BaseEmbedApi {
+  const GenericEmbedApi(
     this.endpoint, {
     Map<String, String>? headers,
     this.width,

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:oembed/src/controllers/embed_controller.dart';
-import 'package:oembed/src/models/embed_enums.dart';
-import 'package:oembed/src/models/social_embed_param.dart';
-import 'package:oembed/src/widgets/embed_webview.dart';
-import 'package:oembed/src/widgets/embed_surface.dart';
-import 'package:oembed/src/core/oembed_scope.dart';
-import 'package:oembed/src/models/oembed_config.dart';
+import 'package:flutter_embed/src/controllers/embed_controller.dart';
+import 'package:flutter_embed/src/models/embed_enums.dart';
+import 'package:flutter_embed/src/models/social_embed_param.dart';
+import 'package:flutter_embed/src/widgets/embed_webview.dart';
+import 'package:flutter_embed/src/widgets/embed_surface.dart';
+import 'package:flutter_embed/src/core/embed_scope.dart';
+import 'package:flutter_embed/src/models/embed_config.dart';
 
 /// A standalone player widget for TikTok's native embedded player (v1).
 ///
@@ -102,7 +102,7 @@ class _TikTokEmbedPlayerState extends State<TikTokEmbedPlayer> {
     return input; // Fallback
   }
 
-  String _buildPlayerUrl(String videoId, {OembedConfig? config}) {
+  String _buildPlayerUrl(String videoId, {EmbedConfig? config}) {
     var uri = Uri.parse('https://www.tiktok.com/player/v1/$videoId');
     
     final queryParams = <String, String>{
@@ -123,8 +123,8 @@ class _TikTokEmbedPlayerState extends State<TikTokEmbedPlayer> {
 
   @override
   Widget build(BuildContext context) {
-    final config = OembedScope.configOf(context);
-    final style = config?.style ?? OembedScope.styleOf(context);
+    final config = EmbedScope.configOf(context);
+    final style = config?.style ?? EmbedScope.styleOf(context);
     final videoId = _extractTikTokVideoId(widget.videoIdOrUrl);
     final playerUrl = _buildPlayerUrl(videoId, config: config);
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:oembed/src/models/oembed_style.dart';
-import 'package:oembed/src/widgets/embed_surface.dart';
+import 'package:flutter_embed/src/models/embed_style.dart';
+import 'package:flutter_embed/src/widgets/embed_surface.dart';
 
 void main() {
   testWidgets('uses wrapperBuilder before borderRadius', (tester) async {
@@ -9,7 +9,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: EmbedSurface(
-            style: OembedStyle(
+            style: EmbedStyle(
               wrapperBuilder: (context, child) {
                 return Container(key: const Key('wrapper'), child: child);
               },
@@ -33,7 +33,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: EmbedSurface(
-            style: OembedStyle(borderRadius: BorderRadius.circular(12)),
+            style: EmbedStyle(borderRadius: BorderRadius.circular(12)),
             childBuilder: (context) => const Text('content'),
           ),
         ),
@@ -51,7 +51,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: EmbedSurface(
-            style: OembedStyle(
+            style: EmbedStyle(
               footerBuilder: (context, url) => Text('footer:$url'),
             ),
             footerUrl: 'https://example.com/post/1',

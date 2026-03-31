@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
-import 'package:oembed/oembed.dart';
-import 'package:oembed_example/widgets/config_menu_action.dart';
+import 'package:flutter_embed/flutter_embed.dart';
+import 'package:embed_example/widgets/config_menu_action.dart';
 
-String? _extractOembedUrlFromHtml(ExtensionContext context) {
+String? _extractEmbedUrlFromHtml(ExtensionContext context) {
   final attributes = context.attributes;
   final candidates = <String?>[
     attributes['url'],
@@ -30,7 +30,7 @@ bool _isValidHttpUrl(String? value) {
   return uri != null && (uri.scheme == 'http' || uri.scheme == 'https');
 }
 
-class OembedExtension extends HtmlExtension {
+class EmbedExtension extends HtmlExtension {
   @override
   Set<String> get supportedTags => {"oembed", "a"};
 
@@ -49,7 +49,7 @@ class OembedExtension extends HtmlExtension {
   InlineSpan build(ExtensionContext context) {
     final url =
         context.elementName == "oembed"
-            ? _extractOembedUrlFromHtml(context)
+            ? _extractEmbedUrlFromHtml(context)
             : context.attributes['href'];
 
     if (url == null) return const TextSpan(text: "");
@@ -105,12 +105,12 @@ class _HtmlIntegrationPageState extends State<HtmlIntegrationPage> {
 <p>The <code>&lt;oembed&gt;</code> tag and <code>title="embed"</code> attribute are mapped to <code>EmbedCard</code> using a custom <code>HtmlExtension</code>. URL can come from <code>url</code>, <code>href</code>, <code>src</code>, <code>data-url</code>, or inner text.</p>
 ''';
 
-    return OembedScope(
+    return EmbedScope(
       config:
-          OembedScope.configOf(
+          EmbedScope.configOf(
             context,
           )?.copyWith(locale: _locale, brightness: _brightness) ??
-          OembedConfig(locale: _locale, brightness: _brightness),
+          EmbedConfig(locale: _locale, brightness: _brightness),
       child: Scaffold(
         appBar: AppBar(
           title: const Text('HTML Integration'),
@@ -135,7 +135,7 @@ class _HtmlIntegrationPageState extends State<HtmlIntegrationPage> {
           child: Html(
             key: ValueKey('html_$_locale-$_brightness'),
             data: htmlData,
-            extensions: [OembedExtension()],
+            extensions: [EmbedExtension()],
           ),
         ),
       ),

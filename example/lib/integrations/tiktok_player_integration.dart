@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:oembed/oembed.dart';
-import 'package:oembed_example/widgets/config_menu_action.dart';
+import 'package:flutter_embed/flutter_embed.dart';
+import 'package:embed_example/widgets/config_menu_action.dart';
 
 class TikTokPlayerIntegrationPage extends StatefulWidget {
   const TikTokPlayerIntegrationPage({super.key});
@@ -27,13 +27,12 @@ class _TikTokPlayerIntegrationState extends State<TikTokPlayerIntegrationPage> {
 
   @override
   Widget build(BuildContext context) {
-    return OembedScope(
+    return EmbedScope(
       config:
-          OembedScope.configOf(context)?.copyWith(
-            locale: _locale,
-            brightness: _brightness,
-          ) ??
-          OembedConfig(locale: _locale, brightness: _brightness),
+          EmbedScope.configOf(
+            context,
+          )?.copyWith(locale: _locale, brightness: _brightness) ??
+          EmbedConfig(locale: _locale, brightness: _brightness),
       child: Scaffold(
         appBar: AppBar(
           title: const Text('TikTok Native Player (v1)'),
@@ -102,7 +101,8 @@ class _TikTokPlayerIntegrationState extends State<TikTokPlayerIntegrationPage> {
                           SwitchListTile(
                             title: const Text('Music Info'),
                             value: _musicInfo,
-                            onChanged: (val) => setState(() => _musicInfo = val),
+                            onChanged:
+                                (val) => setState(() => _musicInfo = val),
                             dense: true,
                           ),
                           SwitchListTile(

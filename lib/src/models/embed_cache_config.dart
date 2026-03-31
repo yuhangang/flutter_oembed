@@ -1,5 +1,5 @@
 /// Configuration for OEmbed response caching.
-class OembedCacheConfig {
+class EmbedCacheConfig {
   /// Whether caching is enabled. When false, every request hits the network.
   final bool enabled;
 
@@ -15,7 +15,7 @@ class OembedCacheConfig {
   /// refreshes even when the API returns a very large `cache_age`.
   final Duration? maxCacheDuration;
 
-  const OembedCacheConfig({
+  const EmbedCacheConfig({
     this.enabled = true,
     this.defaultCacheDuration = const Duration(days: 7),
     this.respectApiCacheAge = true,

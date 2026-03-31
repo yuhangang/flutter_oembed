@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:oembed/oembed.dart';
-import 'package:oembed_example/widgets/config_menu_action.dart';
+import 'package:flutter_embed/flutter_embed.dart';
+import 'package:embed_example/widgets/config_menu_action.dart';
 
 class YoutubePlayerIntegrationPage extends StatefulWidget {
   const YoutubePlayerIntegrationPage({super.key});
@@ -26,13 +26,12 @@ class _YoutubePlayerIntegrationState
 
   @override
   Widget build(BuildContext context) {
-    return OembedScope(
+    return EmbedScope(
       config:
-          OembedScope.configOf(context)?.copyWith(
-            locale: _locale,
-            brightness: _brightness,
-          ) ??
-          OembedConfig(locale: _locale, brightness: _brightness),
+          EmbedScope.configOf(
+            context,
+          )?.copyWith(locale: _locale, brightness: _brightness) ??
+          EmbedConfig(locale: _locale, brightness: _brightness),
       child: Scaffold(
         appBar: AppBar(
           title: const Text('YouTube Native Player IFrame'),

@@ -1,4 +1,4 @@
-name: oembed_example
+name: embed_example
 description: "An example app for the oembed package."
 publish_to: 'none'
 version: 1.0.0+1
@@ -10,7 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  oembed:
+  flutter_embed:
     path: ../
   google_fonts: any
   url_launcher: ^6.3.1

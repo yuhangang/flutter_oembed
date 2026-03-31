@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:oembed/src/controllers/embed_controller.dart';
-import 'package:oembed/src/core/oembed_scope.dart';
-import 'package:oembed/src/models/embed_enums.dart';
-import 'package:oembed/src/models/oembed_data.dart';
-import 'package:oembed/src/models/social_embed_param.dart';
+import 'package:flutter_embed/src/controllers/embed_controller.dart';
+import 'package:flutter_embed/src/core/embed_scope.dart';
+import 'package:flutter_embed/src/models/embed_enums.dart';
+import 'package:flutter_embed/src/models/embed_data.dart';
+import 'package:flutter_embed/src/models/social_embed_param.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class EmbedWebView extends StatefulWidget {
   final SocialEmbedParam param;
-  final OembedData? data;
+  final EmbedData? data;
   final String? url;
   final double maxWidth;
   final EmbedController controller;
@@ -18,7 +18,7 @@ class EmbedWebView extends StatefulWidget {
   const EmbedWebView.data({
     super.key,
     required this.param,
-    required OembedData this.data,
+    required EmbedData this.data,
     required this.maxWidth,
     required this.controller,
     this.scrollable = false,
@@ -56,9 +56,9 @@ class _EmbedViewState extends State<EmbedWebView> {
   }
 
   Widget _buildLoadingOverlay(BuildContext context) {
-    final config = OembedScope.configOf(context);
+    final config = EmbedScope.configOf(context);
     return config?.style?.loadingBuilder?.call(context) ??
-        OembedScope.of(context).buildSocialEmbedPlaceholder(
+        EmbedScope.of(context).buildSocialEmbedPlaceholder(
           context: context,
           embedType: widget.param.embedType,
         );
@@ -69,7 +69,7 @@ class _EmbedViewState extends State<EmbedWebView> {
     return AnimatedBuilder(
       animation: widget.controller,
       builder: (context, child) {
-        final config = widget.controller.config ?? OembedScope.configOf(context);
+        final config = widget.controller.config ?? EmbedScope.configOf(context);
         final style = config?.style;
         final loadingState = widget.controller.loadingState;
         final double? aspectRatio =
@@ -111,7 +111,7 @@ class _EmbedViewState extends State<EmbedWebView> {
                   GestureDetector(
                     onTap: () {
                       final hasConnection =
-                          OembedScope.of(context).checkConnection();
+                          EmbedScope.of(context).checkConnection();
                       if (hasConnection) {
                         widget.controller.setLoadingState(
                           EmbedLoadingState.loading,
@@ -126,7 +126,7 @@ class _EmbedViewState extends State<EmbedWebView> {
                     },
                     child:
                         style?.errorBuilder?.call(context, null) ??
-                        OembedScope.of(context)
+                        EmbedScope.of(context)
                             .buildSocialEmbedRefreshPlaceholder(
                               context: context,
                               param: widget.param,

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:oembed/src/controllers/embed_controller.dart';
-import 'package:oembed/src/models/embed_enums.dart';
-import 'package:oembed/src/models/social_embed_param.dart';
-import 'package:oembed/src/widgets/embed_webview.dart';
-import 'package:oembed/src/widgets/embed_surface.dart';
-import 'package:oembed/src/core/oembed_scope.dart';
-import 'package:oembed/src/models/oembed_config.dart';
-import 'package:oembed/src/models/oembed_data.dart';
+import 'package:flutter_embed/src/controllers/embed_controller.dart';
+import 'package:flutter_embed/src/models/embed_enums.dart';
+import 'package:flutter_embed/src/models/social_embed_param.dart';
+import 'package:flutter_embed/src/widgets/embed_webview.dart';
+import 'package:flutter_embed/src/widgets/embed_surface.dart';
+import 'package:flutter_embed/src/core/embed_scope.dart';
+import 'package:flutter_embed/src/models/embed_config.dart';
+import 'package:flutter_embed/src/models/embed_data.dart';
 
 /// A standalone player widget for YouTube's native iframe player.
 ///
@@ -111,7 +111,7 @@ class _YoutubeEmbedPlayerState extends State<YoutubeEmbedPlayer> {
     return input; // Fallback
   }
 
-  String _buildPlayerUrl(String videoId, {OembedConfig? config}) {
+  String _buildPlayerUrl(String videoId, {EmbedConfig? config}) {
     var uri = Uri.parse('https://www.youtube.com/embed/$videoId');
     
     final queryParams = <String, String>{
@@ -144,19 +144,19 @@ class _YoutubeEmbedPlayerState extends State<YoutubeEmbedPlayer> {
 
   @override
   Widget build(BuildContext context) {
-    final config = OembedScope.configOf(context);
-    final style = config?.style ?? OembedScope.styleOf(context);
+    final config = EmbedScope.configOf(context);
+    final style = config?.style ?? EmbedScope.styleOf(context);
     final videoId = _extractYoutubeVideoId(widget.videoIdOrUrl);
     final playerUrl = _buildPlayerUrl(videoId, config: config);
 
-    // Constructing a mock OembedData forces the controller to load an HTML
+    // Constructing a mock EmbedData forces the controller to load an HTML
     // document rather than a top-level URL. This, combined with the origin query
     // and strict-origin referrer policy, fulfills YouTube's security requirements
     // and prevents Error 153 (Video Player Configuration Error).
     final iframeHtml =
         '<iframe width="100%" height="100%" src="$playerUrl" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>';
 
-    final mockData = OembedData(
+    final mockData = EmbedData(
       html: iframeHtml,
       type: 'video',
       providerName: 'YouTube',

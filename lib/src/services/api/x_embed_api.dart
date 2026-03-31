@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:oembed/src/services/api/base_oembed_api.dart';
-import 'package:oembed/src/utils/embed_errors.dart';
+import 'package:flutter_embed/src/services/api/base_embed_api.dart';
+import 'package:flutter_embed/src/utils/embed_errors.dart';
 
 /// OEmbed API client for X (formerly Twitter).
-class XEmbedApi extends BaseOembedApi {
+class XEmbedApi extends BaseEmbedApi {
   const XEmbedApi();
 
   static const _localeMap = {'en': 'en', 'ms': 'msa', 'zh': 'zh-cn'};

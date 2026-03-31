@@ -1,14 +1,14 @@
 import 'package:collection/collection.dart';
-import 'package:oembed/src/models/embed_enums.dart';
-import 'package:oembed/src/services/provider_registry.dart';
+import 'package:flutter_embed/src/models/embed_enums.dart';
+import 'package:flutter_embed/src/services/provider_registry.dart';
 
 /// A utility class to match URLs against known [EmbedType]s.
 class EmbedMatchers {
   /// Resolves the [EmbedType] for a given [url] by matching it against 
   /// the default OEmbed provider rules.
   static EmbedType getEmbedType(String url) {
-    // First, try to match against kDefaultOembedProviders
-    final rule = kDefaultOembedProviders.firstWhereOrNull(
+    // First, try to match against kDefaultEmbedProviders
+    final rule = kDefaultEmbedProviders.firstWhereOrNull(
       (element) => element.matches(url),
     );
 
