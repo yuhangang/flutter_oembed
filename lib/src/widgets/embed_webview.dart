@@ -6,7 +6,6 @@ import 'package:flutter_embed/src/models/embed_data.dart';
 import 'package:flutter_embed/src/models/embed_style.dart';
 import 'package:flutter_embed/src/models/social_embed_param.dart';
 import 'package:flutter_embed/src/controllers/embed_webview_driver.dart';
-import 'package:flutter_embed/src/core/simple_embed_delegate.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -98,13 +97,8 @@ class _EmbedViewState extends State<EmbedWebView> {
   }
 
   Widget _buildLoadingOverlay(BuildContext context, EmbedStyle? style) {
-    final delegate =
-        EmbedScope.delegateOf(context) ?? const SimpleEmbedDelegate();
     return style?.loadingBuilder?.call(context) ??
-        delegate.buildSocialEmbedPlaceholder(
-          context: context,
-          embedType: widget.param.embedType,
-        );
+        const Center(child: CircularProgressIndicator());
   }
 
   Widget _buildWebView(BuildContext context, EmbedStyle? style) {
@@ -118,8 +112,6 @@ class _EmbedViewState extends State<EmbedWebView> {
       builder: (context, child) {
         final config = widget.controller.config ?? EmbedScope.configOf(context);
         final style = widget.style ?? config?.style;
-        final delegate =
-            EmbedScope.delegateOf(context) ?? const SimpleEmbedDelegate();
         final loadingState = widget.controller.loadingState;
         final double? aspectRatio = widget.data?.aspectRatio ??
             widget.controller.preloadedData?.aspectRatio;
@@ -147,25 +139,18 @@ class _EmbedViewState extends State<EmbedWebView> {
                   loadingState == EmbedLoadingState.noConnection)
                 GestureDetector(
                   onTap: () {
-                    final hasConnection = delegate.checkConnection();
-                    if (hasConnection) {
-                      widget.controller.setLoadingState(
-                        EmbedLoadingState.loading,
-                      );
-                      if (loadingState == EmbedLoadingState.error) {
-                        widget.controller.setDidRetry();
-                        _driver.refresh();
-                      } else {
-                        _driver.webViewController.reload();
-                      }
+                    widget.controller.setLoadingState(
+                      EmbedLoadingState.loading,
+                    );
+                    if (loadingState == EmbedLoadingState.error) {
+                      widget.controller.setDidRetry();
+                      _driver.refresh();
+                    } else {
+                      _driver.webViewController.reload();
                     }
                   },
                   child: style?.errorBuilder?.call(context, null) ??
-                      delegate.buildSocialEmbedRefreshPlaceholder(
-                        context: context,
-                        param: widget.param,
-                        onTap: () {}, // Already handled by GestureDetector
-                      ),
+                      const Icon(Icons.refresh),
                 ),
             ],
           ),
@@ -180,9 +165,7 @@ class _EmbedViewState extends State<EmbedWebView> {
           onVisibilityChanged: (info) => widget.controller.updateVisibility(
             info.visibleFraction > 0,
             onVisibilityChange: (visible) {
-              if (!visible &&
-                  widget.param.embedType.isTikTok &&
-                  loadingState == EmbedLoadingState.loaded) {
+              if (!visible && loadingState == EmbedLoadingState.loaded) {
                 _driver.pauseMedias();
               }
             },

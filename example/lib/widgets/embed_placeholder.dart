@@ -42,9 +42,13 @@ class _SocialEmbedPlaceholderState extends State<SocialEmbedPlaceholder>
         color: Theme.of(context).scaffoldBackgroundColor,
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.withValues(alpha: 0.1)),
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outlineVariant.withValues(alpha: 0.1),
+            ),
           ),
           child: Center(
             child: Column(
@@ -78,13 +82,15 @@ class _SocialEmbedPlaceholderState extends State<SocialEmbedPlaceholder>
                       padding: const EdgeInsets.all(14),
                       child:
                           assetPath != null
-                              ? SvgPicture.asset(
-                                assetPath,
-                                colorFilter: ColorFilter.mode(
-                                  theme.primaryColor,
-                                  BlendMode.srcIn,
-                                ),
-                              )
+                              ? (assetPath.endsWith('.png')
+                                  ? Image.asset(assetPath, fit: BoxFit.contain)
+                                  : SvgPicture.asset(
+                                    assetPath,
+                                    colorFilter: ColorFilter.mode(
+                                      Theme.of(context).iconTheme.color!,
+                                      BlendMode.srcIn,
+                                    ),
+                                  ))
                               : Icon(
                                 Icons.auto_awesome,
                                 color: theme.primaryColor,
@@ -205,6 +211,15 @@ class _SocialEmbedPlaceholderState extends State<SocialEmbedPlaceholder>
             end: Alignment.bottomRight,
           ),
         );
+      case EmbedType.giphy:
+        return _PlatformTheme(
+          primaryColor: Colors.black,
+          gradient: const LinearGradient(
+            colors: [Color(0xFF000000), Color(0xFF616161)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        );
       default:
         return _PlatformTheme(
           primaryColor: Colors.blueGrey,
@@ -246,7 +261,7 @@ class SocialEmbedErrorPlaceholder extends StatelessWidget {
               embedType.isVideo ? BorderRadius.zero : BorderRadius.circular(24),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius:
                   embedType.isVideo
                       ? BorderRadius.zero
@@ -287,13 +302,19 @@ class SocialEmbedErrorPlaceholder extends StatelessWidget {
                             if (assetPath != null)
                               Opacity(
                                 opacity: 0.3,
-                                child: SvgPicture.asset(
-                                  assetPath,
-                                  colorFilter: ColorFilter.mode(
-                                    errorColor,
-                                    BlendMode.srcIn,
-                                  ),
-                                ),
+                                child:
+                                    assetPath.endsWith('.png')
+                                        ? Image.asset(
+                                          assetPath,
+                                          fit: BoxFit.contain,
+                                        )
+                                        : SvgPicture.asset(
+                                          assetPath,
+                                          colorFilter: ColorFilter.mode(
+                                            errorColor,
+                                            BlendMode.srcIn,
+                                          ),
+                                        ),
                               ),
                             const Center(
                               child: Icon(
@@ -322,7 +343,7 @@ class SocialEmbedErrorPlaceholder extends StatelessWidget {
                   Text(
                     'Tap to try again',
                     style: TextStyle(
-                      color: Colors.grey.shade400,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),

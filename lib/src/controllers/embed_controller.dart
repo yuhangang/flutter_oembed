@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_embed/src/models/social_embed_param.dart';
 import 'package:flutter_embed/src/models/embed_enums.dart';
-import 'package:flutter_embed/src/core/embed_delegate.dart';
 import 'package:flutter_embed/src/models/embed_data.dart';
 import 'package:flutter_embed/src/logging/embed_logger.dart';
 import 'package:flutter_embed/src/models/embed_config.dart';
 
 class EmbedController extends ChangeNotifier {
   final SocialEmbedParam param;
-  final EmbedDelegate? delegate;
   final EmbedConfig? config;
   final EmbedData? preloadedData;
 
@@ -23,7 +21,6 @@ class EmbedController extends ChangeNotifier {
 
   EmbedController({
     required this.param,
-    this.delegate,
     this.config,
     this.preloadedData,
   });

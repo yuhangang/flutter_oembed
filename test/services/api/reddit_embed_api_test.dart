@@ -7,14 +7,17 @@ void main() {
     const api = RedditEmbedApi();
 
     test('constructUrl includes URL and format=json', () {
-      final uri = api.constructUrl('https://www.reddit.com/r/flutterdev/comments/123/');
-      expect(uri.queryParameters['url'], 'https://www.reddit.com/r/flutterdev/comments/123/');
+      final uri =
+          api.constructUrl('https://www.reddit.com/r/flutterdev/comments/123/');
+      expect(uri.queryParameters['url'],
+          'https://www.reddit.com/r/flutterdev/comments/123/');
       expect(uri.queryParameters['format'], 'json');
     });
 
     test('constructUrl includes maxwidth when width is provided', () {
       const apiWithWidth = RedditEmbedApi(width: 500);
-      final uri = apiWithWidth.constructUrl('https://www.reddit.com/r/flutterdev/comments/123/');
+      final uri = apiWithWidth
+          .constructUrl('https://www.reddit.com/r/flutterdev/comments/123/');
       expect(uri.queryParameters['maxwidth'], '500');
     });
 
@@ -27,7 +30,7 @@ void main() {
     });
 
     test('headers includes required User-Agent for Reddit', () {
-      expect(api.headers['User-Agent'], contains('flutter_oembed'));
+      expect(api.headers['User-Agent'], contains('flutter_embed'));
     });
 
     test('baseUrl points to reddit oembed endpoint', () {

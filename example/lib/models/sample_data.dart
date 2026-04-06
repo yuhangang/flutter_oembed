@@ -63,10 +63,4 @@ const List<Map<String, dynamic>> samples = [
     'type': EmbedType.giphy,
     'source': 'GIPHY',
   },
-  {
-    'url':
-        'https://www.reddit.com/r/NoStupidQuestions/comments/17yv8y8/is_anyone_else_afraid_of_the_super_solar_storm/',
-    'type': EmbedType.reddit,
-    'source': 'Reddit',
-  },
 ];

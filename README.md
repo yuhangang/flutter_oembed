@@ -61,12 +61,9 @@ Then use the `EmbedCard` widget anywhere in your app:
 EmbedCard(
   url: 'https://twitter.com/X/status/1328842765115920384',
   embedType: EmbedType.x,
-  embedContentType: EmbedContentType.richNewsStack,
-  pageIdentifier: 'home_page',
-  source: 'twitter',
-  contentId: '1328842765115920384',
-  elementId: 'tweet_1',
-  extraIdentifier: '',
+  onLinkTap: (url, data) {
+    print('User tapped link: $url');
+  },
 )
 ```
 
@@ -186,12 +183,6 @@ class EmbedNode extends SpanNode {
     return WidgetSpan(
       child: EmbedCard(
         url: url,
-        embedContentType: EmbedContentType.newsReaderMode,
-        pageIdentifier: 'markdown_page',
-        source: 'markdown',
-        contentId: 'markdown_content_${url.hashCode}',
-        elementId: 'markdown_element_${url.hashCode}',
-        extraIdentifier: '',
       ),
     );
   }
@@ -232,12 +223,6 @@ Html(
         if (url == null) return const SizedBox.shrink();
         return EmbedCard(
           url: url,
-          embedContentType: EmbedContentType.newsReaderMode,
-          pageIdentifier: 'html_page',
-          source: 'html',
-          contentId: 'html_content_${url.hashCode}',
-          elementId: 'html_element_${url.hashCode}',
-          extraIdentifier: '',
         );
       },
     ),

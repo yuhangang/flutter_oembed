@@ -27,7 +27,8 @@ void main() {
 
     test('matches media.giphy.com URLs', () {
       expect(
-        EmbedMatchers.getEmbedType('https://media.giphy.com/media/123/giphy.gif'),
+        EmbedMatchers.getEmbedType(
+            'https://media.giphy.com/media/123/giphy.gif'),
         EmbedType.giphy,
       );
     });

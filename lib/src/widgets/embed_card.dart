@@ -6,7 +6,6 @@ import 'package:flutter_embed/src/models/embed_data.dart';
 import 'package:flutter_embed/src/models/embed_enums.dart';
 import 'package:flutter_embed/src/models/embed_style.dart';
 import 'package:flutter_embed/src/models/social_embed_param.dart';
-import 'package:flutter_embed/src/models/embed_tracking.dart';
 import 'package:flutter_embed/src/widgets/embed_surface.dart';
 import 'package:flutter_embed/src/widgets/embed_widget_loader.dart';
 
@@ -16,7 +15,7 @@ import 'package:flutter_embed/src/widgets/embed_widget_loader.dart';
 /// the embed type when [embedType] is omitted.
 ///
 /// Wrap your app (or a subtree) with [EmbedScope] to supply global
-/// configuration and delegate builders.
+/// configuration.
 ///
 /// ```dart
 /// // Minimalist usage:
@@ -25,23 +24,21 @@ import 'package:flutter_embed/src/widgets/embed_widget_loader.dart';
 /// // Standard usage:
 /// EmbedCard(url: 'https://twitter.com/x/status/123')
 ///
-/// // With optional tracking info:
+/// // With localized link tap handler:
 /// EmbedCard.url(
 ///   'https://open.spotify.com/track/4cOdK2w...',
-///   tracking: EmbedTracking(
-///     pageIdentifier: 'article_page',
-///     source: 'editorial',
-///     contentId: 'article_42',
-///   ),
+///   onLinkTap: (url, data) {
+///     print('Clicked: $url');
+///   },
 /// )
 /// ```
 class EmbedCard extends StatelessWidget {
   final String url;
   final EmbedType? embedType;
 
-  /// Optional tracking, analytics, and instance identifiers.
-  /// If omitted, identifiers are auto-generated from the URL.
-  final EmbedTracking? tracking;
+  /// Optional callback when a link is tapped inside the embed or the footer.
+  /// Overrides [EmbedConfig.onLinkTap] if provided.
+  final void Function(String url, EmbedData? data)? onLinkTap;
 
   /// Pre-fetched OEmbed data. When provided, the card skips the API fetch
   /// and renders this data directly.
@@ -66,7 +63,7 @@ class EmbedCard extends StatelessWidget {
     super.key,
     required this.url,
     this.embedType,
-    this.tracking,
+    this.onLinkTap,
     this.preloadedData,
     this.style,
     this.cacheConfig,
@@ -85,7 +82,7 @@ class EmbedCard extends StatelessWidget {
     String url, {
     Key? key,
     EmbedType? embedType,
-    EmbedTracking? tracking,
+    void Function(String url, EmbedData? data)? onLinkTap,
     EmbedData? preloadedData,
     EmbedStyle? style,
     EmbedCacheConfig? cacheConfig,
@@ -98,7 +95,7 @@ class EmbedCard extends StatelessWidget {
       key: key,
       url: url,
       embedType: embedType,
-      tracking: tracking,
+      onLinkTap: onLinkTap,
       preloadedData: preloadedData,
       style: style,
       cacheConfig: cacheConfig,
@@ -113,7 +110,7 @@ class EmbedCard extends StatelessWidget {
     return SocialEmbedParam(
       url: url,
       embedType: embedType,
-      tracking: tracking,
+      key: key,
       queryParameters: queryParameters,
       embedParams: embedParams,
     );
@@ -125,32 +122,11 @@ class EmbedCard extends StatelessWidget {
     final config = EmbedScope.configOf(context);
     final style = this.style ?? config?.style;
     final scrollable = this.scrollable ?? config?.scrollable ?? false;
-    final delegate = EmbedScope.delegateOf(context);
 
     return EmbedSurface(
       style: style,
       footerUrl: url,
-      fallbackWrapperBuilder: delegate != null
-          ? (context, child) => delegate.buildSocialEmbedLinkWrapper(
-                context: context,
-                param: param,
-                child: child,
-              )
-          : null,
       childBuilder: (context) {
-        final shownEmbed = delegate?.showSocialEmbed(
-                param.tracking.pageIdentifier!, param.url) ??
-            true;
-
-        if (!shownEmbed) {
-          return delegate?.buildSocialEmbedLoadButton(
-                context: context,
-                param: param,
-                identifier: param.tracking.pageIdentifier!,
-              ) ??
-              const SizedBox.shrink();
-        }
-
         return EmbedWidgetLoader(
           param: param,
           preloadedData: preloadedData,

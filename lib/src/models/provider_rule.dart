@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_embed/src/core/provider_strategy.dart';
 import 'package:flutter_embed/src/models/base_embed_params.dart';
 import 'package:flutter_embed/src/services/api/base_embed_api.dart';
 
@@ -16,6 +17,7 @@ class EmbedProviderContext {
   final String facebookClientToken;
   final String? proxyUrl;
   final BaseEmbedParams? embedParams;
+  final EmbedProviderStrategy strategy;
 
   const EmbedProviderContext({
     required this.url,
@@ -25,6 +27,7 @@ class EmbedProviderContext {
     required this.brightness,
     required this.facebookAppId,
     required this.facebookClientToken,
+    required this.strategy,
     this.proxyUrl,
     this.embedParams,
   });
@@ -76,7 +79,7 @@ class EmbedProviderRule {
 
   /// Factory that constructs the [BaseEmbedApi] client for this provider.
   ///
-  /// When `null`, falls back to [GenericEmbedApi].
+  /// When `null`, falls back to [strategy.createApi].
   final BaseEmbedApi Function(EmbedProviderContext ctx)? apiFactory;
 
   /// Converts a content URL into an iframe `src` URL.
@@ -93,10 +96,14 @@ class EmbedProviderRule {
   /// (external links are opened in the host app).
   final bool Function(String url)? shouldAllowNavigation;
 
+  /// Provider-specific behaviors for rendering and interaction.
+  final EmbedProviderStrategy strategy;
+
   const EmbedProviderRule({
     required this.pattern,
     required this.endpoint,
     required this.providerName,
+    this.strategy = const GenericEmbedProviderStrategy(),
     this.iframeUrlBuilder,
     this.shouldAllowNavigation,
     this.subRules,

@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter_embed/src/controllers/embed_controller.dart';
-import 'package:flutter_embed/src/core/embed_delegate.dart';
 import 'package:flutter_embed/src/services/embed_service.dart';
 import 'package:flutter_embed/src/models/embed_data.dart';
 import 'package:flutter_embed/src/models/embed_config.dart';
@@ -12,7 +11,6 @@ import 'package:flutter_embed/src/widgets/embed_webview.dart';
 import 'package:flutter_embed/src/utils/embed_errors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_embed/src/core/embed_scope.dart';
-import 'package:flutter_embed/src/core/simple_embed_delegate.dart';
 import 'package:flutter_embed/src/models/embed_cache_config.dart';
 
 class EmbedDataLoader extends StatefulWidget {
@@ -42,20 +40,23 @@ class EmbedDataLoader extends StatefulWidget {
 }
 
 class _EmbedDataLoaderState extends State<EmbedDataLoader> {
-  late Future<EmbedData> _embedFeature;
-  EmbedDelegate? _resolvedDelegate;
+  Future<EmbedData>? _embedFeature;
   EmbedConfig? _resolvedConfig;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData(config: widget.config);
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final delegate = EmbedScope.delegateOf(context);
     final config = widget.config ?? EmbedScope.configOf(context);
 
-    if (_resolvedDelegate != delegate || _resolvedConfig != config) {
-      _resolvedDelegate = delegate;
+    if (_resolvedConfig != config) {
       _resolvedConfig = config;
-      _loadData(delegate: delegate, config: config);
+      _loadData(config: config);
     }
   }
 
@@ -66,19 +67,17 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
         oldWidget.config != widget.config ||
         oldWidget.cacheConfig != widget.cacheConfig) {
       _loadData(
-        delegate: _resolvedDelegate ?? EmbedScope.delegateOf(context),
-        config: widget.config ?? _resolvedConfig ?? EmbedScope.configOf(context),
+        config:
+            widget.config ?? _resolvedConfig ?? EmbedScope.configOf(context),
       );
     }
   }
 
   void _loadData({
-    required EmbedDelegate? delegate,
     required EmbedConfig? config,
   }) {
     _embedFeature = EmbedService.getResult(
       param: widget.loaderParam,
-      delegate: delegate,
       config: config,
       logger: config?.logger,
       cacheConfig: widget.cacheConfig,
@@ -87,71 +86,50 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
 
   @override
   Widget build(BuildContext context) {
+    if (_embedFeature == null) return const SizedBox.shrink();
+
     return FutureBuilder<EmbedData>(
-      future: _embedFeature,
+      future: _embedFeature!,
       builder: (context, snapshot) {
         return AnimatedBuilder(
           animation: widget.controller,
           builder: (context, child) {
             final didRetry = widget.controller.didRetry;
-            final delegate =
-                EmbedScope.delegateOf(context) ?? const SimpleEmbedDelegate();
-
             if (snapshot.connectionState == ConnectionState.waiting) {
               final loadingWidget =
                   widget.style?.loadingBuilder?.call(context) ??
-                      delegate.buildSocialEmbedPlaceholder(
-                        context: context,
-                        embedType: widget.param.embedType,
-                      );
+                      const Center(child: CircularProgressIndicator());
               return loadingWidget;
             }
 
             if (snapshot.hasError) {
               final error = snapshot.error;
+              final errorWidget =
+                  widget.style?.errorBuilder?.call(context, error) ??
+                      const Icon(Icons.error_outline);
+
               if (error is EmbedDataNotFoundException ||
                   error is EmbedDataRestrictedAccessException) {
-                final errorWidget =
-                    widget.style?.errorBuilder?.call(context, error) ??
-                        delegate.buildSocialEmbedErrorPlaceholder(
-                          context: context,
-                          param: widget.param,
-                          error: error as Exception,
-                        );
                 return errorWidget;
               }
 
               if (!didRetry) {
-                return delegate.buildSocialEmbedRefreshPlaceholder(
-                  context: context,
-                  param: widget.param,
-                  onTap: () async {
-                    final hasConnection = delegate.checkConnection();
-
-                    if (hasConnection) {
-                      if (error is! SocketException) {
-                        widget.controller.setDidRetry();
-                      }
-                      setState(() {
-                        _loadData(
-                          delegate: _resolvedDelegate ??
-                              EmbedScope.delegateOf(context),
-                          config: widget.config ??
-                              _resolvedConfig ??
-                              EmbedScope.configOf(context),
-                        );
-                      });
+                return GestureDetector(
+                  onTap: () {
+                    if (error is! SocketException) {
+                      widget.controller.setDidRetry();
                     }
+                    setState(() {
+                      _loadData(
+                        config: widget.config ??
+                            _resolvedConfig ??
+                            EmbedScope.configOf(context),
+                      );
+                    });
                   },
+                  child: errorWidget,
                 );
               }
-
-              final errorWidget =
-                  widget.style?.errorBuilder?.call(context, error) ??
-                      delegate.buildSocialEmbedErrorPlaceholder(
-                        context: context,
-                        param: widget.param,
-                      );
 
               return errorWidget;
             }

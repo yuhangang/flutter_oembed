@@ -1,8 +1,11 @@
+import 'package:embed_example/utils/platform_utils.dart';
+import 'package:embed_example/utils/settings_controller.dart';
+import 'package:embed_example/widgets/config_menu_action.dart';
+import 'package:embed_example/widgets/embed_placeholder.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill/quill_delta.dart';
 import 'package:flutter_embed/flutter_embed.dart';
-import 'package:embed_example/widgets/config_menu_action.dart';
 
 class OEmbedBlockEmbed extends CustomBlockEmbed {
   const OEmbedBlockEmbed(String url) : super('oembed', url);
@@ -18,15 +21,18 @@ class OEmbedEmbedBuilder extends EmbedBuilder {
   @override
   Widget build(BuildContext context, EmbedContext embedContext) {
     final url = embedContext.node.value.data as String;
+    final settings = ExampleSettingsProvider.of(context).settings;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12.0),
       child: EmbedCard.url(
         url,
-        tracking: EmbedTracking(
-          pageIdentifier: 'quill_page',
-          source: 'quill',
-          contentId: 'quill_content_${url.hashCode}',
-          elementId: 'quill_element_${url.hashCode}',
+        scrollable: settings.scrollable,
+        style: EmbedStyle(
+          loadingBuilder:
+              (context) => SocialEmbedPlaceholder(
+                embedType: getEmbedTypeFromUrl(url) ?? EmbedType.other,
+              ),
         ),
       ),
     );
@@ -43,11 +49,6 @@ class QuillIntegrationPage extends StatefulWidget {
 class _QuillIntegrationPageState extends State<QuillIntegrationPage> {
   late QuillController _controller;
   final FocusNode _focusNode = FocusNode();
-
-  String _locale = 'en';
-  Brightness _brightness = Brightness.light;
-  bool _scrollable = false;
-  bool _showFooter = false;
 
   @override
   void initState() {
@@ -120,6 +121,13 @@ class _QuillIntegrationPageState extends State<QuillIntegrationPage> {
         'url': 'https://x.com/NASA/status/2037551448439787917',
         'icon': Icons.message,
         'color': Colors.blue,
+      },
+      {
+        'name': 'GIPHY Embed',
+        'url':
+            'https://giphy.com/gifs/moodman-monkey-side-eye-sideeye-H5C8CevNMbpBqNqFjl',
+        'icon': Icons.gif_box_rounded,
+        'color': Colors.black,
       },
     ];
 
@@ -218,91 +226,69 @@ class _QuillIntegrationPageState extends State<QuillIntegrationPage> {
 
   @override
   Widget build(BuildContext context) {
-    return EmbedScope(
-      config:
-          EmbedScope.configOf(
-            context,
-          )?.copyWith(locale: _locale, brightness: _brightness) ??
-          EmbedConfig(locale: _locale, brightness: _brightness),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Quill Integration'),
-          actions: [
-            ConfigMenuAction(
-              currentLocale: _locale,
-              currentBrightness: _brightness,
-              currentScrollable: _scrollable,
-              currentShowFooter: _showFooter,
-              onChanged: (locale, brightness, scrollable, showFooter) {
-                setState(() {
-                  _locale = locale;
-                  _brightness = brightness;
-                  _scrollable = scrollable;
-                  _showFooter = showFooter;
-                });
-              },
-            ),
-          ],
-        ),
-        body: Column(
-          children: [
-            QuillSimpleToolbar(
-              controller: _controller,
-              config: QuillSimpleToolbarConfig(
-                // Show basic buttons
-                showBoldButton: true,
-                showItalicButton: true,
-                showUnderLineButton: true,
-                showListNumbers: true,
-                showListBullets: true,
-                showLink: true,
-                showHeaderStyle: true,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Quill Integration'),
+        actions: const [ConfigMenuAction()],
+      ),
+      body: Column(
+        children: [
+          QuillSimpleToolbar(
+            controller: _controller,
+            config: QuillSimpleToolbarConfig(
+              // Show basic buttons
+              showBoldButton: true,
+              showItalicButton: true,
+              showUnderLineButton: true,
+              showListNumbers: true,
+              showListBullets: true,
+              showLink: true,
+              showHeaderStyle: true,
 
-                // Keep others hidden for a cleaner look
-                showFontFamily: false,
-                showFontSize: false,
-                showStrikeThrough: false,
-                showColorButton: false,
-                showBackgroundColorButton: false,
-                showListCheck: false,
-                showCodeBlock: false,
-                showQuote: false,
-                showIndent: false,
-                showSearchButton: false,
-                showAlignmentButtons: false,
-                showClearFormat: false,
-                showSubscript: false,
-                showSuperscript: false,
-                showInlineCode: false,
-                showSmallButton: false,
-                showDirection: false,
-                showDividers: false,
+              // Keep others hidden for a cleaner look
+              showFontFamily: false,
+              showFontSize: false,
+              showStrikeThrough: false,
+              showColorButton: false,
+              showBackgroundColorButton: false,
+              showListCheck: false,
+              showCodeBlock: false,
+              showQuote: false,
+              showIndent: false,
+              showSearchButton: false,
+              showAlignmentButtons: false,
+              showClearFormat: false,
+              showSubscript: false,
+              showSuperscript: false,
+              showInlineCode: false,
+              showSmallButton: false,
+              showDirection: false,
+              showDividers: false,
 
-                // Add custom OEmbed button
-                customButtons: [
-                  QuillToolbarCustomButtonOptions(
-                    icon: const Icon(Icons.add_link, color: Colors.teal),
-                    tooltip: 'Insert OEmbed',
-                    onPressed: _showOEmbedMenu,
-                  ),
-                ],
-              ),
+              // Add custom OEmbed button
+              customButtons: [
+                QuillToolbarCustomButtonOptions(
+                  icon: const Icon(Icons.add_link, color: Colors.teal),
+                  tooltip: 'Insert OEmbed',
+                  onPressed: _showOEmbedMenu,
+                ),
+              ],
             ),
-            Expanded(
-              child: Container(
-                color: Colors.white,
-                padding: const EdgeInsets.all(16.0),
-                child: QuillEditor.basic(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  config: QuillEditorConfig(
-                    embedBuilders: [OEmbedEmbedBuilder()],
-                  ),
+          ),
+          Expanded(
+            child: Container(
+              color: Colors.white,
+              padding: const EdgeInsets.all(16.0),
+              child: QuillEditor.basic(
+                controller: _controller,
+                focusNode: _focusNode,
+                config: QuillEditorConfig(
+                  embedBuilders: [OEmbedEmbedBuilder()],
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

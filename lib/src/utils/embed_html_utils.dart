@@ -266,7 +266,29 @@ String _injectYoutubeSecurityHeaders(String html) {
   return processedHtml;
 }
 
+const _errorBridgeScript = '''
+<script>
+  (function() {
+    const report = (type, details) => {
+      if (window.ErrorChannel) {
+        window.ErrorChannel.postMessage(type + ': ' + (details || 'Unknown'));
+      }
+    };
+    window.onerror = (msg, url, line, col, error) => {
+      report('JS_ERROR', msg + ' at ' + url + ':' + line);
+    };
+    window.onunhandledrejection = (e) => {
+      report('PROMISE_REJECTION', e.reason);
+    };
+    document.addEventListener('securitypolicyviolation', (e) => {
+      report('CSP_VIOLATION', 'Blocked: ' + e.blockedURI + ', Directive: ' + e.violatedDirective);
+    });
+  })();
+</script>
+''';
+
 const _resizeObserverScript = '''
+$_errorBridgeScript
 <script>
   (function() {
     const observer = new ResizeObserver(entries => {

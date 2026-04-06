@@ -13,13 +13,11 @@
 library;
 
 // ============================================================
-// flutter_oembed — Public API
+// flutter_embed — Public API
 // ============================================================
 //
 // Configuration & Scope
 export 'src/core/embed_scope.dart';
-export 'src/core/embed_delegate.dart';
-export 'src/core/simple_embed_delegate.dart';
 export 'src/logging/embed_logger.dart';
 //
 // Models
@@ -33,11 +31,11 @@ export 'src/models/provider_rule.dart';
 export 'src/models/social_embed_param.dart';
 export 'src/models/base_embed_params.dart';
 export 'src/models/vimeo_embed_params.dart';
+export 'src/models/youtube_embed_params.dart';
 export 'src/models/x_embed_params.dart';
 export 'src/models/meta_embed_params.dart';
 export 'src/models/soundcloud_embed_params.dart';
 export 'src/models/tiktok_embed_params.dart';
-export 'src/models/embed_tracking.dart';
 // Widgets (public entry points)
 export 'src/widgets/embed_card.dart';
 export 'src/widgets/embed_renderer.dart';

@@ -32,7 +32,7 @@ String oembedSchemeToPattern(String scheme) {
   } else if (pattern.startsWith(r'http:\/\/')) {
     pattern = pattern.replaceFirst(r'http:\/\/', r'https?:\/\/');
   } else if (pattern.startsWith(r'\/\/')) {
-     pattern = pattern.replaceFirst(r'\/\/', r'https?:\/\/');
+    pattern = pattern.replaceFirst(r'\/\/', r'https?:\/\/');
   }
 
   return '^$pattern';

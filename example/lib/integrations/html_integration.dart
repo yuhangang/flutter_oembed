@@ -1,4 +1,7 @@
+import 'package:embed_example/utils/platform_utils.dart';
+import 'package:embed_example/utils/settings_controller.dart';
 import 'package:embed_example/widgets/config_menu_action.dart';
+import 'package:embed_example/widgets/embed_placeholder.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_embed/flutter_embed.dart';
 import 'package:flutter_html/flutter_html.dart';
@@ -54,16 +57,19 @@ class EmbedExtension extends HtmlExtension {
 
     if (url == null) return const TextSpan(text: "");
 
+    final settings = ExampleSettingsProvider.of(context.buildContext!).settings;
+
     return WidgetSpan(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: EmbedCard.url(
           url,
-          tracking: EmbedTracking(
-            pageIdentifier: 'html_page',
-            source: 'html',
-            contentId: 'html_content_${url.hashCode}',
-            elementId: 'html_element_${url.hashCode}',
+          scrollable: settings.scrollable,
+          style: EmbedStyle(
+            loadingBuilder:
+                (context) => SocialEmbedPlaceholder(
+                  embedType: getEmbedTypeFromUrl(url) ?? EmbedType.other,
+                ),
           ),
         ),
       ),
@@ -79,13 +85,9 @@ class HtmlIntegrationPage extends StatefulWidget {
 }
 
 class _HtmlIntegrationPageState extends State<HtmlIntegrationPage> {
-  String _locale = 'en';
-  Brightness _brightness = Brightness.light;
-  bool _scrollable = false;
-  bool _showFooter = false;
-
   @override
   Widget build(BuildContext context) {
+    final settings = ExampleSettingsProvider.of(context).settings;
     const htmlData = '''
 <h1>HTML Integration Example</h1>
 <p>This example demonstrates how to use the <code>oembed</code> package within <code>flutter_html</code>.</p>
@@ -103,41 +105,22 @@ class _HtmlIntegrationPageState extends State<HtmlIntegrationPage> {
 <h3>TikTok Embed</h3>
 <oembed data-url="https://www.tiktok.com/@scout2015/video/6718335390845095173" />
 
+<h3>GIPHY Embed</h3>
+<oembed url="https://giphy.com/gifs/moodman-monkey-side-eye-sideeye-H5C8CevNMbpBqNqFjl"></oembed>
+
 <p>The <code>&lt;oembed&gt;</code> tag and <code>title="embed"</code> attribute are mapped to <code>EmbedCard</code> using a custom <code>HtmlExtension</code>. URL can come from <code>url</code>, <code>href</code>, <code>src</code>, <code>data-url</code>, or inner text.</p>
 ''';
 
-    return EmbedScope(
-      config:
-          EmbedScope.configOf(
-            context,
-          )?.copyWith(locale: _locale, brightness: _brightness) ??
-          EmbedConfig(locale: _locale, brightness: _brightness),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('HTML Integration'),
-          actions: [
-            ConfigMenuAction(
-              currentLocale: _locale,
-              currentBrightness: _brightness,
-              currentScrollable: _scrollable,
-              currentShowFooter: _showFooter,
-              onChanged: (locale, brightness, scrollable, showFooter) {
-                setState(() {
-                  _locale = locale;
-                  _brightness = brightness;
-                  _scrollable = scrollable;
-                  _showFooter = showFooter;
-                });
-              },
-            ),
-          ],
-        ),
-        body: SingleChildScrollView(
-          child: Html(
-            key: ValueKey('html_$_locale-$_brightness'),
-            data: htmlData,
-            extensions: [EmbedExtension()],
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('HTML Integration'),
+        actions: const [ConfigMenuAction()],
+      ),
+      body: SingleChildScrollView(
+        child: Html(
+          key: ValueKey('html_${settings.locale}-${settings.brightness}'),
+          data: htmlData,
+          extensions: [EmbedExtension()],
         ),
       ),
     );

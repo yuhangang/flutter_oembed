@@ -12,7 +12,6 @@ import 'package:flutter_embed/src/models/embed_config.dart';
 /// Unlike the standard [EmbedCard] which relies on the oEmbed API or standard
 /// iframe fallbacks, this uses the `tiktok.com/player/v1/` endpoint which
 /// supports advanced customization.
-import 'package:flutter_embed/src/models/embed_tracking.dart';
 import 'package:flutter_embed/src/models/tiktok_embed_params.dart';
 
 class TikTokEmbedPlayer extends StatefulWidget {
@@ -76,11 +75,6 @@ class _TikTokEmbedPlayerState extends State<TikTokEmbedPlayer> {
     _param = SocialEmbedParam(
       url: mockUrl,
       embedType: EmbedType.tiktok,
-      tracking: EmbedTracking(
-        source: 'TikTokPlayer',
-        contentId: videoId,
-        pageIdentifier: 'tiktok_player_$videoId',
-      ),
     );
   }
 
@@ -93,7 +87,6 @@ class _TikTokEmbedPlayerState extends State<TikTokEmbedPlayer> {
   void _initControllerIfNeeded() {
     _controller ??= EmbedController(
       param: _param,
-      delegate: EmbedScope.delegateOf(context),
       config: EmbedScope.configOf(context),
     );
   }

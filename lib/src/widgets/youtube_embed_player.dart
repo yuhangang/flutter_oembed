@@ -19,7 +19,7 @@ import 'package:flutter_embed/src/core/embed_scope.dart';
 /// packages like [youtube_player_iframe].
 ///
 /// See: https://developers.google.com/youtube/iframe_api_reference
-import 'package:flutter_embed/src/models/embed_tracking.dart';
+// removed embed_tracking.dart
 
 const String kDefaultYoutubePlayerHost = 'https://www.youtube-nocookie.com';
 const String kYoutubeNoCookiePlayerHost = 'https://www.youtube-nocookie.com';
@@ -164,7 +164,15 @@ class YoutubeEmbedPlayer extends StatefulWidget {
     this.host = kDefaultYoutubePlayerHost,
     this.useOriginExperiment = false,
     this.experimentalOrigin = kYoutubeNoCookiePlayerHost,
+    this.theme,
+    this.color,
   });
+
+  /// The player's theme preference. Valid: 'dark', 'light'.
+  final String? theme;
+
+  /// The player's color preference. Valid: 'red', 'white'.
+  final String? color;
 
   @override
   State<YoutubeEmbedPlayer> createState() => _YoutubeEmbedPlayerState();
@@ -185,11 +193,6 @@ class _YoutubeEmbedPlayerState extends State<YoutubeEmbedPlayer> {
     _param = SocialEmbedParam(
       url: mockUrl,
       embedType: EmbedType.youtube,
-      tracking: EmbedTracking(
-        source: 'YoutubePlayer',
-        contentId: videoId,
-        pageIdentifier: 'youtube_player_$videoId',
-      ),
     );
   }
 
@@ -202,7 +205,6 @@ class _YoutubeEmbedPlayerState extends State<YoutubeEmbedPlayer> {
   void _initControllerIfNeeded() {
     _controller ??= EmbedController(
       param: _param,
-      delegate: EmbedScope.delegateOf(context),
       config: EmbedScope.configOf(context),
     );
   }
@@ -217,10 +219,13 @@ class _YoutubeEmbedPlayerState extends State<YoutubeEmbedPlayer> {
     return getYoutubeVideoId(input) ?? input;
   }
 
-  Map<String, Object> _buildPlayerVars(String videoId, String locale) {
+  Map<String, Object> _buildPlayerVars(
+      String videoId, String locale, Brightness brightness) {
     // We force origin to match the host we are using, which is now
     // https://www.youtube-nocookie.com. This is consistent with EmbedWebViewDriver.
     final effectiveOrigin = widget.host;
+    final effectiveTheme =
+        widget.theme ?? (brightness == Brightness.light ? 'light' : 'dark');
 
     return <String, Object>{
       'playsinline': 1,
@@ -232,6 +237,8 @@ class _YoutubeEmbedPlayerState extends State<YoutubeEmbedPlayer> {
       'rel': widget.rel ? 1 : 0,
       'loop': widget.loop ? 1 : 0,
       'hl': locale,
+      'theme': effectiveTheme,
+      if (widget.color != null) 'color': widget.color!,
       'origin': effectiveOrigin,
       'widget_referrer': effectiveOrigin,
       if (widget.loop) 'playlist': videoId,
@@ -247,7 +254,11 @@ class _YoutubeEmbedPlayerState extends State<YoutubeEmbedPlayer> {
       playerId: 'youtube-player-$videoId',
       videoId: videoId,
       host: widget.host,
-      playerVars: _buildPlayerVars(videoId, config?.locale ?? 'en'),
+      playerVars: _buildPlayerVars(
+        videoId,
+        config?.locale ?? 'en',
+        config?.brightness ?? Brightness.light,
+      ),
     );
 
     final mockData = EmbedData(

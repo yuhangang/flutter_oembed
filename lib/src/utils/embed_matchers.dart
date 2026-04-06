@@ -4,7 +4,7 @@ import 'package:flutter_embed/src/services/provider_registry.dart';
 
 /// A utility class to match URLs against known [EmbedType]s.
 class EmbedMatchers {
-  /// Resolves the [EmbedType] for a given [url] by matching it against 
+  /// Resolves the [EmbedType] for a given [url] by matching it against
   /// the default OEmbed provider rules.
   static EmbedType getEmbedType(String url) {
     // First, try to match against kDefaultEmbedProviders
@@ -20,8 +20,8 @@ class EmbedMatchers {
   }
 
   /// Maps a provider name string to an [EmbedType].
-  /// 
-  /// Optionally takes the [url] to distinguish between sub-types 
+  ///
+  /// Optionally takes the [url] to distinguish between sub-types
   /// (e.g., Facebook Post vs Video).
   static EmbedType fromProviderName(String name, {String? url}) {
     final n = name.toLowerCase();
@@ -41,10 +41,14 @@ class EmbedMatchers {
     if (n == 'facebook') {
       if (url != null) {
         final uri = url.toLowerCase();
-        if (uri.contains('/videos/') || uri.contains('video.php') || uri.contains('fb.watch')) {
+        if (uri.contains('/videos/') ||
+            uri.contains('video.php') ||
+            uri.contains('fb.watch')) {
           return EmbedType.facebook_video;
         }
-        if (uri.contains('/posts/') || uri.contains('permalink.php') || uri.contains('photo.php')) {
+        if (uri.contains('/posts/') ||
+            uri.contains('permalink.php') ||
+            uri.contains('photo.php')) {
           return EmbedType.facebook_post;
         }
       }

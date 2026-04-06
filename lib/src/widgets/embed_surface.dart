@@ -10,7 +10,7 @@ class EmbedSurface extends StatelessWidget {
   final EmbedStyle? style;
   final String footerUrl;
   final Widget Function(BuildContext context, Widget child)?
-  fallbackWrapperBuilder;
+      fallbackWrapperBuilder;
 
   const EmbedSurface({
     super.key,

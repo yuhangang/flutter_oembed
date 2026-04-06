@@ -236,17 +236,20 @@ const Map<String, List<EmbedProviderRule>> kEmbedProvidersSnapshot = {
     ),
     EmbedProviderRule(
       providerName: 'Zeplin',
-      pattern: r'^https?:\/\/app\.zeplin\.io\/project\/.*\/screen\/.*\/version\/.*',
+      pattern:
+          r'^https?:\/\/app\.zeplin\.io\/project\/.*\/screen\/.*\/version\/.*',
       endpoint: 'https://app.zeplin.io/embed',
     ),
     EmbedProviderRule(
       providerName: 'Zeplin',
-      pattern: r'^https?:\/\/app\.zeplin\.io\/project\/.*\/styleguide\/components\?coid=.*',
+      pattern:
+          r'^https?:\/\/app\.zeplin\.io\/project\/.*\/styleguide\/components\?coid=.*',
       endpoint: 'https://app.zeplin.io/embed',
     ),
     EmbedProviderRule(
       providerName: 'Zeplin',
-      pattern: r'^https?:\/\/app\.zeplin\.io\/styleguide\/.*\/components\?coid=.*',
+      pattern:
+          r'^https?:\/\/app\.zeplin\.io\/styleguide\/.*\/components\?coid=.*',
       endpoint: 'https://app.zeplin.io/embed',
     ),
   ],
@@ -266,7 +269,8 @@ const Map<String, List<EmbedProviderRule>> kEmbedProvidersSnapshot = {
     EmbedProviderRule(
       providerName: 'AppForceStudio',
       pattern: r'^https?:\/\/appforcestudio\.com\/playground\/.*',
-      endpoint: 'https://us-central1-themerax-cc903.cloudfunctions.net/playgroundApi/oembed',
+      endpoint:
+          'https://us-central1-themerax-cc903.cloudfunctions.net/playgroundApi/oembed',
     ),
   ],
   'archive.sudomemo.net': [
@@ -1423,7 +1427,8 @@ const Map<String, List<EmbedProviderRule>> kEmbedProvidersSnapshot = {
     ),
     EmbedProviderRule(
       providerName: 'Livestream',
-      pattern: r'^https?:\/\/livestream\.com\/accounts\/.*\/events\/.*\/videos\/.*',
+      pattern:
+          r'^https?:\/\/livestream\.com\/accounts\/.*\/events\/.*\/videos\/.*',
       endpoint: 'https://livestream.com/oembed',
     ),
     EmbedProviderRule(
@@ -2234,7 +2239,8 @@ const Map<String, List<EmbedProviderRule>> kEmbedProvidersSnapshot = {
     EmbedProviderRule(
       providerName: 'Synthesia',
       pattern: r'^https?:\/\/share\.synthesia\.io\/.*',
-      endpoint: 'https://69jr5v75rc.execute-api.eu-west-1.amazonaws.com/prod/v2/oembed',
+      endpoint:
+          'https://69jr5v75rc.execute-api.eu-west-1.amazonaws.com/prod/v2/oembed',
     ),
   ],
   'share.viostream.com': [
@@ -2292,7 +2298,8 @@ const Map<String, List<EmbedProviderRule>> kEmbedProvidersSnapshot = {
     ),
     EmbedProviderRule(
       providerName: 'SmashNotes',
-      pattern: r'^https?:\/\/smashnotes\.com\/p\/.*\/e\/.* - https:\/\/smashnotes\.com\/p\/.*\/e\/.*\/s\/.*',
+      pattern:
+          r'^https?:\/\/smashnotes\.com\/p\/.*\/e\/.* - https:\/\/smashnotes\.com\/p\/.*\/e\/.*\/s\/.*',
       endpoint: 'https://smashnotes.com/services/oembed',
     ),
   ],
@@ -3576,22 +3583,26 @@ const Map<String, List<EmbedProviderRule>> kEmbedProvidersSnapshot = {
   'www.toornament.com': [
     EmbedProviderRule(
       providerName: 'Toornament',
-      pattern: r'^https?:\/\/www\.toornament\.com\/tournaments\/.*\/information',
+      pattern:
+          r'^https?:\/\/www\.toornament\.com\/tournaments\/.*\/information',
       endpoint: 'https://widget.toornament.com/oembed',
     ),
     EmbedProviderRule(
       providerName: 'Toornament',
-      pattern: r'^https?:\/\/www\.toornament\.com\/tournaments\/.*\/registration\/',
+      pattern:
+          r'^https?:\/\/www\.toornament\.com\/tournaments\/.*\/registration\/',
       endpoint: 'https://widget.toornament.com/oembed',
     ),
     EmbedProviderRule(
       providerName: 'Toornament',
-      pattern: r'^https?:\/\/www\.toornament\.com\/tournaments\/.*\/matches\/schedule',
+      pattern:
+          r'^https?:\/\/www\.toornament\.com\/tournaments\/.*\/matches\/schedule',
       endpoint: 'https://widget.toornament.com/oembed',
     ),
     EmbedProviderRule(
       providerName: 'Toornament',
-      pattern: r'^https?:\/\/www\.toornament\.com\/tournaments\/.*\/stages\/.*\/',
+      pattern:
+          r'^https?:\/\/www\.toornament\.com\/tournaments\/.*\/stages\/.*\/',
       endpoint: 'https://widget.toornament.com/oembed',
     ),
   ],
@@ -3612,17 +3623,20 @@ const Map<String, List<EmbedProviderRule>> kEmbedProvidersSnapshot = {
   'www.ultimedia.com': [
     EmbedProviderRule(
       providerName: 'Digiteka',
-      pattern: r'^https?:\/\/www\.ultimedia\.com\/central\/video\/edit\/id\/.*\/topic_id\/.*\/',
+      pattern:
+          r'^https?:\/\/www\.ultimedia\.com\/central\/video\/edit\/id\/.*\/topic_id\/.*\/',
       endpoint: 'https://www.ultimedia.com/api/search/oembed',
     ),
     EmbedProviderRule(
       providerName: 'Digiteka',
-      pattern: r'^https?:\/\/www\.ultimedia\.com\/default\/index\/videogeneric\/id\/.*\/showtitle\/1\/viewnc\/1',
+      pattern:
+          r'^https?:\/\/www\.ultimedia\.com\/default\/index\/videogeneric\/id\/.*\/showtitle\/1\/viewnc\/1',
       endpoint: 'https://www.ultimedia.com/api/search/oembed',
     ),
     EmbedProviderRule(
       providerName: 'Digiteka',
-      pattern: r'^https?:\/\/www\.ultimedia\.com\/default\/index\/videogeneric\/id\/.*',
+      pattern:
+          r'^https?:\/\/www\.ultimedia\.com\/default\/index\/videogeneric\/id\/.*',
       endpoint: 'https://www.ultimedia.com/api/search/oembed',
     ),
   ],

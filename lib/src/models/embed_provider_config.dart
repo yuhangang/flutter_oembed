@@ -80,10 +80,9 @@ class EmbedProviderConfig {
   /// Returns the full merged provider list (built-in + custom + dynamic) filtered by
   /// [enabledProviders].
   List<EmbedProviderRule> get effectiveProviders {
-    final Iterable<EmbedProviderRule> discoveryRules =
-        useDynamicDiscovery
-            ? kEmbedProvidersSnapshot.values.expand((e) => e)
-            : const [];
+    final Iterable<EmbedProviderRule> discoveryRules = useDynamicDiscovery
+        ? kEmbedProvidersSnapshot.values.expand((e) => e)
+        : const [];
 
     final all = <EmbedProviderRule>[
       ...customProviders,
@@ -91,17 +90,16 @@ class EmbedProviderConfig {
       ...discoveryRules,
     ];
 
-    final filtered =
-        all.where((r) {
-          if (includeUnverified) return true;
-          // If it's a custom provider or dynamic discovery, we assume verification
-          // is handled by the source or is intentional.
-          // Actually, we should probably only filter kDefaultEmbedProviders.
-          if (customProviders.contains(r) || discoveryRules.contains(r)) {
-            return true;
-          }
-          return r.isVerified;
-        }).toList();
+    final filtered = all.where((r) {
+      if (includeUnverified) return true;
+      // If it's a custom provider or dynamic discovery, we assume verification
+      // is handled by the source or is intentional.
+      // Actually, we should probably only filter kDefaultEmbedProviders.
+      if (customProviders.contains(r) || discoveryRules.contains(r)) {
+        return true;
+      }
+      return r.isVerified;
+    }).toList();
 
     if (enabledProviders == null) return filtered;
     return filtered

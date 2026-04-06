@@ -9,7 +9,8 @@ void main() {
         (r) => r.providerName == 'YouTube',
       );
       expect(
-        youtubeRules.any((r) => r.matches('https://www.youtube.com/watch?v=dQw4w9WgXcQ')),
+        youtubeRules.any(
+            (r) => r.matches('https://www.youtube.com/watch?v=dQw4w9WgXcQ')),
         isTrue,
       );
       expect(

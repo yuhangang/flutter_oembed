@@ -65,11 +65,11 @@ class EmbedConfig {
   /// Return [NavigationDecision.prevent] to stop navigation or [NavigationDecision.navigate] to allow it.
   /// Return null to fall back to the default navigation logic.
   final FutureOr<NavigationDecision>? Function(NavigationRequest)?
-  onNavigationRequest;
+      onNavigationRequest;
 
   /// A simpler callback for handling link clicks.
-  /// If provided, this is called when a user clicks a link that would normally
-  /// trigger [EmbedDelegate.openSocialEmbedLinkClick].
+  /// If provided, this is called when a user clicks a link inside the embed.
+  /// Defaults to null. Leaving this null will just log a warning when clicked.
   ///
   /// This is easier to use than [onNavigationRequest] as it only provides the URL.
   final void Function(String url, EmbedData? data)? onLinkTap;
@@ -127,7 +127,7 @@ class EmbedConfig {
     String? locale,
     Brightness? brightness,
     FutureOr<NavigationDecision>? Function(NavigationRequest)?
-    onNavigationRequest,
+        onNavigationRequest,
     void Function(String url, EmbedData? data)? onLinkTap,
     bool? useDynamicDiscovery,
     Duration? loadTimeout,

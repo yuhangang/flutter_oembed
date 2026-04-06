@@ -4,7 +4,11 @@ import 'package:embed_example/integrations/quill_integration.dart';
 import 'package:embed_example/integrations/youtube_player_integration.dart';
 import 'package:embed_example/models/sample_data.dart';
 import 'package:embed_example/pages/details_page.dart';
+import 'package:embed_example/widgets/config_menu_action.dart';
+import 'package:embed_example/utils/platform_utils.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_embed/flutter_embed.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -22,16 +26,16 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text(
-          'flutter_oembed',
+          'flutter_embed',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
+        actions: const [ConfigMenuAction()],
       ),
       body: CustomScrollView(
         slivers: [
@@ -42,7 +46,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 'Integrations & Players',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),
@@ -97,7 +101,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 'OEmbed Provider Samples',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
               ),
             ),
@@ -114,12 +118,27 @@ class _MyHomePageState extends State<MyHomePage> {
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: Colors.grey.shade300),
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                    ),
                   ),
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 8,
+                    ),
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceContainer,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                        ),
+                      ),
+                      padding: const EdgeInsets.all(8),
+                      child: _buildProviderLogo(sample['type']),
                     ),
                     title: Text(
                       sample['source'],
@@ -130,20 +149,20 @@ class _MyHomePageState extends State<MyHomePage> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontSize: 13,
                       ),
                     ),
                     trailing: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
+                        color: Theme.of(context).colorScheme.surfaceContainer,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.arrow_forward_ios_rounded,
                         size: 16,
-                        color: Colors.grey,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                     onTap: () {
@@ -168,6 +187,25 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  Widget _buildProviderLogo(EmbedType type) {
+    final assetPath = getPlatformAsset(type);
+    if (assetPath == null) {
+      return const Icon(Icons.auto_awesome, size: 20, color: Colors.grey);
+    }
+
+    if (assetPath.endsWith('.png')) {
+      return Image.asset(assetPath, fit: BoxFit.contain);
+    }
+
+    return SvgPicture.asset(
+      assetPath,
+      colorFilter: ColorFilter.mode(
+        Theme.of(context).colorScheme.onSurface,
+        BlendMode.srcIn,
+      ),
+    );
+  }
+
   Widget _buildIntegrationCard(
     BuildContext context, {
     required String title,
@@ -183,7 +221,7 @@ class _MyHomePageState extends State<MyHomePage> {
       borderRadius: BorderRadius.circular(16),
       child: Ink(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -224,7 +262,10 @@ class _MyHomePageState extends State<MyHomePage> {
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
             ),
           ],
         ),

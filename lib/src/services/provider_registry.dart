@@ -1,19 +1,7 @@
+import 'package:flutter_embed/src/core/provider_strategies.dart';
 import 'package:flutter_embed/src/models/embed_enums.dart';
-import 'package:flutter_embed/src/models/meta_embed_params.dart';
 import 'package:flutter_embed/src/models/provider_rule.dart';
-import 'package:flutter_embed/src/models/soundcloud_embed_params.dart';
-import 'package:flutter_embed/src/models/vimeo_embed_params.dart';
-import 'package:flutter_embed/src/models/x_embed_params.dart';
-import 'package:flutter_embed/src/services/api/base_embed_api.dart';
-import 'package:flutter_embed/src/services/api/meta_embed_api.dart';
-import 'package:flutter_embed/src/services/api/reddit_embed_api.dart';
-import 'package:flutter_embed/src/services/api/soundcloud_embed_api.dart';
-import 'package:flutter_embed/src/services/api/spotify_embed_api.dart';
-import 'package:flutter_embed/src/services/api/tiktok_embed_api.dart';
-import 'package:flutter_embed/src/services/api/vimeo_embed_api.dart';
-import 'package:flutter_embed/src/services/api/x_embed_api.dart';
 import 'package:flutter_embed/src/utils/embed_link_utils.dart';
-import 'package:flutter_embed/src/utils/embed_matchers.dart';
 
 // ---------------------------------------------------------------------------
 // Iframe URL builders
@@ -39,9 +27,6 @@ String? _buildSpotifyIframeUrl(String url) {
   return null;
 }
 
-BaseEmbedApi _redditApiFactory(EmbedProviderContext ctx) =>
-    RedditEmbedApi(width: ctx.width);
-
 String? _buildTikTokIframeUrl(String url) {
   final uri = Uri.tryParse(url);
   if (uri == null) return null;
@@ -66,58 +51,6 @@ bool _facebookNavigationCheck(String url) {
 }
 
 // ---------------------------------------------------------------------------
-// API factory functions
-// ---------------------------------------------------------------------------
-
-BaseEmbedApi _vimeoApiFactory(EmbedProviderContext ctx) =>
-    VimeoEmbedApi(ctx.width, vimeoParams: ctx.embedParams as VimeoEmbedParams?);
-BaseEmbedApi _spotifyApiFactory(EmbedProviderContext ctx) =>
-    const SpotifyEmbedApi();
-BaseEmbedApi _tiktokApiFactory(EmbedProviderContext ctx) =>
-    const TikTokEmbedApi();
-BaseEmbedApi _xApiFactory(EmbedProviderContext ctx) =>
-    XEmbedApi(xParams: ctx.embedParams as XEmbedParams?);
-BaseEmbedApi _soundcloudApiFactory(EmbedProviderContext ctx) =>
-    SoundCloudEmbedApi(ctx.width,
-        soundCloudParams: ctx.embedParams as SoundCloudEmbedParams?);
-
-BaseEmbedApi _facebookApiFactory(EmbedProviderContext ctx) {
-  return MetaEmbedApi(
-    EmbedMatchers.fromProviderName('Facebook', url: ctx.url),
-    ctx.width,
-    ctx.facebookAppId,
-    ctx.facebookClientToken,
-    endpoint: ctx.resolvedEndpoint,
-    proxyUrl: ctx.proxyUrl,
-    metaParams: ctx.embedParams as MetaEmbedParams?,
-  );
-}
-
-BaseEmbedApi _instagramApiFactory(EmbedProviderContext ctx) {
-  return MetaEmbedApi(
-    EmbedType.instagram,
-    ctx.width,
-    ctx.facebookAppId,
-    ctx.facebookClientToken,
-    endpoint: ctx.resolvedEndpoint,
-    proxyUrl: ctx.proxyUrl,
-    metaParams: ctx.embedParams as MetaEmbedParams?,
-  );
-}
-
-BaseEmbedApi _threadsApiFactory(EmbedProviderContext ctx) {
-  return MetaEmbedApi(
-    EmbedType.threads,
-    ctx.width,
-    ctx.facebookAppId,
-    ctx.facebookClientToken,
-    endpoint: ctx.resolvedEndpoint,
-    proxyUrl: ctx.proxyUrl,
-    metaParams: ctx.embedParams as MetaEmbedParams?,
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Default provider registry
 // ---------------------------------------------------------------------------
 
@@ -129,9 +62,11 @@ BaseEmbedApi _threadsApiFactory(EmbedProviderContext ctx) {
 /// [EmbedProviderConfig.includeUnverified].
 final List<EmbedProviderRule> kDefaultEmbedProviders = [
   const EmbedProviderRule(
-    pattern: r'^https?:\/\/(?:www\.|m\.)?youtube(?:-nocookie)?\.com\/(?:watch|shorts|live|v|embed).*',
+    pattern:
+        r'^https?:\/\/(?:www\.|m\.)?youtube(?:-nocookie)?\.com\/(?:watch|shorts|live|v|embed).*',
     endpoint: 'https://www.youtube.com/oembed',
     providerName: 'YouTube',
+    strategy: YouTubeProviderStrategy(),
     iframeUrlBuilder: _buildYoutubeIframeUrl,
     isVerified: true,
   ),
@@ -139,6 +74,7 @@ final List<EmbedProviderRule> kDefaultEmbedProviders = [
     pattern: r'^https?:\/\/youtu\.be\/.*',
     endpoint: 'https://www.youtube.com/oembed',
     providerName: 'YouTube',
+    strategy: YouTubeProviderStrategy(),
     iframeUrlBuilder: _buildYoutubeIframeUrl,
     isVerified: true,
   ),
@@ -146,33 +82,33 @@ final List<EmbedProviderRule> kDefaultEmbedProviders = [
     pattern: r'https?:\/\/(www\.)?vimeo\.com\/.*',
     endpoint: 'https://vimeo.com/api/oembed.json',
     providerName: 'Vimeo',
+    strategy: VimeoProviderStrategy(),
     iframeUrlBuilder: _buildVimeoIframeUrl,
-    apiFactory: _vimeoApiFactory,
     isVerified: true,
   ),
   const EmbedProviderRule(
     pattern: r'https?:\/\/open\.spotify\.com\/.*',
     endpoint: 'https://open.spotify.com/oembed',
     providerName: 'Spotify',
+    strategy: SpotifyProviderStrategy(),
     iframeUrlBuilder: _buildSpotifyIframeUrl,
-    apiFactory: _spotifyApiFactory,
     isVerified: true,
   ),
   const EmbedProviderRule(
     pattern: r'https?:\/\/(www\.)?tiktok\.com\/.*',
     endpoint: 'https://www.tiktok.com/oembed',
     providerName: 'TikTok',
+    strategy: TikTokProviderStrategy(),
     iframeUrlBuilder: _buildTikTokIframeUrl,
     shouldAllowNavigation: _tiktokNavigationCheck,
-    apiFactory: _tiktokApiFactory,
     isVerified: true,
   ),
   const EmbedProviderRule(
     pattern: r'https?:\/\/(www\.)?facebook\.com\/.*',
     endpoint: 'https://graph.facebook.com/v22.0/embed_post',
     providerName: 'Facebook',
+    strategy: MetaProviderStrategy(EmbedType.facebook),
     shouldAllowNavigation: _facebookNavigationCheck,
-    apiFactory: _facebookApiFactory,
     isVerified: true,
     subRules: [
       EmbedSubRule(
@@ -195,8 +131,8 @@ final List<EmbedProviderRule> kDefaultEmbedProviders = [
     pattern: r'https?:\/\/(www\.)?instagram\.com\/.*',
     endpoint: 'https://graph.facebook.com/v22.0/instagram_oembed',
     providerName: 'Instagram',
+    strategy: MetaProviderStrategy(EmbedType.instagram),
     shouldAllowNavigation: _facebookNavigationCheck,
-    apiFactory: _instagramApiFactory,
     isVerified: true,
     subRules: [
       EmbedSubRule(
@@ -210,22 +146,22 @@ final List<EmbedProviderRule> kDefaultEmbedProviders = [
     pattern: r'https?:\/\/(www\.)?soundcloud\.com\/.*',
     endpoint: 'https://soundcloud.com/oembed',
     providerName: 'SoundCloud',
-    apiFactory: _soundcloudApiFactory,
+    strategy: SoundCloudProviderStrategy(),
     isVerified: true,
   ),
   const EmbedProviderRule(
     pattern: r'https?:\/\/(www\.)?threads\.net\/.*',
     endpoint: 'https://graph.threads.net/v1.0/oembed',
     providerName: 'Threads',
-    apiFactory: _threadsApiFactory,
+    strategy: MetaProviderStrategy(EmbedType.threads),
     isVerified: true,
   ),
   const EmbedProviderRule(
     pattern: r'https?:\/\/(www\.)?reddit\.com\/.*',
     endpoint: 'https://www.reddit.com/oembed',
     providerName: 'Reddit',
+    strategy: RedditProviderStrategy(),
     isVerified: true,
-    apiFactory: _redditApiFactory,
   ),
   const EmbedProviderRule(
     pattern: r'https?:\/\/(www\.)?flickr\.com\/.*',
@@ -266,7 +202,7 @@ final List<EmbedProviderRule> kDefaultEmbedProviders = [
     pattern: r'https?:\/\/(www\.)?(twitter|x)\.com\/.*',
     endpoint: 'https://publish.twitter.com/oembed',
     providerName: 'X',
-    apiFactory: _xApiFactory,
+    strategy: XProviderStrategy(),
     isVerified: true,
   ),
   const EmbedProviderRule(

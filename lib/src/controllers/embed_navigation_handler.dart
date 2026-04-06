@@ -4,7 +4,6 @@ import 'package:collection/collection.dart';
 import 'package:flutter_embed/src/models/embed_enums.dart';
 import 'package:flutter_embed/src/models/embed_config.dart';
 import 'package:flutter_embed/src/models/social_embed_param.dart';
-import 'package:flutter_embed/src/core/embed_delegate.dart';
 import 'package:flutter_embed/src/logging/embed_logger.dart';
 import 'package:flutter_embed/src/models/embed_data.dart';
 
@@ -13,7 +12,6 @@ import 'package:flutter_embed/src/models/embed_data.dart';
 class EmbedNavigationHandler {
   final SocialEmbedParam param;
   final EmbedConfig? config;
-  final EmbedDelegate? delegate;
 
   /// Resolved scaffold background color — captured at build time to avoid
   /// using [BuildContext] across async gaps.
@@ -28,7 +26,6 @@ class EmbedNavigationHandler {
   EmbedNavigationHandler({
     required this.param,
     required this.config,
-    required this.delegate,
     this.backgroundColor,
   });
 
@@ -46,6 +43,12 @@ class EmbedNavigationHandler {
   }) {
     final logger = config?.logger ?? const EmbedLogger.disabled();
     return NavigationDelegate(
+      onHttpError: (error) {
+        logger.warning('WebView HTTP error', data: {
+          'url': param.url,
+          'errorCode': error.response?.statusCode,
+        });
+      },
       onPageStarted: (url) {
         logger.debug('WebView page started loading', data: {
           'url': param.url,
@@ -83,6 +86,7 @@ class EmbedNavigationHandler {
             'url': param.url,
             'targetUrl': request.url,
           });
+
           return NavigationDecision.navigate;
         }
         if (request.url == 'about:blank') {
@@ -122,12 +126,11 @@ class EmbedNavigationHandler {
           if (config?.onLinkTap != null) {
             config!.onLinkTap!(url, oembedData);
           } else {
-            await delegate?.openSocialEmbedLinkClick(
-              url: url,
-              embedType: param.embedType.name,
-              location: EmbedButtonLocation.embed_body.name,
-              source: param.tracking.source ?? 'embed',
-            );
+            logger.warning('Link tap unhandled (onLinkTap not configured)',
+                data: {
+                  'url': param.url,
+                  'targetUrl': url,
+                });
           }
         }
 

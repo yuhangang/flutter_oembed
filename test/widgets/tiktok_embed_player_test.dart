@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/src/widgets/youtube_embed_player.dart';
+import 'package:flutter_embed/src/widgets/tiktok_embed_player.dart';
 import 'package:flutter_embed/src/widgets/embed_webview.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -18,13 +18,13 @@ void main() {
     fakePlatform.reset();
   });
 
-  group('YoutubeEmbedPlayer', () {
+  group('TikTokEmbedPlayer', () {
     testWidgets('renders EmbedWebView', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: YoutubeEmbedPlayer(
-              videoIdOrUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            body: TikTokEmbedPlayer(
+              videoIdOrUrl: 'https://www.tiktok.com/@scout2015/video/6718335390845095173',
             ),
           ),
         ),

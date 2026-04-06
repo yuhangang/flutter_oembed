@@ -14,7 +14,8 @@ class RedditEmbedApi extends BaseEmbedApi {
 
   @override
   Map<String, String> get headers => {
-        'User-Agent': 'flutter_oembed (https://github.com/yuhangang/flutter_oembed)',
+        'User-Agent':
+            'flutter_embed (https://github.com/yuhangang/flutter_embed)',
       };
 
   @override

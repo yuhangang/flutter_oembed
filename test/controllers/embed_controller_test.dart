@@ -10,7 +10,6 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_embed/src/models/embed_data.dart';
-import 'package:flutter_embed/src/models/embed_tracking.dart';
 
 class MockWebViewController extends Mock implements WebViewController {}
 
@@ -52,24 +51,25 @@ void main() {
         .thenAnswer((_) async {});
     when(() => mockPlatformNavigationDelegate.setOnUrlChange(any()))
         .thenAnswer((_) async {});
+    when(() => mockPlatformNavigationDelegate.setOnHttpError(any()))
+        .thenAnswer((_) async {});
 
     registerFallbackValue(const Color(0xFFFFFFFF));
     registerFallbackValue(JavaScriptMode.unrestricted);
     registerFallbackValue(Uri.parse('about:blank'));
     registerFallbackValue(LoadRequestMethod.get);
     registerFallbackValue(FakeNavigationDelegate());
+    registerFallbackValue(JavaScriptChannelParams(
+      name: 'test',
+      onMessageReceived: (_) {},
+    ));
+    registerFallbackValue(const JavaScriptMessage(message: ''));
   });
 
   setUp(() {
     mockWebViewController = MockWebViewController();
     testParam = SocialEmbedParam(
       url: 'https://twitter.com/user/status/12345',
-      tracking: const EmbedTracking(
-        source: 'test',
-        contentId: '12345',
-        pageIdentifier: 'test-page',
-        elementId: 'element-1',
-      ),
     );
 
     // Default stubs
@@ -99,6 +99,8 @@ void main() {
     when(() => mockWebViewController.runJavaScriptReturningResult(any()))
         .thenAnswer((_) async => '0');
     when(() => mockWebViewController.reload()).thenAnswer((_) async {});
+    when(() => mockWebViewController.currentUrl())
+        .thenAnswer((_) async => 'https://example.com');
   });
 
   group('EmbedController', () {
@@ -202,12 +204,6 @@ void main() {
         () async {
       final youtubeParam = SocialEmbedParam(
         url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        tracking: const EmbedTracking(
-          source: 'test',
-          contentId: 'dQw4w9WgXcQ',
-          pageIdentifier: 'page',
-          elementId: 'el',
-        ),
         embedType: EmbedType.youtube,
       );
       final controller = EmbedController(param: youtubeParam);
@@ -257,12 +253,6 @@ void main() {
     test('initEmbedWebview handles TikTok correctly', () async {
       final tiktokParam = SocialEmbedParam(
         url: 'https://www.tiktok.com/@user/video/12345',
-        tracking: const EmbedTracking(
-          source: 'test',
-          contentId: '12345',
-          pageIdentifier: 'test-page',
-          elementId: 'element-1',
-        ),
       );
       final controller = EmbedController(param: tiktokParam);
       final driver = EmbedWebViewDriver(
@@ -283,12 +273,6 @@ void main() {
     test('initEmbedWebview handles Twitter/X correctly', () async {
       final xParam = SocialEmbedParam(
         url: 'https://twitter.com/user/status/12345',
-        tracking: const EmbedTracking(
-          source: 'test',
-          contentId: '12345',
-          pageIdentifier: 'test-page',
-          elementId: 'element-1',
-        ),
       );
       final controller = EmbedController(param: xParam);
       final driver = EmbedWebViewDriver(
@@ -310,12 +294,6 @@ void main() {
     test('loadHtmlString uses correct baseUrl for Meta providers', () async {
       final fbParam = SocialEmbedParam(
         url: 'https://www.facebook.com/post/1',
-        tracking: const EmbedTracking(
-          source: 'test',
-          contentId: '1',
-          pageIdentifier: 'page',
-          elementId: 'el',
-        ),
       );
       final controller = EmbedController(param: fbParam);
       final driver = EmbedWebViewDriver(
@@ -342,12 +320,6 @@ void main() {
     test('pauseMedias handles TikTok photo vs videos', () async {
       final photoParam = SocialEmbedParam(
         url: 'https://www.tiktok.com/@user/photo/123',
-        tracking: const EmbedTracking(
-          source: 'test',
-          contentId: '123',
-          pageIdentifier: 'page',
-          elementId: 'el',
-        ),
         embedType: EmbedType.tiktok,
       );
       final controller = EmbedController(param: photoParam);
@@ -362,12 +334,6 @@ void main() {
 
       final videoParam = SocialEmbedParam(
         url: 'https://www.youtube.com/watch?v=123',
-        tracking: const EmbedTracking(
-          source: 'test',
-          contentId: '123',
-          pageIdentifier: 'page',
-          elementId: 'el',
-        ),
       );
       final videoController = EmbedController(param: videoParam);
       final videoDriver = EmbedWebViewDriver(
@@ -468,12 +434,6 @@ void main() {
         // Use a non-Twitter/non-TikTok URL to test the direct _handleEmbedPageFinished flow
         final generalParam = SocialEmbedParam(
           url: 'https://www.youtube.com/watch?v=1',
-          tracking: const EmbedTracking(
-            source: 'test',
-            contentId: '1',
-            pageIdentifier: 'p',
-            elementId: 'e',
-          ),
           embedType: EmbedType.youtube,
         );
         final controller = EmbedController(param: generalParam);
@@ -507,24 +467,18 @@ void main() {
 
         // Trigger onPageFinished
         capturedOnPageFinished('https://example.com');
+        async.flushMicrotasks();
 
         // Wait for first update (300ms delay + update)
-        async.elapse(const Duration(milliseconds: 301));
-        // Flush all microtasks to let the update complete
-        for (int i = 0; i < 5; i++) {
-          async.flushMicrotasks();
-        }
+        async.elapse(const Duration(milliseconds: 305));
+        async.flushMicrotasks();
 
         expect(controller.loadingState, EmbedLoadingState.loaded);
         expect(controller.height, 300.0);
 
         // Wait for second update (500ms delay + update)
-        async.elapse(const Duration(milliseconds: 501));
-
-        // Ensure ALL microtasks for the second update finish
-        for (int i = 0; i < 10; i++) {
-          async.flushMicrotasks();
-        }
+        async.elapse(const Duration(milliseconds: 505));
+        async.flushMicrotasks();
 
         expect(controller.height, 350.0);
 
@@ -538,12 +492,6 @@ void main() {
       fakeAsync((async) {
         final xParam = SocialEmbedParam(
           url: 'https://twitter.com/user/status/1',
-          tracking: const EmbedTracking(
-            source: 'test',
-            contentId: '1',
-            pageIdentifier: 'p',
-            elementId: 'e',
-          ),
         );
         final controller = EmbedController(param: xParam);
         final driver = EmbedWebViewDriver(
@@ -569,8 +517,12 @@ void main() {
             .thenAnswer((_) async => '400');
 
         capturedOnTwitterLoaded(const JavaScriptMessage(message: 'loaded'));
+        async.flushMicrotasks();
 
-        async.elapse(const Duration(milliseconds: 301));
+        // Wait for first rendering delay (300ms)
+        async.elapse(const Duration(milliseconds: 305));
+        async.flushMicrotasks();
+
         expect(controller.height, 400.0);
         expect(controller.loadingState, EmbedLoadingState.loaded);
       });
@@ -579,12 +531,6 @@ void main() {
     test('NavigationDelegate triggers Twitter bind script', () async {
       final xParam = SocialEmbedParam(
         url: 'https://twitter.com/user/status/1',
-        tracking: const EmbedTracking(
-          source: 'test',
-          contentId: '1',
-          pageIdentifier: 'p',
-          elementId: 'e',
-        ),
       );
       final controller = EmbedController(param: xParam);
       final driver = EmbedWebViewDriver(
@@ -592,7 +538,7 @@ void main() {
         webViewController: mockWebViewController,
       );
 
-      // Trigger init for delegate building
+      //
       await driver.initEmbedWebview(
         backgroundColor: Colors.white,
         embedData: null,
@@ -609,20 +555,18 @@ void main() {
       // Trigger it
       capturedOnPageFinished('https://twitter.com');
 
-      // Verify bind script was run
+      // Wait for any async handling in onPageFinished
+      await Future.delayed(Duration.zero);
+
+      // Verify bind script was run (from TwitterProviderStrategy)
       verify(() => mockWebViewController
-          .runJavaScript(any(that: contains('twttr.events.bind')))).called(1);
+          .runJavaScript(any(that: contains("twttr.events.bind('loaded'"))))
+          .called(1);
     });
 
     test('NavigationDelegate triggers TikTok Photo mute', () async {
       final photoParam = SocialEmbedParam(
         url: 'https://www.tiktok.com/@u/photo/1',
-        tracking: const EmbedTracking(
-          source: 's',
-          contentId: '1',
-          pageIdentifier: 'p',
-          elementId: 'e',
-        ),
         embedType: EmbedType.tiktok,
       );
       final controller = EmbedController(param: photoParam);
@@ -645,7 +589,10 @@ void main() {
 
       capturedOnPageFinished('https://tiktok.com');
 
-      // Verify mute script (it uses document.querySelectorAll('video, audio'))
+      // Wait for any async handling (it's async in NavigationDelegate callback)
+      await Future.delayed(Duration.zero);
+
+      // Verify mute script (via TikTokProviderStrategy calling controller.muteAudioWidget)
       verify(() => mockWebViewController.runJavaScript(
               any(that: contains("document.querySelectorAll('video, audio')"))))
           .called(1);

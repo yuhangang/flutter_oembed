@@ -1,5 +1,8 @@
+import 'package:embed_example/utils/platform_utils.dart';
+import 'package:embed_example/utils/settings_controller.dart';
 import 'package:embed_example/utils/url_launcher_utils.dart';
 import 'package:embed_example/widgets/config_menu_action.dart';
+import 'package:embed_example/widgets/embed_placeholder.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_embed/flutter_embed.dart';
@@ -163,13 +166,9 @@ class MarkdownIntegrationPage extends StatefulWidget {
 }
 
 class _MarkdownIntegrationPageState extends State<MarkdownIntegrationPage> {
-  String _locale = 'en';
-  Brightness _brightness = Brightness.light;
-  bool _scrollable = false;
-  bool _showFooter = false;
-
   @override
   Widget build(BuildContext context) {
+    final settings = ExampleSettingsProvider.of(context).settings;
     const markdownData = '''
 # Markdown Integration Example
 
@@ -193,54 +192,35 @@ This example demonstrates how to use the `oembed` package within a `markdown_wid
 ## X (Twitter) Embed
 <oembed>https://x.com/X/status/1328842765115920384</oembed>
 
+## GIPHY Embed
+<oembed url="https://giphy.com/gifs/moodman-monkey-side-eye-sideeye-H5C8CevNMbpBqNqFjl"></oembed>
+
 You can add any OEmbed-supported URL using `url`, `href`, `src`, `data-url`, as inner text, or using the `[embed](url)` / `[title](url "embed")` link syntax.
 ''';
 
-    return EmbedScope(
-      config:
-          EmbedScope.configOf(
-            context,
-          )?.copyWith(locale: _locale, brightness: _brightness) ??
-          EmbedConfig(locale: _locale, brightness: _brightness),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Markdown Integration'),
-          actions: [
-            ConfigMenuAction(
-              currentLocale: _locale,
-              currentBrightness: _brightness,
-              currentScrollable: _scrollable,
-              currentShowFooter: _showFooter,
-              onChanged: (locale, brightness, scrollable, showFooter) {
-                setState(() {
-                  _locale = locale;
-                  _brightness = brightness;
-                  _scrollable = scrollable;
-                  _showFooter = showFooter;
-                });
-              },
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Markdown Integration'),
+        actions: const [ConfigMenuAction()],
+      ),
+      body: MarkdownWidget(
+        key: ValueKey('markdown_${settings.locale}-${settings.brightness}'),
+        data: markdownData,
+        config: MarkdownConfig(
+          configs: [
+            SmartLinkConfig(
+              style: const TextStyle(
+                color: Colors.blue,
+                decoration: TextDecoration.underline,
+              ),
+              onTap: (url) {},
             ),
           ],
         ),
-        body: MarkdownWidget(
-          key: ValueKey('markdown_$_locale-$_brightness'),
-          data: markdownData,
-          config: MarkdownConfig(
-            configs: [
-              SmartLinkConfig(
-                style: const TextStyle(
-                  color: Colors.blue,
-                  decoration: TextDecoration.underline,
-                ),
-                onTap: (url) {},
-              ),
-            ],
-          ),
-          markdownGenerator: MarkdownGenerator(
-            generators: [smartLinkGenerator, oembedGenerator],
-            blockSyntaxList: const [EmbedBlockSyntax()],
-            extensionSet: md.ExtensionSet.gitHubFlavored,
-          ),
+        markdownGenerator: MarkdownGenerator(
+          generators: [smartLinkGenerator, oembedGenerator],
+          blockSyntaxList: const [EmbedBlockSyntax()],
+          extensionSet: md.ExtensionSet.gitHubFlavored,
         ),
       ),
     );
@@ -280,13 +260,16 @@ class _KeepAliveEmbedState extends State<KeepAliveEmbed>
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final settings = ExampleSettingsProvider.of(context).settings;
+
     return EmbedCard.url(
       widget.url,
-      tracking: EmbedTracking(
-        pageIdentifier: 'markdown_page',
-        source: 'markdown',
-        contentId: 'markdown_content_${widget.url.hashCode}',
-        elementId: 'markdown_element_${widget.url.hashCode}',
+      scrollable: settings.scrollable,
+      style: EmbedStyle(
+        loadingBuilder:
+            (context) => SocialEmbedPlaceholder(
+              embedType: getEmbedTypeFromUrl(widget.url) ?? EmbedType.other,
+            ),
       ),
     );
   }

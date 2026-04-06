@@ -1,27 +1,9 @@
+import 'package:embed_example/utils/settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_embed/flutter_embed.dart';
 
-
 class ConfigMenuAction extends StatelessWidget {
-  final String currentLocale;
-  final Brightness currentBrightness;
-  final bool currentScrollable;
-  final bool currentShowFooter;
-  final Function(
-    String locale,
-    Brightness brightness,
-    bool scrollable,
-    bool showFooter,
-  ) onChanged;
-
-  const ConfigMenuAction({
-    super.key,
-    required this.currentLocale,
-    required this.currentBrightness,
-    required this.currentScrollable,
-    required this.currentShowFooter,
-    required this.onChanged,
-  });
+  const ConfigMenuAction({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -39,60 +21,25 @@ class ConfigMenuAction extends StatelessWidget {
       backgroundColor: Colors.transparent,
       useSafeArea: true,
       builder: (context) {
-        return _SettingsSheet(
-          initialLocale: currentLocale,
-          initialBrightness: currentBrightness,
-          initialScrollable: currentScrollable,
-          initialShowFooter: currentShowFooter,
-          onChanged: onChanged,
-        );
+        return const _SettingsSheet();
       },
     );
   }
 }
 
 class _SettingsSheet extends StatefulWidget {
-  final String initialLocale;
-  final Brightness initialBrightness;
-  final bool initialScrollable;
-  final bool initialShowFooter;
-  final Function(
-    String locale,
-    Brightness brightness,
-    bool scrollable,
-    bool showFooter,
-  ) onChanged;
-
-  const _SettingsSheet({
-    required this.initialLocale,
-    required this.initialBrightness,
-    required this.initialScrollable,
-    required this.initialShowFooter,
-    required this.onChanged,
-  });
+  const _SettingsSheet();
 
   @override
   State<_SettingsSheet> createState() => _SettingsSheetState();
 }
 
 class _SettingsSheetState extends State<_SettingsSheet> {
-  late String _locale;
-  late Brightness _brightness;
-  late bool _scrollable;
-  late bool _showFooter;
-
-  @override
-  void initState() {
-    super.initState();
-    _locale = widget.initialLocale;
-    _brightness = widget.initialBrightness;
-    _scrollable = widget.initialScrollable;
-    _showFooter = widget.initialShowFooter;
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final controller = ExampleSettingsProvider.of(context);
+    final settings = controller.settings;
 
     return DraggableScrollableSheet(
       initialChildSize: 0.7,
@@ -167,15 +114,10 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                             icon: Icon(Icons.dark_mode_outlined),
                           ),
                         ],
-                        selected: {_brightness},
+                        selected: {settings.brightness},
                         onSelectionChanged: (val) {
-                          setState(() => _brightness = val.first);
-                          widget.onChanged(
-                            _locale,
-                            _brightness,
-                            _scrollable,
-                            _showFooter,
-                          );
+                          controller.updateGeneral(brightness: val.first);
+                          setState(() {});
                         },
                       ),
                     ),
@@ -187,19 +129,13 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                       child: SegmentedButton<String>(
                         segments: const [
                           ButtonSegment(value: 'en', label: Text('EN')),
-                          ButtonSegment(value: 'es', label: Text('ES')),
                           ButtonSegment(value: 'zh', label: Text('ZH')),
                           ButtonSegment(value: 'ms', label: Text('MS')),
                         ],
-                        selected: {_locale},
+                        selected: {settings.locale},
                         onSelectionChanged: (val) {
-                          setState(() => _locale = val.first);
-                          widget.onChanged(
-                            _locale,
-                            _brightness,
-                            _scrollable,
-                            _showFooter,
-                          );
+                          controller.updateGeneral(locale: val.first);
+                          setState(() {});
                         },
                       ),
                     ),
@@ -215,30 +151,22 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                             subtitle: const Text(
                               'Allow internal scrolling in WebView',
                             ),
-                            value: _scrollable,
+                            value: settings.scrollable,
                             onChanged: (val) {
-                              setState(() => _scrollable = val);
-                              widget.onChanged(
-                                _locale,
-                                _brightness,
-                                _scrollable,
-                                _showFooter,
-                              );
+                              controller.updateGeneral(scrollable: val);
+                              setState(() {});
                             },
                             contentPadding: EdgeInsets.zero,
                           ),
                           SwitchListTile(
                             title: const Text('Show "View" Footer'),
-                            subtitle: const Text('Show link to original platform'),
-                            value: _showFooter,
+                            subtitle: const Text(
+                              'Show link to original platform',
+                            ),
+                            value: settings.showFooter,
                             onChanged: (val) {
-                              setState(() => _showFooter = val);
-                              widget.onChanged(
-                                _locale,
-                                _brightness,
-                                _scrollable,
-                                _showFooter,
-                              );
+                              controller.updateGeneral(showFooter: val);
+                              setState(() {});
                             },
                             contentPadding: EdgeInsets.zero,
                           ),
@@ -255,12 +183,15 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                         children: [
                           const Text(
                             'Clears all cached oEmbed responses. This will force the app to re-fetch data from the providers.',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                            style: TextStyle(fontSize: 12),
                           ),
                           const SizedBox(height: 12),
                           OutlinedButton.icon(
                             onPressed: () => _confirmClearCache(context),
-                            icon: const Icon(Icons.cleaning_services_outlined, size: 18),
+                            icon: const Icon(
+                              Icons.cleaning_services_outlined,
+                              size: 18,
+                            ),
                             label: const Text('Clear OEmbed Cache'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.red,
@@ -274,7 +205,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                     Text(
                       'Note: Only some providers (like X/Twitter, YouTube) support these settings.',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey.shade600,
+                        color: theme.colorScheme.onSurfaceVariant,
                         fontStyle: FontStyle.italic,
                       ),
                       textAlign: TextAlign.center,
@@ -292,35 +223,36 @@ class _SettingsSheetState extends State<_SettingsSheet> {
   void _confirmClearCache(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clear Cache?'),
-        content: const Text(
-          'This will remove all locally stored OEmbed responses. '
-          'They will be re-fetched when needed.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Clear Cache?'),
+            content: const Text(
+              'This will remove all locally stored OEmbed responses. '
+              'They will be re-fetched when needed.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  await EmbedScope.clearCache();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('OEmbed cache cleared successfully'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                },
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Clear'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await EmbedScope.clearCache();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('OEmbed cache cleared successfully'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              }
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Clear'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -335,7 +267,11 @@ class _SettingsSheetState extends State<_SettingsSheet> {
       children: [
         Row(
           children: [
-            Icon(icon, size: 20, color: Colors.grey.shade700),
+            Icon(
+              icon,
+              size: 20,
+              color: Theme.of(context).colorScheme.secondary,
+            ),
             const SizedBox(width: 8),
             Text(
               title,

@@ -29,7 +29,8 @@ void main() {
       expect(uri.scheme, 'https');
       expect(uri.host, 'soundcloud.com');
       expect(uri.path, '/oembed');
-      expect(uri.queryParameters['url'], 'https://soundcloud.com/forss/flickermood');
+      expect(uri.queryParameters['url'],
+          'https://soundcloud.com/forss/flickermood');
       expect(uri.queryParameters['format'], 'json');
       expect(uri.queryParameters['maxwidth'], '640');
     });

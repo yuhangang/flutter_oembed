@@ -60,6 +60,9 @@ class FakePlatformNavigationDelegate extends PlatformNavigationDelegate {
 
   @override
   Future<void> setOnUrlChange(UrlChangeCallback onUrlChange) async {}
+
+  @override
+  Future<void> setOnHttpError(HttpResponseErrorCallback onHttpError) async {}
 }
 
 class FakePlatformWebViewController extends PlatformWebViewController {
@@ -250,7 +253,7 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 10));
+    await tester.pump(const Duration(milliseconds: 350));
 
     expect(
       fakePlatform.lastCreatedController?.lastLoadedHtml,
@@ -275,7 +278,7 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 10));
+    await tester.pump(const Duration(milliseconds: 350));
 
     expect(
       fakePlatform.lastCreatedController?.lastLoadedHtml,
@@ -307,7 +310,7 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 10));
+    await tester.pump(const Duration(milliseconds: 350));
     expect(
       fakePlatform.lastCreatedController?.lastLoadedHtml,
       contains('first-preloaded'),
@@ -322,7 +325,7 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 10));
+    await tester.pump(const Duration(milliseconds: 350));
 
     expect(
       fakePlatform.lastCreatedController?.lastLoadedHtml,

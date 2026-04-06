@@ -57,7 +57,7 @@ class EmbedLogger {
     this.debugOnly = false,
     this.tag = 'OEmbed',
     this.sink,
-  })  : enabled = true;
+  }) : enabled = true;
 
   bool get isActive =>
       enabled && level != EmbedLogLevel.off && (!debugOnly || kDebugMode);

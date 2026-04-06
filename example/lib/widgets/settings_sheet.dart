@@ -1,32 +1,11 @@
+import 'package:embed_example/utils/settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_embed/flutter_embed.dart';
 
 class VideoSettingsSheet extends StatefulWidget {
   final EmbedType embedType;
-  final VimeoEmbedParams? vimeoParams;
-  final XEmbedParams? xParams;
-  final MetaEmbedParams? metaParams;
-  final SoundCloudEmbedParams? soundCloudParams;
-  final TikTokEmbedParams? tiktokParams;
-  final Function(
-    VimeoEmbedParams?,
-    XEmbedParams?,
-    MetaEmbedParams?,
-    SoundCloudEmbedParams?,
-    TikTokEmbedParams?,
-  )
-  onChanged;
 
-  const VideoSettingsSheet({
-    super.key,
-    required this.embedType,
-    this.vimeoParams,
-    this.xParams,
-    this.metaParams,
-    this.soundCloudParams,
-    this.tiktokParams,
-    required this.onChanged,
-  });
+  const VideoSettingsSheet({super.key, required this.embedType});
 
   @override
   State<VideoSettingsSheet> createState() => _VideoSettingsSheetState();
@@ -42,7 +21,7 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
 
   // X state
   late bool _xDnt;
-  late String _xTheme;
+  late String? _xTheme;
   late List<String> _xChrome;
 
   // Meta state
@@ -67,96 +46,110 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
   late bool _tkMusicInfo;
   late bool _tkDescription;
 
+  // YouTube state
+  late String? _ytTheme;
+  late String? _ytColor;
+
   @override
   void initState() {
     super.initState();
-    _vimeoAutoplay = widget.vimeoParams?.autoplay ?? false;
-    _vimeoLoop = widget.vimeoParams?.loop ?? false;
-    _vimeoMuted = widget.vimeoParams?.muted ?? false;
-    _vimeoControls = widget.vimeoParams?.controls ?? true;
-    _vimeoColor = widget.vimeoParams?.color ?? '00adef';
+    final settings = ExampleSettingsProvider.of(context).settings;
 
-    _xDnt = widget.xParams?.dnt ?? true;
-    _xTheme = widget.xParams?.theme ?? 'light';
-    _xChrome =
-        widget.xParams?.chrome ??
-        ['noscrollbar', 'nofooter', 'noborders', 'transparent'];
+    _vimeoAutoplay = settings.vimeoParams.autoplay ?? false;
+    _vimeoLoop = settings.vimeoParams.loop ?? false;
+    _vimeoMuted = settings.vimeoParams.muted ?? false;
+    _vimeoControls = settings.vimeoParams.controls ?? true;
+    _vimeoColor = settings.vimeoParams.color ?? '00adef';
+
+    _xDnt = settings.xParams.dnt ?? true;
+    _xTheme = settings.xParams.theme;
+    _xChrome = List.from(
+      settings.xParams.chrome ??
+          ['noscrollbar', 'nofooter', 'noborders', 'transparent'],
+    );
 
     // Meta state
-    _metaAdaptWidth = widget.metaParams?.adaptContainerWidth ?? true;
-    _metaHideCover = widget.metaParams?.hideCover ?? false;
-    _metaHideCaption = widget.metaParams?.hidecaption ?? false;
-    _metaOmitScript = widget.metaParams?.omitscript ?? false;
-    _metaShowFacepile = widget.metaParams?.showFacepile ?? true;
-    _metaShowPosts = widget.metaParams?.showPosts ?? true;
-    _metaSmallHeader = widget.metaParams?.smallHeader ?? false;
-    _metaUseIframe = widget.metaParams?.useiframe ?? false;
+    _metaAdaptWidth = settings.metaParams.adaptContainerWidth ?? true;
+    _metaHideCover = settings.metaParams.hideCover ?? false;
+    _metaHideCaption = settings.metaParams.hidecaption ?? false;
+    _metaOmitScript = settings.metaParams.omitscript ?? false;
+    _metaShowFacepile = settings.metaParams.showFacepile ?? true;
+    _metaShowPosts = settings.metaParams.showPosts ?? true;
+    _metaSmallHeader = settings.metaParams.smallHeader ?? false;
+    _metaUseIframe = settings.metaParams.useiframe ?? false;
 
     // SoundCloud state
-    _scAutoPlay = widget.soundCloudParams?.autoPlay ?? false;
-    _scShowComments = widget.soundCloudParams?.showComments ?? true;
-    _scColor = widget.soundCloudParams?.color ?? 'ff5500';
+    _scAutoPlay = settings.soundCloudParams.autoPlay ?? false;
+    _scShowComments = settings.soundCloudParams.showComments ?? true;
+    _scColor = settings.soundCloudParams.color ?? 'ff5500';
 
     // TikTok state
-    _tkControls = widget.tiktokParams?.controls ?? true;
-    _tkAutoplay = widget.tiktokParams?.autoplay ?? false;
-    _tkLoop = widget.tiktokParams?.loop ?? false;
-    _tkMusicInfo = widget.tiktokParams?.musicInfo ?? true;
-    _tkDescription = widget.tiktokParams?.description ?? true;
-  }
+    _tkControls = settings.tiktokParams.controls;
+    _tkAutoplay = settings.tiktokParams.autoplay;
+    _tkLoop = settings.tiktokParams.loop;
+    _tkMusicInfo = settings.tiktokParams.musicInfo;
+    _tkDescription = settings.tiktokParams.description;
 
-  @override
-  void dispose() {
-    super.dispose();
+    _ytTheme = settings.youtubeParams.theme;
+    _ytColor = settings.youtubeParams.color;
   }
 
   void _apply() {
-    VimeoEmbedParams? vimeo;
-    XEmbedParams? x;
-    MetaEmbedParams? meta;
-    SoundCloudEmbedParams? sc;
-    TikTokEmbedParams? tk;
+    final controller = ExampleSettingsProvider.of(context);
 
     if (widget.embedType == EmbedType.vimeo) {
-      vimeo = VimeoEmbedParams(
-        autoplay: _vimeoAutoplay,
-        loop: _vimeoLoop,
-        muted: _vimeoMuted,
-        controls: _vimeoControls,
-        color: _vimeoColor,
+      controller.updateVimeo(
+        VimeoEmbedParams(
+          autoplay: _vimeoAutoplay,
+          loop: _vimeoLoop,
+          muted: _vimeoMuted,
+          controls: _vimeoControls,
+          color: _vimeoColor,
+        ),
       );
     } else if (widget.embedType == EmbedType.x) {
-      x = XEmbedParams(dnt: _xDnt, theme: _xTheme, chrome: _xChrome);
+      controller.updateX(
+        XEmbedParams(dnt: _xDnt, theme: _xTheme, chrome: _xChrome),
+      );
     } else if (widget.embedType.isFacebook ||
         widget.embedType == EmbedType.instagram ||
         widget.embedType == EmbedType.threads) {
-      meta = MetaEmbedParams(
-        adaptContainerWidth: _metaAdaptWidth,
-        hideCover: _metaHideCover,
-        hidecaption: _metaHideCaption,
-        omitscript: _metaOmitScript,
-        showFacepile: _metaShowFacepile,
-        showPosts: _metaShowPosts,
-        smallHeader: _metaSmallHeader,
-        useiframe: _metaUseIframe,
+      controller.updateMeta(
+        MetaEmbedParams(
+          adaptContainerWidth: _metaAdaptWidth,
+          hideCover: _metaHideCover,
+          hidecaption: _metaHideCaption,
+          omitscript: _metaOmitScript,
+          showFacepile: _metaShowFacepile,
+          showPosts: _metaShowPosts,
+          smallHeader: _metaSmallHeader,
+          useiframe: _metaUseIframe,
+        ),
       );
     } else if (widget.embedType == EmbedType.soundcloud) {
-      sc = SoundCloudEmbedParams(
-        autoPlay: _scAutoPlay,
-        showComments: _scShowComments,
-        color: _scColor,
+      controller.updateSoundCloud(
+        SoundCloudEmbedParams(
+          autoPlay: _scAutoPlay,
+          showComments: _scShowComments,
+          color: _scColor,
+        ),
       );
     } else if (widget.embedType == EmbedType.tiktok_v1) {
-      tk = TikTokEmbedParams(
-        controls: _tkControls,
-        autoplay: _tkAutoplay,
-        loop: _tkLoop,
-        musicInfo: _tkMusicInfo,
-        description: _tkDescription,
+      controller.updateTikTok(
+        TikTokEmbedParams(
+          controls: _tkControls,
+          autoplay: _tkAutoplay,
+          loop: _tkLoop,
+          musicInfo: _tkMusicInfo,
+          description: _tkDescription,
+        ),
+      );
+    } else if (widget.embedType == EmbedType.youtube) {
+      controller.updateYoutube(
+        YoutubeEmbedParams(theme: _ytTheme, color: _ytColor),
       );
     }
 
-    widget.onChanged(vimeo, x, meta, sc, tk);
     Navigator.pop(context);
   }
 
@@ -168,9 +161,9 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
       maxChildSize: 0.9,
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
             children: [
@@ -198,19 +191,43 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
                       ..._buildSoundCloudSettings(),
                     if (widget.embedType == EmbedType.tiktok_v1)
                       ..._buildTikTokSettings(),
-                    const SizedBox(height: 32),
-                    ElevatedButton(
-                      onPressed: _apply,
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text('Apply Changes'),
-                    ),
-                    const SizedBox(height: 16),
+                    if (widget.embedType == EmbedType.youtube)
+                      ..._buildYoutubeSettings(),
                   ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  border: Border(
+                    top: BorderSide(
+                      color: Theme.of(context).colorScheme.outlineVariant,
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: ElevatedButton(
+                    onPressed: _apply,
+                    style: ElevatedButton.styleFrom(
+                      elevation: 0,
+                      minimumSize: const Size.fromHeight(50),
+                      backgroundColor: Theme.of(context).primaryColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text(
+                      'Apply Changes',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -227,7 +244,7 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
         width: 40,
         height: 4,
         decoration: BoxDecoration(
-          color: Colors.grey[300],
+          color: Theme.of(context).colorScheme.outlineVariant,
           borderRadius: BorderRadius.circular(2),
         ),
       ),
@@ -279,13 +296,15 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
       ),
       ListTile(
         title: const Text('Theme'),
-        trailing: DropdownButton<String>(
+        subtitle: const Text('Derive from app or force a specific look'),
+        trailing: DropdownButton<String?>(
           value: _xTheme,
           items: const [
+            DropdownMenuItem(value: null, child: Text('Automatic')),
             DropdownMenuItem(value: 'light', child: Text('Light')),
             DropdownMenuItem(value: 'dark', child: Text('Dark')),
           ],
-          onChanged: (v) => setState(() => _xTheme = v!),
+          onChanged: (v) => setState(() => _xTheme = v),
         ),
       ),
       const Padding(
@@ -429,6 +448,36 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
         title: const Text('Description'),
         value: _tkDescription,
         onChanged: (v) => setState(() => _tkDescription = v),
+      ),
+    ];
+  }
+
+  List<Widget> _buildYoutubeSettings() {
+    return [
+      ListTile(
+        title: const Text('Theme'),
+        subtitle: const Text('Automatic follows global app theme'),
+        trailing: DropdownButton<String?>(
+          value: _ytTheme,
+          items: const [
+            DropdownMenuItem(value: null, child: Text('Automatic')),
+            DropdownMenuItem(value: 'light', child: Text('Light')),
+            DropdownMenuItem(value: 'dark', child: Text('Dark')),
+          ],
+          onChanged: (v) => setState(() => _ytTheme = v),
+        ),
+      ),
+      ListTile(
+        title: const Text('ProgressBar Color'),
+        trailing: DropdownButton<String?>(
+          value: _ytColor,
+          items: const [
+            DropdownMenuItem(value: null, child: Text('Default (Red)')),
+            DropdownMenuItem(value: 'red', child: Text('Red')),
+            DropdownMenuItem(value: 'white', child: Text('White')),
+          ],
+          onChanged: (v) => setState(() => _ytColor = v),
+        ),
       ),
     ];
   }

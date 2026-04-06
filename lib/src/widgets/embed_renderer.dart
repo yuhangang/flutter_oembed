@@ -7,8 +7,7 @@ import 'package:flutter_embed/src/widgets/embed_widget_loader.dart';
 import 'package:flutter_embed/src/core/embed_scope.dart';
 import 'package:flutter_embed/src/widgets/embed_surface.dart';
 
-import 'package:flutter_embed/src/models/embed_tracking.dart';
-
+//
 /// A pure renderer for OEmbed data.
 ///
 /// Use this widget when you already have [EmbedData] (e.g. from an API response)
@@ -20,7 +19,6 @@ class EmbedRenderer extends StatelessWidget {
   final EmbedData data;
   final EmbedType embedType;
   final double? maxWidth;
-  final EmbedTracking? tracking;
   final EmbedStyle? style;
   final bool? scrollable;
 
@@ -29,7 +27,6 @@ class EmbedRenderer extends StatelessWidget {
     required this.data,
     required this.embedType,
     this.maxWidth,
-    this.tracking,
     this.style,
     this.scrollable,
   });
@@ -43,7 +40,6 @@ class EmbedRenderer extends StatelessWidget {
     final param = SocialEmbedParam(
       url: data.providerUrl ?? '',
       embedType: embedType,
-      tracking: tracking,
     );
 
     Widget child = EmbedSurface(

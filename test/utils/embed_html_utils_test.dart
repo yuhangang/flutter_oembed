@@ -29,9 +29,10 @@ void main() {
         contains('referrerpolicy="strict-origin-when-cross-origin"'),
       );
       expect(document, contains('playsinline=1'));
-      expect(document, contains('widget_referrer=https%3A%2F%2Fwww.youtube.com'));
-      expect(document, isNot(contains('enablejsapi=1')));
-      expect(document, contains('origin=https%3A%2F%2Fwww.youtube.com'));
+      expect(
+          document, contains('widget_referrer=https%3A%2F%2Fwww.youtube-nocookie.com'));
+      expect(document, contains('enablejsapi=1'));
+      expect(document, contains('origin=https%3A%2F%2Fwww.youtube-nocookie.com'));
     });
   });
 }

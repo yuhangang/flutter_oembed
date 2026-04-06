@@ -22,12 +22,12 @@ class EmbedLoaderParam extends Equatable {
 
   @override
   List<Object?> get props => [
-    url,
-    embedType,
-    width,
-    queryParameters,
-    embedParams,
-  ];
+        url,
+        embedType,
+        width,
+        queryParameters,
+        embedParams,
+      ];
 
   static double _normalizeWidth(double width) {
     return width.floorToDouble();

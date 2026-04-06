@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_embed/src/controllers/embed_controller.dart';
 import 'package:flutter_embed/src/core/embed_scope.dart';
-import 'package:flutter_embed/src/core/embed_delegate.dart';
 import 'package:flutter_embed/src/models/embed_config.dart';
 import 'package:flutter_embed/src/models/embed_cache_config.dart';
 import 'package:flutter_embed/src/models/embed_enums.dart';
@@ -39,16 +38,13 @@ class EmbedWidgetLoader extends StatefulWidget {
 
 class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
   late EmbedController _controller;
-  EmbedDelegate? _scopeDelegate;
   EmbedConfig? _scopeConfig;
 
   @override
   void initState() {
     super.initState();
-    _scopeDelegate = EmbedScope.delegateOf(context, listen: false);
     _scopeConfig = EmbedScope.configOf(context, listen: false);
     _controller = _createController(
-      delegate: _scopeDelegate,
       config: _scopeConfig,
     );
     _scheduleInitEmbedPost();
@@ -57,12 +53,10 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final delegate = EmbedScope.delegateOf(context);
     final config = EmbedScope.configOf(context);
-    if (delegate != _scopeDelegate || config != _scopeConfig) {
-      _scopeDelegate = delegate;
+    if (config != _scopeConfig) {
       _scopeConfig = config;
-      _replaceController(delegate: delegate, config: config);
+      _replaceController(config: config);
     }
   }
 
@@ -71,37 +65,32 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.param != widget.param ||
         oldWidget.preloadedData != widget.preloadedData) {
-      _replaceController(delegate: _scopeDelegate, config: _scopeConfig);
+      _replaceController(config: _scopeConfig);
       _scheduleInitEmbedPost();
     }
   }
 
   EmbedController _createController({
-    required EmbedDelegate? delegate,
     required EmbedConfig? config,
   }) {
     return EmbedController(
       param: widget.param,
-      delegate: delegate,
       config: config,
       preloadedData: widget.preloadedData,
     );
   }
 
   void _replaceController({
-    required EmbedDelegate? delegate,
     required EmbedConfig? config,
   }) {
     final previous = _controller;
-    _controller = _createController(delegate: delegate, config: config);
+    _controller = _createController(config: config);
     previous.dispose();
   }
 
   void _scheduleInitEmbedPost() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && widget.param.embedType != EmbedType.other) {
-        EmbedScope.delegateOf(context)?.initEmbedPost(widget.param.url);
-      }
+      // Init logic removed as it was tracking related
     });
   }
 
@@ -125,11 +114,7 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
                 _controller.didRetry;
 
         if (showErrorWidget) {
-          final errorWidget = style?.errorBuilder?.call(context, null) ??
-              EmbedScope.delegateOf(context)?.buildSocialEmbedErrorPlaceholder(
-                context: context,
-                param: widget.param,
-              );
+          final errorWidget = style?.errorBuilder?.call(context, null);
           return errorWidget ?? const Icon(Icons.error_outline);
         }
 

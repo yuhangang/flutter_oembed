@@ -1,3 +1,4 @@
+import 'package:embed_example/utils/settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_embed/flutter_embed.dart';
 import 'package:embed_example/widgets/config_menu_action.dart';
@@ -15,128 +16,113 @@ class _TikTokPlayerIntegrationState extends State<TikTokPlayerIntegrationPage> {
   final _testUrl =
       'https://www.tiktok.com/@scout2015/video/6718335390845095173';
 
-  bool _controls = true;
-  bool _autoplay = false;
-  bool _loop = false;
-  bool _musicInfo = true;
-  bool _description = true;
-  String _locale = 'en';
-  Brightness _brightness = Brightness.light;
-  bool _scrollable = false;
-  bool _showFooter = false;
-
   @override
   Widget build(BuildContext context) {
-    return EmbedScope(
-      config:
-          EmbedScope.configOf(
-            context,
-          )?.copyWith(locale: _locale, brightness: _brightness) ??
-          EmbedConfig(locale: _locale, brightness: _brightness),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('TikTok Native Player (v1)'),
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-          actions: [
-            ConfigMenuAction(
-              currentLocale: _locale,
-              currentBrightness: _brightness,
-              currentScrollable: _scrollable,
-              currentShowFooter: _showFooter,
-              onChanged: (locale, brightness, scrollable, showFooter) {
-                setState(() {
-                  _locale = locale;
-                  _brightness = brightness;
-                  _scrollable = scrollable;
-                  _showFooter = showFooter;
-                });
-              },
-            ),
-          ],
-        ),
-        body: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'TikTok Embed Player',
-                      style: Theme.of(context).textTheme.headlineSmall,
+    final controller = ExampleSettingsProvider.of(context);
+    final settings = controller.settings;
+    final tiktokParams = settings.tiktokParams;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('TikTok Native Player (v1)'),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: const [ConfigMenuAction()],
+      ),
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'TikTok Embed Player',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'This standalone player uses tiktok.com/player/v1/ instead of standard oEmbed. It allows configuring precise playback controls.',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'This standalone player uses tiktok.com/player/v1/ instead of standard oEmbed. It allows configuring precise playback controls.',
-                      style: TextStyle(color: Colors.grey),
+                    padding: const EdgeInsets.all(8),
+                    child: Column(
+                      children: [
+                        SwitchListTile(
+                          title: const Text('Show Controls'),
+                          value: tiktokParams.controls,
+                          onChanged:
+                              (val) => controller.updateTikTok(
+                                tiktokParams.copyWith(controls: val),
+                              ),
+                          dense: true,
+                        ),
+                        SwitchListTile(
+                          title: const Text('Autoplay'),
+                          value: tiktokParams.autoplay,
+                          onChanged:
+                              (val) => controller.updateTikTok(
+                                tiktokParams.copyWith(autoplay: val),
+                              ),
+                          dense: true,
+                        ),
+                        SwitchListTile(
+                          title: const Text('Loop'),
+                          value: tiktokParams.loop,
+                          onChanged:
+                              (val) => controller.updateTikTok(
+                                tiktokParams.copyWith(loop: val),
+                              ),
+                          dense: true,
+                        ),
+                        SwitchListTile(
+                          title: const Text('Music Info'),
+                          value: tiktokParams.musicInfo,
+                          onChanged:
+                              (val) => controller.updateTikTok(
+                                tiktokParams.copyWith(musicInfo: val),
+                              ),
+                          dense: true,
+                        ),
+                        SwitchListTile(
+                          title: const Text('Description'),
+                          value: tiktokParams.description,
+                          onChanged:
+                              (val) => controller.updateTikTok(
+                                tiktokParams.copyWith(description: val),
+                              ),
+                          dense: true,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: const EdgeInsets.all(8),
-                      child: Column(
-                        children: [
-                          SwitchListTile(
-                            title: const Text('Show Controls'),
-                            value: _controls,
-                            onChanged: (val) => setState(() => _controls = val),
-                            dense: true,
-                          ),
-                          SwitchListTile(
-                            title: const Text('Autoplay'),
-                            value: _autoplay,
-                            onChanged: (val) => setState(() => _autoplay = val),
-                            dense: true,
-                          ),
-                          SwitchListTile(
-                            title: const Text('Loop'),
-                            value: _loop,
-                            onChanged: (val) => setState(() => _loop = val),
-                            dense: true,
-                          ),
-                          SwitchListTile(
-                            title: const Text('Music Info'),
-                            value: _musicInfo,
-                            onChanged:
-                                (val) => setState(() => _musicInfo = val),
-                            dense: true,
-                          ),
-                          SwitchListTile(
-                            title: const Text('Description'),
-                            value: _description,
-                            onChanged:
-                                (val) => setState(() => _description = val),
-                            dense: true,
-                          ),
-                        ],
-                      ),
+                  ),
+                  const SizedBox(height: 16),
+                  TikTokEmbedPlayer(
+                    // You must change the key so the WebView reloads the URL
+                    // when options like `controls` change
+                    key: ValueKey(
+                      '${tiktokParams.controls}-${tiktokParams.autoplay}-${tiktokParams.loop}-${tiktokParams.musicInfo}-${tiktokParams.description}-${settings.locale}-${settings.brightness}',
                     ),
-                    const SizedBox(height: 16),
-                    TikTokEmbedPlayer(
-                      // You must change the key so the WebView reloads the URL
-                      // when options like `controls` change
-                      key: ValueKey(
-                        '$_controls-$_autoplay-$_loop-$_musicInfo-$_description-$_locale-$_brightness',
-                      ),
-                      videoIdOrUrl: _testUrl,
-                      controls: _controls,
-                      autoplay: _autoplay,
-                      loop: _loop,
-                      musicInfo: _musicInfo,
-                      description: _description,
-                      // Typically TikTok fills a 9:16 aspect ratio bounds natively
-                      aspectRatio: 9 / 16,
-                    ),
-                  ],
-                ),
+                    videoIdOrUrl: _testUrl,
+                    controls: tiktokParams.controls,
+                    autoplay: tiktokParams.autoplay,
+                    loop: tiktokParams.loop,
+                    musicInfo: tiktokParams.musicInfo,
+                    description: tiktokParams.description,
+                    // Typically TikTok fills a 9:16 aspect ratio bounds natively
+                    aspectRatio: 9 / 16,
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
