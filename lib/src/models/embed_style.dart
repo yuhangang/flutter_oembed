@@ -41,6 +41,10 @@ class EmbedStyle {
   /// ```
   final Widget Function(BuildContext context, String url)? footerBuilder;
 
+  /// Wraps the internal WebView widget. Use this to add borders, border radius,
+  /// or other decorations specifically to the webview content.
+  final Widget Function(BuildContext context, Widget child)? webViewBuilder;
+
   /// Convenience border radius applied by the default wrapper when
   /// [wrapperBuilder] is null.
   final BorderRadius? borderRadius;
@@ -54,6 +58,7 @@ class EmbedStyle {
     this.loadingBuilder,
     this.errorBuilder,
     this.footerBuilder,
+    this.webViewBuilder,
     this.borderRadius,
     this.maxScrollableHeight = 400.0,
   });
@@ -64,6 +69,7 @@ class EmbedStyle {
     WidgetBuilder? loadingBuilder,
     Widget Function(BuildContext context, Object? error)? errorBuilder,
     Widget Function(BuildContext context, String url)? footerBuilder,
+    Widget Function(BuildContext context, Widget child)? webViewBuilder,
     BorderRadius? borderRadius,
     double? maxScrollableHeight,
   }) {
@@ -72,6 +78,7 @@ class EmbedStyle {
       loadingBuilder: loadingBuilder ?? this.loadingBuilder,
       errorBuilder: errorBuilder ?? this.errorBuilder,
       footerBuilder: footerBuilder ?? this.footerBuilder,
+      webViewBuilder: webViewBuilder ?? this.webViewBuilder,
       borderRadius: borderRadius ?? this.borderRadius,
       maxScrollableHeight: maxScrollableHeight ?? this.maxScrollableHeight,
     );

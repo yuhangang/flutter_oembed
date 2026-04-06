@@ -41,10 +41,35 @@ class EmbedNavigationHandler {
     required String? baseUrl,
     required Future<void> Function() onPageFinished,
     required EmbedLoadingState Function() loadingStateGetter,
+    void Function(String url)? onPageStarted,
+    void Function(WebResourceError error)? onWebResourceError,
   }) {
     final logger = config?.logger ?? const EmbedLogger.disabled();
     return NavigationDelegate(
-      onPageFinished: (_) => onPageFinished(),
+      onPageStarted: (url) {
+        logger.debug('WebView page started loading', data: {
+          'url': param.url,
+          'loadingUrl': url,
+        });
+        onPageStarted?.call(url);
+      },
+      onPageFinished: (url) {
+        logger.debug('WebView page finished loading', data: {
+          'url': param.url,
+          'loadingUrl': url,
+        });
+        onPageFinished();
+      },
+      onWebResourceError: (error) {
+        logger.warning('WebView resource error', data: {
+          'url': param.url,
+          'errorCode': error.errorCode,
+          'description': error.description,
+          'errorType': error.errorType?.toString(),
+          'isForMainFrame': error.isForMainFrame,
+        });
+        onWebResourceError?.call(error);
+      },
       onNavigationRequest: (request) async {
         // 1. Custom config override (full control)
         if (config?.onNavigationRequest != null) {
@@ -52,15 +77,19 @@ class EmbedNavigationHandler {
           if (decision != null) return decision;
         }
 
-        // 2. Fundamental navigations
         final state = loadingStateGetter();
         if (state == EmbedLoadingState.loading) {
-          logger.debug('Allowing navigation while loading: ${request.url}');
+          logger.debug('Allowing navigation while loading', data: {
+            'url': param.url,
+            'targetUrl': request.url,
+          });
           return NavigationDecision.navigate;
         }
         if (request.url == 'about:blank') {
-          logger.debug('Preventing about:blank navigation for ${param.url}');
-          return NavigationDecision.prevent;
+          logger.debug('Allowing about:blank navigation', data: {
+            'url': param.url,
+          });
+          return NavigationDecision.navigate;
         }
 
         // 3. Provider-specific internal navigation
@@ -69,7 +98,12 @@ class EmbedNavigationHandler {
         );
         if (provider?.shouldAllowNavigation?.call(request.url) ?? false) {
           logger.debug(
-            'Provider "${provider?.providerName}" allowed internal navigation: ${request.url}',
+            'Provider allowed internal navigation',
+            data: {
+              'url': param.url,
+              'provider': provider?.providerName,
+              'targetUrl': request.url,
+            },
           );
           return NavigationDecision.navigate;
         }
@@ -80,7 +114,10 @@ class EmbedNavigationHandler {
                 (request.url != baseUrl && request.url != '$baseUrl/'))) {
           final url =
               param.embedType == EmbedType.tiktok ? param.url : request.url;
-          logger.debug('Handling external navigation for ${param.url} -> $url');
+          logger.debug('Handling external navigation', data: {
+            'url': param.url,
+            'targetUrl': url,
+          });
 
           if (config?.onLinkTap != null) {
             config!.onLinkTap!(url, oembedData);
@@ -89,7 +126,7 @@ class EmbedNavigationHandler {
               url: url,
               embedType: param.embedType.name,
               location: EmbedButtonLocation.embed_body.name,
-              source: param.source,
+              source: param.tracking.source ?? 'embed',
             );
           }
         }

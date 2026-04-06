@@ -1,29 +1,26 @@
 import 'package:flutter_embed/src/models/embed_enums.dart';
+import 'package:flutter_embed/src/models/meta_embed_params.dart';
 import 'package:flutter_embed/src/models/provider_rule.dart';
+import 'package:flutter_embed/src/models/soundcloud_embed_params.dart';
+import 'package:flutter_embed/src/models/vimeo_embed_params.dart';
+import 'package:flutter_embed/src/models/x_embed_params.dart';
 import 'package:flutter_embed/src/services/api/base_embed_api.dart';
 import 'package:flutter_embed/src/services/api/meta_embed_api.dart';
+import 'package:flutter_embed/src/services/api/reddit_embed_api.dart';
+import 'package:flutter_embed/src/services/api/soundcloud_embed_api.dart';
 import 'package:flutter_embed/src/services/api/spotify_embed_api.dart';
 import 'package:flutter_embed/src/services/api/tiktok_embed_api.dart';
 import 'package:flutter_embed/src/services/api/vimeo_embed_api.dart';
 import 'package:flutter_embed/src/services/api/x_embed_api.dart';
+import 'package:flutter_embed/src/utils/embed_link_utils.dart';
 import 'package:flutter_embed/src/utils/embed_matchers.dart';
-import 'package:flutter_embed/src/services/api/reddit_embed_api.dart';
 
 // ---------------------------------------------------------------------------
 // Iframe URL builders
 // ---------------------------------------------------------------------------
 
 String? _buildYoutubeIframeUrl(String url) {
-  final patterns = [
-    RegExp(r'[?&]v=([a-zA-Z0-9_-]{11})'),
-    RegExp(r'youtu\.be/([a-zA-Z0-9_-]{11})'),
-    RegExp(r'/embed/([a-zA-Z0-9_-]{11})'),
-  ];
-  for (final p in patterns) {
-    final m = p.firstMatch(url);
-    if (m != null) return 'https://www.youtube.com/embed/${m.group(1)}';
-  }
-  return null;
+  return buildYoutubeEmbedUrl(url);
 }
 
 String? _buildVimeoIframeUrl(String url) {
@@ -73,12 +70,16 @@ bool _facebookNavigationCheck(String url) {
 // ---------------------------------------------------------------------------
 
 BaseEmbedApi _vimeoApiFactory(EmbedProviderContext ctx) =>
-    VimeoEmbedApi(ctx.width);
+    VimeoEmbedApi(ctx.width, vimeoParams: ctx.embedParams as VimeoEmbedParams?);
 BaseEmbedApi _spotifyApiFactory(EmbedProviderContext ctx) =>
     const SpotifyEmbedApi();
 BaseEmbedApi _tiktokApiFactory(EmbedProviderContext ctx) =>
     const TikTokEmbedApi();
-BaseEmbedApi _xApiFactory(EmbedProviderContext ctx) => const XEmbedApi();
+BaseEmbedApi _xApiFactory(EmbedProviderContext ctx) =>
+    XEmbedApi(xParams: ctx.embedParams as XEmbedParams?);
+BaseEmbedApi _soundcloudApiFactory(EmbedProviderContext ctx) =>
+    SoundCloudEmbedApi(ctx.width,
+        soundCloudParams: ctx.embedParams as SoundCloudEmbedParams?);
 
 BaseEmbedApi _facebookApiFactory(EmbedProviderContext ctx) {
   return MetaEmbedApi(
@@ -88,6 +89,7 @@ BaseEmbedApi _facebookApiFactory(EmbedProviderContext ctx) {
     ctx.facebookClientToken,
     endpoint: ctx.resolvedEndpoint,
     proxyUrl: ctx.proxyUrl,
+    metaParams: ctx.embedParams as MetaEmbedParams?,
   );
 }
 
@@ -99,6 +101,19 @@ BaseEmbedApi _instagramApiFactory(EmbedProviderContext ctx) {
     ctx.facebookClientToken,
     endpoint: ctx.resolvedEndpoint,
     proxyUrl: ctx.proxyUrl,
+    metaParams: ctx.embedParams as MetaEmbedParams?,
+  );
+}
+
+BaseEmbedApi _threadsApiFactory(EmbedProviderContext ctx) {
+  return MetaEmbedApi(
+    EmbedType.threads,
+    ctx.width,
+    ctx.facebookAppId,
+    ctx.facebookClientToken,
+    endpoint: ctx.resolvedEndpoint,
+    proxyUrl: ctx.proxyUrl,
+    metaParams: ctx.embedParams as MetaEmbedParams?,
   );
 }
 
@@ -114,14 +129,14 @@ BaseEmbedApi _instagramApiFactory(EmbedProviderContext ctx) {
 /// [EmbedProviderConfig.includeUnverified].
 final List<EmbedProviderRule> kDefaultEmbedProviders = [
   const EmbedProviderRule(
-    pattern: r'https?:\/\/(www\.)?youtube\.com\/watch.*',
+    pattern: r'^https?:\/\/(?:www\.|m\.)?youtube(?:-nocookie)?\.com\/(?:watch|shorts|live|v|embed).*',
     endpoint: 'https://www.youtube.com/oembed',
     providerName: 'YouTube',
     iframeUrlBuilder: _buildYoutubeIframeUrl,
     isVerified: true,
   ),
   const EmbedProviderRule(
-    pattern: r'https?:\/\/youtu\.be\/.*',
+    pattern: r'^https?:\/\/youtu\.be\/.*',
     endpoint: 'https://www.youtube.com/oembed',
     providerName: 'YouTube',
     iframeUrlBuilder: _buildYoutubeIframeUrl,
@@ -195,12 +210,14 @@ final List<EmbedProviderRule> kDefaultEmbedProviders = [
     pattern: r'https?:\/\/(www\.)?soundcloud\.com\/.*',
     endpoint: 'https://soundcloud.com/oembed',
     providerName: 'SoundCloud',
+    apiFactory: _soundcloudApiFactory,
     isVerified: true,
   ),
   const EmbedProviderRule(
     pattern: r'https?:\/\/(www\.)?threads\.net\/.*',
     endpoint: 'https://graph.threads.net/v1.0/oembed',
     providerName: 'Threads',
+    apiFactory: _threadsApiFactory,
     isVerified: true,
   ),
   const EmbedProviderRule(
@@ -262,6 +279,24 @@ final List<EmbedProviderRule> kDefaultEmbedProviders = [
     pattern: r'https?:\/\/geo\.dailymotion\.com\/player\.html\?video=.*',
     endpoint: 'https://www.dailymotion.com/services/oembed',
     providerName: 'Dailymotion',
+    isVerified: true,
+  ),
+  const EmbedProviderRule(
+    pattern: r'https?:\/\/(www\.)?giphy\.com\/(gifs|clips)\/.*',
+    endpoint: 'https://giphy.com/services/oembed',
+    providerName: 'Giphy',
+    isVerified: true,
+  ),
+  const EmbedProviderRule(
+    pattern: r'https?:\/\/gph\.is\/.*',
+    endpoint: 'https://giphy.com/services/oembed',
+    providerName: 'Giphy',
+    isVerified: true,
+  ),
+  const EmbedProviderRule(
+    pattern: r'https?:\/\/media\.giphy\.com\/media\/.*\/giphy\.gif',
+    endpoint: 'https://giphy.com/services/oembed',
+    providerName: 'Giphy',
     isVerified: true,
   ),
 ];

@@ -31,6 +31,13 @@ export 'src/models/embed_provider_config.dart';
 export 'src/models/embed_style.dart';
 export 'src/models/provider_rule.dart';
 export 'src/models/social_embed_param.dart';
+export 'src/models/base_embed_params.dart';
+export 'src/models/vimeo_embed_params.dart';
+export 'src/models/x_embed_params.dart';
+export 'src/models/meta_embed_params.dart';
+export 'src/models/soundcloud_embed_params.dart';
+export 'src/models/tiktok_embed_params.dart';
+export 'src/models/embed_tracking.dart';
 // Widgets (public entry points)
 export 'src/widgets/embed_card.dart';
 export 'src/widgets/embed_renderer.dart';

@@ -15,8 +15,13 @@ class SpotifyEmbedApi extends BaseEmbedApi {
     String url, {
     String locale = 'en',
     Brightness brightness = Brightness.light,
+    Map<String, String>? queryParameters,
   }) {
-    return Uri.parse(baseUrl).replace(queryParameters: {'url': url});
+    final params = {'url': url};
+    if (queryParameters != null) {
+      params.addAll(queryParameters);
+    }
+    return Uri.parse(baseUrl).replace(queryParameters: params);
   }
 
   @override

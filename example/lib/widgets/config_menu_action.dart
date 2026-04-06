@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_embed/flutter_embed.dart';
+
 
 class ConfigMenuAction extends StatelessWidget {
   final String currentLocale;
@@ -244,6 +246,31 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                       ),
                     ),
                     const SizedBox(height: 24),
+                    _buildSection(
+                      context,
+                      title: 'Cache Management',
+                      icon: Icons.delete_sweep_outlined,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text(
+                            'Clears all cached oEmbed responses. This will force the app to re-fetch data from the providers.',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            onPressed: () => _confirmClearCache(context),
+                            icon: const Icon(Icons.cleaning_services_outlined, size: 18),
+                            label: const Text('Clear OEmbed Cache'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.red,
+                              side: const BorderSide(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                     Text(
                       'Note: Only some providers (like X/Twitter, YouTube) support these settings.',
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -259,6 +286,41 @@ class _SettingsSheetState extends State<_SettingsSheet> {
           ),
         );
       },
+    );
+  }
+
+  void _confirmClearCache(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Cache?'),
+        content: const Text(
+          'This will remove all locally stored OEmbed responses. '
+          'They will be re-fetched when needed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await EmbedScope.clearCache();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('OEmbed cache cleared successfully'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
     );
   }
 

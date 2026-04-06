@@ -27,7 +27,7 @@ void main() {
     });
 
     test('headers includes required User-Agent for Reddit', () {
-      expect(api.headers['User-Agent'], contains('flutter_embed'));
+      expect(api.headers['User-Agent'], contains('flutter_oembed'));
     });
 
     test('baseUrl points to reddit oembed endpoint', () {

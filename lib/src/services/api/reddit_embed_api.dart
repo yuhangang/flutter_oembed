@@ -22,14 +22,21 @@ class RedditEmbedApi extends BaseEmbedApi {
     String url, {
     String locale = 'en',
     Brightness brightness = Brightness.light,
+    Map<String, String>? queryParameters,
   }) {
+    final params = {
+      'url': url,
+      'format': 'json',
+      if (width != null) 'maxwidth': width!.toInt().toString(),
+      if (brightness == Brightness.dark) 'theme': 'dark',
+    };
+
+    if (queryParameters != null) {
+      params.addAll(queryParameters);
+    }
+
     return Uri.parse(baseUrl).replace(
-      queryParameters: {
-        'url': url,
-        'format': 'json',
-        if (width != null) 'maxwidth': width!.toInt().toString(),
-        if (brightness == Brightness.dark) 'theme': 'dark',
-      },
+      queryParameters: params,
     );
   }
 

@@ -10,4 +10,6 @@ export 'package:flutter_embed/src/services/api/tiktok_embed_api.dart';
 export 'package:flutter_embed/src/services/api/meta_embed_api.dart';
 export 'package:flutter_embed/src/services/api/spotify_embed_api.dart';
 export 'package:flutter_embed/src/services/api/vimeo_embed_api.dart';
+export 'package:flutter_embed/src/services/api/reddit_embed_api.dart';
+export 'package:flutter_embed/src/services/api/soundcloud_embed_api.dart';
 export 'package:flutter_embed/src/services/provider_registry.dart';

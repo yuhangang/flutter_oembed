@@ -6,6 +6,7 @@ extension EmbedTypeExtension on EmbedType {
       case EmbedType.x:
         return 'assets/icons/embed_icon_x.svg';
       case EmbedType.tiktok:
+      case EmbedType.tiktok_v1:
         return 'assets/icons/embed_icon_tiktok.svg';
       case EmbedType.instagram:
         return 'assets/icons/embed_icon_instagram.svg';
@@ -23,6 +24,7 @@ extension EmbedTypeExtension on EmbedType {
       case EmbedType.x:
         return 'X';
       case EmbedType.tiktok:
+      case EmbedType.tiktok_v1:
         return 'TikTok';
       case EmbedType.instagram:
         return 'Instagram';
@@ -46,6 +48,8 @@ extension EmbedTypeExtension on EmbedType {
         return 'Threads';
       case EmbedType.reddit:
         return 'Reddit';
+      case EmbedType.giphy:
+        return 'GIPHY';
     }
   }
 

@@ -36,6 +36,7 @@ class EmbedMatchers {
     if (n == 'soundcloud') return EmbedType.soundcloud;
     if (n == 'threads') return EmbedType.threads;
     if (n == 'reddit') return EmbedType.reddit;
+    if (n == 'giphy') return EmbedType.giphy;
 
     if (n == 'facebook') {
       if (url != null) {

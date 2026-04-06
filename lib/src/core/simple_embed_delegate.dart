@@ -40,7 +40,9 @@ class SimpleEmbedDelegate implements EmbedDelegate {
   @override
   final double offlineToastOffset;
 
-  final void Function(String url, String embedType, String location, String source)? onLinkClick;
+  final void Function(
+          String url, String embedType, String location, String source)?
+      onLinkClick;
   final bool Function()? connectionChecker;
   final Color Function(BuildContext)? scaffoldBgColor;
   final Color Function(BuildContext)? cardBgColor;
@@ -72,7 +74,8 @@ class SimpleEmbedDelegate implements EmbedDelegate {
 
   @override
   Color scaffoldBackgroundColor(BuildContext context) =>
-      scaffoldBgColor?.call(context) ?? Theme.of(context).scaffoldBackgroundColor;
+      scaffoldBgColor?.call(context) ??
+      Theme.of(context).scaffoldBackgroundColor;
 
   @override
   Color cardColor(BuildContext context) =>
@@ -93,13 +96,15 @@ class SimpleEmbedDelegate implements EmbedDelegate {
     required VoidCallback onTap,
   }) =>
       AspectRatio(
-        aspectRatio: 1.0,
+        aspectRatio: 4 / 3,
         child: GestureDetector(
           onTap: onTap,
           child: Container(
             decoration: BoxDecoration(
               color: Theme.of(context).disabledColor.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: param.embedType.isVideo 
+                  ? BorderRadius.zero 
+                  : BorderRadius.circular(12),
               border: Border.all(
                 color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
               ),
@@ -134,11 +139,13 @@ class SimpleEmbedDelegate implements EmbedDelegate {
     Exception? error,
   }) =>
       AspectRatio(
-        aspectRatio: 1.0,
+        aspectRatio: 4 / 3,
         child: Container(
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.error.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: param.embedType.isVideo 
+                ? BorderRadius.zero 
+                : BorderRadius.circular(12),
             border: Border.all(
               color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
             ),
@@ -189,11 +196,13 @@ class SimpleEmbedDelegate implements EmbedDelegate {
     required EmbedType embedType,
   }) =>
       AspectRatio(
-        aspectRatio: 1.0,
+        aspectRatio: 4 / 3,
         child: Container(
           decoration: BoxDecoration(
             color: Theme.of(context).disabledColor.withValues(alpha: 0.03),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: embedType.isVideo 
+                ? BorderRadius.zero 
+                : BorderRadius.circular(12),
           ),
           child: Center(
             child: SizedBox(

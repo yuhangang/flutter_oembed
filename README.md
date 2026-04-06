@@ -10,6 +10,17 @@ A powerful, easy-to-use Flutter package for embedding social media content and o
 - **Iframe Optimization:** Direct iframe rendering support for YouTube and Spotify to skip API round-trips.
 - **Privacy & Security:** Securely handles authentication tokens and implements Content Security Policy (CSP).
 - **Extensible:** Easily add custom providers and render rules.
+- **Rich Media Support:** Embed not just posts, but also videos, music, and more.
+
+## Supported Providers
+
+`flutter_embed` supports the following verified oEmbed providers out of the box:
+
+| Category | Providers |
+| :--- | :--- |
+| **Social** | X (Twitter), Facebook, Instagram, Threads, Reddit, TikTok |
+| **Video** | YouTube, Vimeo, Dailymotion |
+| **Audio** | Spotify, SoundCloud |
 
 ## Getting started
 

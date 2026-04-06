@@ -6,6 +6,7 @@ import 'package:flutter_embed/src/models/embed_enums.dart';
 import 'package:flutter_embed/src/models/embed_data.dart';
 import 'package:flutter_embed/src/services/api/base_embed_api.dart';
 import 'package:flutter_embed/src/utils/embed_errors.dart';
+import 'package:flutter_embed/src/models/meta_embed_params.dart';
 
 /// OEmbed API client for Meta platforms (Facebook + Instagram).
 class MetaEmbedApi extends BaseEmbedApi {
@@ -16,6 +17,7 @@ class MetaEmbedApi extends BaseEmbedApi {
     this.clientToken, {
     this.proxyUrl,
     this.endpoint,
+    this.metaParams,
   });
 
   final String? proxyUrl;
@@ -24,6 +26,7 @@ class MetaEmbedApi extends BaseEmbedApi {
   final double width;
   final String appId;
   final String clientToken;
+  final MetaEmbedParams? metaParams;
 
   static const String pageEndPoint = 'embed_page';
   static const String postEndPoint = 'embed_post';
@@ -31,13 +34,18 @@ class MetaEmbedApi extends BaseEmbedApi {
   static const String instagramEndPoint = 'instagram_oembed';
 
   @override
-  String get baseUrl => proxyUrl ?? 'https://graph.facebook.com/v22.0';
+  String get baseUrl {
+    if (proxyUrl != null) return proxyUrl!;
+    if (embedType == EmbedType.threads) return 'https://graph.threads.net/v1.0';
+    return 'https://graph.facebook.com/v22.0';
+  }
 
   @override
   Uri constructUrl(
     String url, {
     String locale = 'en',
     Brightness brightness = Brightness.light,
+    Map<String, String>? queryParameters,
   }) {
     String endPoint;
 
@@ -54,19 +62,34 @@ class MetaEmbedApi extends BaseEmbedApi {
         case EmbedType.instagram:
           endPoint = instagramEndPoint;
           break;
+        case EmbedType.threads:
+          endPoint = 'oembed';
+          break;
         default:
           endPoint = pageEndPoint;
       }
     }
 
+    final params = {
+      'url': url,
+      if (appId.isNotEmpty && clientToken.isNotEmpty)
+        'access_token': '$appId|$clientToken',
+      if (embedType.isFacebook && metaParams?.maxwidth == null)
+        'maxwidth': width.toInt().toString(),
+    };
+
+    if (metaParams != null) {
+      params.addAll(metaParams!.toMap());
+    }
+
+    params.putIfAbsent('sdklocale', () => locale);
+
+    if (queryParameters != null) {
+      params.addAll(queryParameters);
+    }
+
     return Uri.parse('$baseUrl/$endPoint').replace(
-      queryParameters: {
-        'url': url,
-        if (appId.isNotEmpty && clientToken.isNotEmpty)
-          'access_token': '$appId|$clientToken',
-        'sdklocale': locale,
-        if (embedType.isFacebook) 'maxwidth': width.toInt().toString(),
-      },
+      queryParameters: params,
     );
   }
 

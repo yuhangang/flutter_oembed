@@ -8,9 +8,9 @@ void main() {
       const config = EmbedProviderConfig();
       final providers = config.effectiveProviders;
 
-      // Check that known unverified providers like Reddit are not in the list
-      final reddit = providers.any((p) => p.providerName == 'Reddit');
-      expect(reddit, isFalse);
+      // Check that known unverified providers like TED are not in the list
+      final ted = providers.any((p) => p.providerName == 'TED');
+      expect(ted, isFalse);
 
       // Check that known verified providers like YouTube are in the list
       final youtube = providers.any((p) => p.providerName == 'YouTube');
@@ -23,9 +23,9 @@ void main() {
         const config = EmbedProviderConfig(includeUnverified: true);
         final providers = config.effectiveProviders;
 
-        // Reddit should be included now
-        final reddit = providers.any((p) => p.providerName == 'Reddit');
-        expect(reddit, isTrue);
+        // TED should be included now
+        final ted = providers.any((p) => p.providerName == 'TED');
+        expect(ted, isTrue);
       },
     );
 

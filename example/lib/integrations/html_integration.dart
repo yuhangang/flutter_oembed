@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_html/flutter_html.dart';
-import 'package:flutter_embed/flutter_embed.dart';
 import 'package:embed_example/widgets/config_menu_action.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_embed/flutter_embed.dart';
+import 'package:flutter_html/flutter_html.dart';
 
 String? _extractEmbedUrlFromHtml(ExtensionContext context) {
   final attributes = context.attributes;
@@ -57,13 +57,14 @@ class EmbedExtension extends HtmlExtension {
     return WidgetSpan(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: EmbedCard(
-          url: url,
-          pageIdentifier: 'html_page',
-          source: 'html',
-          contentId: 'html_content_${url.hashCode}',
-          elementId: 'html_element_${url.hashCode}',
-          extraIdentifier: '',
+        child: EmbedCard.url(
+          url,
+          tracking: EmbedTracking(
+            pageIdentifier: 'html_page',
+            source: 'html',
+            contentId: 'html_content_${url.hashCode}',
+            elementId: 'html_element_${url.hashCode}',
+          ),
         ),
       ),
     );

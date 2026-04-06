@@ -15,7 +15,14 @@ class TikTokEmbedApi extends BaseEmbedApi {
     String url, {
     String locale = 'en',
     Brightness brightness = Brightness.light,
-  }) => Uri.parse('$baseUrl?url=$url');
+    Map<String, String>? queryParameters,
+  }) {
+    final params = {'url': url};
+    if (queryParameters != null) {
+      params.addAll(queryParameters);
+    }
+    return Uri.parse(baseUrl).replace(queryParameters: params);
+  }
 
   @override
   Exception handleErrorResponse(http.Response response) => EmbedApisException();

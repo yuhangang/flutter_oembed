@@ -1,4 +1,5 @@
 const String kTikTokV3EmbedUrl = 'https://www.tiktok.com/embed/v3';
+const String kYouTubeEmbedBaseUrl = 'https://www.youtube.com/embed';
 
 String? getTikTokEmbedUrl(String url) {
   final Uri uri = Uri.parse(url);
@@ -17,10 +18,15 @@ String? getTikTokEmbedUrl(String url) {
   }
 }
 
-final _youtubeWatchRegex = RegExp(r'^https://(?:www\.|m\.)?youtube\.com/watch.*');
+final _youtubeWatchRegex =
+    RegExp(r'^https:\/\/(?:www\.|m\.)?youtube(?:-nocookie)?\.com\/watch.*');
 final _youtubeIdRegexes = [
-  RegExp(r"^https:\/\/(?:www\.|m\.)?youtube\.com\/watch\?v=([_\-a-zA-Z0-9]{11}).*$"),
-  RegExp(r"^https:\/\/(?:www\.|m\.)?youtube(?:-nocookie)?\.com\/embed\/([_\-a-zA-Z0-9]{11}).*$"),
+  RegExp(
+      r"^https:\/\/(?:www\.|m\.)?youtube(?:-nocookie)?\.com\/watch\?v=([_\-a-zA-Z0-9]{11}).*$"),
+  RegExp(
+      r"^https:\/\/(?:www\.|m\.)?youtube(?:-nocookie)?\.com\/embed\/([_\-a-zA-Z0-9]{11}).*$"),
+  RegExp(
+      r"^https:\/\/(?:www\.|m\.)?youtube(?:-nocookie)?\.com\/(?:shorts|live|v)\/([_\-a-zA-Z0-9]{11}).*$"),
   RegExp(r"^https:\/\/youtu\.be\/([_\-a-zA-Z0-9]{11}).*$")
 ];
 
@@ -28,7 +34,7 @@ String getYoutubeEmbedParam(String url) {
   if (_youtubeWatchRegex.hasMatch(url)) {
     return url;
   } else {
-    final youtubeId = _convertUrlToId(url);
+    final youtubeId = getYoutubeVideoId(url);
     if (youtubeId != null) {
       return 'https://www.youtube.com/watch?v=$youtubeId';
     }
@@ -36,7 +42,7 @@ String getYoutubeEmbedParam(String url) {
   }
 }
 
-String? _convertUrlToId(String url, {bool trimWhitespaces = true}) {
+String? getYoutubeVideoId(String url, {bool trimWhitespaces = true}) {
   if (!url.contains("http") && (url.length == 11)) return url;
   if (trimWhitespaces) url = url.trim();
 
@@ -46,4 +52,15 @@ String? _convertUrlToId(String url, {bool trimWhitespaces = true}) {
   }
 
   return null;
+}
+
+String? buildYoutubeEmbedUrl(
+  String urlOrId, {
+  Map<String, String>? queryParameters,
+}) {
+  final videoId = getYoutubeVideoId(urlOrId);
+  if (videoId == null || videoId.isEmpty) return null;
+  return Uri.parse('$kYouTubeEmbedBaseUrl/$videoId')
+      .replace(queryParameters: queryParameters)
+      .toString();
 }

@@ -1,5 +1,6 @@
 class EmbedData {
   final String html;
+  final String? url;
   final String? thumbnailUrl;
   final String? title;
   final String? authorName;
@@ -13,6 +14,7 @@ class EmbedData {
 
   EmbedData({
     required this.html,
+    this.url,
     this.thumbnailUrl,
     this.title,
     this.authorName,
@@ -36,6 +38,7 @@ class EmbedData {
   factory EmbedData.fromJson(Map<String, dynamic> json) {
     return EmbedData(
       html: json['html'] ?? '',
+      url: json['url'],
       thumbnailUrl: json['thumbnail_url'],
       title: json['title'],
       authorName: json['author_name'],
@@ -52,6 +55,7 @@ class EmbedData {
   Map<String, dynamic> toJson() {
     return {
       'html': html,
+      'url': url,
       'thumbnail_url': thumbnailUrl,
       'title': title,
       'author_name': authorName,
@@ -67,6 +71,7 @@ class EmbedData {
 
   EmbedData copyWith({
     String? html,
+    String? url,
     String? thumbnailUrl,
     String? title,
     String? authorName,
@@ -80,6 +85,7 @@ class EmbedData {
   }) {
     return EmbedData(
       html: html ?? this.html,
+      url: url ?? this.url,
       thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
       title: title ?? this.title,
       authorName: authorName ?? this.authorName,

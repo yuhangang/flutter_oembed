@@ -20,13 +20,14 @@ class OEmbedEmbedBuilder extends EmbedBuilder {
     final url = embedContext.node.value.data as String;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12.0),
-      child: EmbedCard(
-        url: url,
-        pageIdentifier: 'quill_page',
-        source: 'quill',
-        contentId: 'quill_content_${url.hashCode}',
-        elementId: 'quill_element_${url.hashCode}',
-        extraIdentifier: '',
+      child: EmbedCard.url(
+        url,
+        tracking: EmbedTracking(
+          pageIdentifier: 'quill_page',
+          source: 'quill',
+          contentId: 'quill_content_${url.hashCode}',
+          elementId: 'quill_element_${url.hashCode}',
+        ),
       ),
     );
   }

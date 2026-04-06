@@ -7,7 +7,7 @@ void main() {
       var callCount = 0;
       final logger = EmbedLogger(
         enabled: false,
-        sink: ({required level, required message, error, stackTrace}) {
+        sink: ({required level, required message, data, error, stackTrace}) {
           callCount++;
         },
       );
@@ -21,7 +21,7 @@ void main() {
       final events = <String>[];
       final logger = EmbedLogger.enabled(
         level: EmbedLogLevel.info,
-        sink: ({required level, required message, error, stackTrace}) {
+        sink: ({required level, required message, data, error, stackTrace}) {
           events.add('${level.name}:$message');
         },
       );
@@ -37,7 +37,7 @@ void main() {
     test('debug logger forwards messages in debug mode', () {
       final events = <String>[];
       final logger = EmbedLogger.debug(
-        sink: ({required level, required message, error, stackTrace}) {
+        sink: ({required level, required message, data, error, stackTrace}) {
           events.add('${level.name}:$message');
         },
       );

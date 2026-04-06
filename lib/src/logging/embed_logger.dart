@@ -13,6 +13,7 @@ enum EmbedLogLevel {
 typedef EmbedLogSink = void Function({
   required EmbedLogLevel level,
   required String message,
+  Map<String, dynamic>? data,
   Object? error,
   StackTrace? stackTrace,
 });
@@ -69,6 +70,7 @@ class EmbedLogger {
   void log(
     EmbedLogLevel messageLevel,
     String message, {
+    Map<String, dynamic>? data,
     Object? error,
     StackTrace? stackTrace,
   }) {
@@ -78,6 +80,7 @@ class EmbedLogger {
     handler(
       level: messageLevel,
       message: message,
+      data: data,
       error: error,
       stackTrace: stackTrace,
     );
@@ -85,45 +88,76 @@ class EmbedLogger {
 
   void error(
     String message, {
+    Map<String, dynamic>? data,
     Object? error,
     StackTrace? stackTrace,
   }) =>
-      log(EmbedLogLevel.error, message, error: error, stackTrace: stackTrace);
+      log(
+        EmbedLogLevel.error,
+        message,
+        data: data,
+        error: error,
+        stackTrace: stackTrace,
+      );
 
   void warning(
     String message, {
+    Map<String, dynamic>? data,
     Object? error,
     StackTrace? stackTrace,
   }) =>
       log(
         EmbedLogLevel.warning,
         message,
+        data: data,
         error: error,
         stackTrace: stackTrace,
       );
 
   void info(
     String message, {
+    Map<String, dynamic>? data,
     Object? error,
     StackTrace? stackTrace,
   }) =>
-      log(EmbedLogLevel.info, message, error: error, stackTrace: stackTrace);
+      log(
+        EmbedLogLevel.info,
+        message,
+        data: data,
+        error: error,
+        stackTrace: stackTrace,
+      );
 
   void debug(
     String message, {
+    Map<String, dynamic>? data,
     Object? error,
     StackTrace? stackTrace,
   }) =>
-      log(EmbedLogLevel.debug, message, error: error, stackTrace: stackTrace);
+      log(
+        EmbedLogLevel.debug,
+        message,
+        data: data,
+        error: error,
+        stackTrace: stackTrace,
+      );
 
   void _defaultSink({
     required EmbedLogLevel level,
     required String message,
+    Map<String, dynamic>? data,
     Object? error,
     StackTrace? stackTrace,
   }) {
     final prefix = '[$tag][${level.name}]';
-    debugPrint('$prefix $message');
+    final sb = StringBuffer('$prefix $message');
+
+    if (data != null && data.isNotEmpty) {
+      sb.write(' | data: $data');
+    }
+
+    debugPrint(sb.toString());
+
     if (error != null) {
       debugPrint('$prefix error: $error');
     }

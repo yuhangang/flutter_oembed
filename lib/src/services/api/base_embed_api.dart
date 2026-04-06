@@ -2,12 +2,12 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter_embed/src/models/embed_constant.dart';
-import 'package:flutter_embed/src/models/embed_cache_config.dart';
-import 'package:flutter_embed/src/models/embed_data.dart';
 import 'package:flutter_embed/src/logging/embed_logger.dart';
+import 'package:flutter_embed/src/models/embed_cache_config.dart';
+import 'package:flutter_embed/src/models/embed_constant.dart';
+import 'package:flutter_embed/src/models/embed_data.dart';
 import 'package:flutter_embed/src/utils/embed_errors.dart';
+import 'package:http/http.dart' as http;
 
 /// Base class for all OEmbed API clients.
 ///
@@ -25,6 +25,7 @@ abstract class BaseEmbedApi {
     String url, {
     String locale = 'en',
     Brightness brightness = Brightness.light,
+    Map<String, String>? queryParameters,
   });
 
   /// Optional HTTP headers to include with every request.
@@ -46,14 +47,15 @@ abstract class BaseEmbedApi {
       final cache = await _cacheManager.getFileFromCache(uri.toString());
       final bytes = await cache?.file.readAsBytes();
       if (bytes != null) {
-        logger?.debug('Cache hit for $uri');
+        logger?.debug('Cache hit', data: {'uri': uri.toString()});
         return EmbedData.fromJson(jsonDecode(utf8.decode(bytes)));
       }
-      logger?.debug('Cache miss for $uri');
+      logger?.debug('Cache miss', data: {'uri': uri.toString()});
       return null;
     } catch (error, stackTrace) {
       logger?.debug(
-        'Failed to read cache for $uri',
+        'Failed to read cache',
+        data: {'uri': uri.toString()},
         error: error,
         stackTrace: stackTrace,
       );
@@ -68,8 +70,7 @@ abstract class BaseEmbedApi {
     EmbedLogger? logger,
   }) async {
     try {
-      final resolvedMaxAge =
-          maxAge ??
+      final resolvedMaxAge = maxAge ??
           oembedData.cacheAgeDuration ??
           kDefaultEmbedHtmlCacheLifeSpan;
       await _cacheManager.putFile(
@@ -77,10 +78,14 @@ abstract class BaseEmbedApi {
         Uint8List.fromList(jsonEncode(oembedData.toJson()).codeUnits),
         maxAge: resolvedMaxAge,
       );
-      logger?.debug('Cached OEmbed response for $uri (ttl: $resolvedMaxAge)');
+      logger?.debug('Cached OEmbed response', data: {
+        'uri': uri.toString(),
+        'ttl': resolvedMaxAge.toString(),
+      });
     } catch (error, stackTrace) {
       logger?.debug(
-        'Failed to write cache for $uri',
+        'Failed to write cache',
+        data: {'uri': uri.toString()},
         error: error,
         stackTrace: stackTrace,
       );
@@ -97,25 +102,43 @@ abstract class BaseEmbedApi {
     Brightness brightness = Brightness.light,
     EmbedCacheConfig? cacheConfig,
     EmbedLogger? logger,
+    Map<String, String>? queryParameters,
   }) async {
     final config = cacheConfig ?? const EmbedCacheConfig();
-    final uri = constructUrl(url, locale: locale, brightness: brightness);
-    logger?.debug('Resolving OEmbed request for $url -> $uri');
+    final uri = constructUrl(
+      url,
+      locale: locale,
+      brightness: brightness,
+      queryParameters: queryParameters,
+    );
+    logger?.debug('Resolving OEmbed request', data: {
+      'url': url,
+      'endpoint': uri.toString(),
+    });
 
     if (config.enabled) {
       final cached = await getCachedResult(uri, logger: logger);
       if (cached != null) {
-        logger?.info('Using cached OEmbed response for $url');
+        logger?.info('Using cached OEmbed response', data: {'url': url});
         return cached;
       }
     } else {
-      logger?.debug('Cache disabled for $url');
+      logger?.debug('Cache disabled', data: {'url': url});
     }
 
-    logger?.debug('Fetching OEmbed response from network: $uri');
+    logger?.debug('Fetching OEmbed response from network', data: {
+      'url': url,
+      'uri': uri.toString(),
+    });
     final response = await http.get(uri, headers: headers);
 
     if (response.statusCode == 200) {
+      logger?.debug('OEmbed response received', data: {
+        'url': url,
+        'statusCode': response.statusCode,
+        'body': response.body,
+      });
+
       final decoded = ombedResponseModifier(
         EmbedData.fromJson(json.decode(response.body)),
       );
@@ -125,11 +148,16 @@ abstract class BaseEmbedApi {
         await setCachedResult(uri, decoded, maxAge: ttl, logger: logger);
       }
 
-      logger?.info('Fetched OEmbed response for $url');
+      logger?.info('Fetched OEmbed response', data: {'url': url});
       return decoded;
     } else {
       logger?.warning(
-        'OEmbed request failed for $url with status ${response.statusCode}',
+        'OEmbed request failed',
+        data: {
+          'url': url,
+          'statusCode': response.statusCode,
+          'body': response.body,
+        },
       );
       throw handleErrorResponse(response);
     }
@@ -168,12 +196,19 @@ class GenericEmbedApi extends BaseEmbedApi {
     String url, {
     String locale = 'en',
     Brightness brightness = Brightness.light,
+    Map<String, String>? queryParameters,
   }) {
+    final params = {
+      'url': url,
+      if (width != null) 'maxwidth': width!.toInt().toString(),
+    };
+
+    if (queryParameters != null) {
+      params.addAll(queryParameters);
+    }
+
     return Uri.parse(baseUrl).replace(
-      queryParameters: {
-        'url': url,
-        if (width != null) 'maxwidth': width!.toInt().toString(),
-      },
+      queryParameters: params,
     );
   }
 

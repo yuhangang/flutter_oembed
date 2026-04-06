@@ -1,10 +1,10 @@
+import 'package:embed_example/utils/url_launcher_utils.dart';
+import 'package:embed_example/widgets/config_menu_action.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_embed/flutter_embed.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:markdown_widget/markdown_widget.dart';
-import 'package:flutter_embed/flutter_embed.dart';
-import 'package:embed_example/widgets/config_menu_action.dart';
-import 'package:embed_example/utils/url_launcher_utils.dart';
 
 class EmbedBlockSyntax extends md.BlockSyntax {
   const EmbedBlockSyntax();
@@ -257,15 +257,36 @@ class EmbedNode extends SpanNode {
     return WidgetSpan(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: EmbedCard(
-          url: url,
-          pageIdentifier: 'markdown_page',
-          source: 'markdown',
-          contentId: 'markdown_content_${url.hashCode}',
-          elementId: 'markdown_element_${url.hashCode}',
-          extraIdentifier: '',
-          // You can pass global config here or rely on EmbedScope if provided at the root
-        ),
+        child: KeepAliveEmbed(url: url),
+      ),
+    );
+  }
+}
+
+class KeepAliveEmbed extends StatefulWidget {
+  final String url;
+
+  const KeepAliveEmbed({super.key, required this.url});
+
+  @override
+  State<KeepAliveEmbed> createState() => _KeepAliveEmbedState();
+}
+
+class _KeepAliveEmbedState extends State<KeepAliveEmbed>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return EmbedCard.url(
+      widget.url,
+      tracking: EmbedTracking(
+        pageIdentifier: 'markdown_page',
+        source: 'markdown',
+        contentId: 'markdown_content_${widget.url.hashCode}',
+        elementId: 'markdown_element_${widget.url.hashCode}',
       ),
     );
   }

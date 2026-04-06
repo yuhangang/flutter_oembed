@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/src/controllers/embed_controller.dart';
 import 'package:flutter_embed/src/core/embed_scope.dart';
-import 'package:flutter_embed/src/models/embed_enums.dart';
+import 'package:flutter_embed/src/models/base_embed_params.dart';
 import 'package:flutter_embed/src/models/embed_cache_config.dart';
 import 'package:flutter_embed/src/models/embed_data.dart';
+import 'package:flutter_embed/src/models/embed_enums.dart';
 import 'package:flutter_embed/src/models/embed_style.dart';
 import 'package:flutter_embed/src/models/social_embed_param.dart';
+import 'package:flutter_embed/src/models/embed_tracking.dart';
 import 'package:flutter_embed/src/widgets/embed_surface.dart';
 import 'package:flutter_embed/src/widgets/embed_widget_loader.dart';
-import 'package:flutter_embed/src/utils/embed_matchers.dart';
-import 'package:flutter_embed/src/utils/embed_link_utils.dart';
 
 /// The primary widget for embedding social media content.
 ///
@@ -20,42 +19,29 @@ import 'package:flutter_embed/src/utils/embed_link_utils.dart';
 /// configuration and delegate builders.
 ///
 /// ```dart
-/// // Minimal usage — all metadata params have sensible auto-defaults:
+/// // Minimalist usage:
+/// EmbedCard.url('https://twitter.com/x/status/123')
+///
+/// // Standard usage:
 /// EmbedCard(url: 'https://twitter.com/x/status/123')
 ///
 /// // With optional tracking info:
-/// EmbedCard(
-///   url: 'https://open.spotify.com/track/4cOdK2w...',
-///   pageIdentifier: 'article_page',
-///   source: 'editorial',
-///   contentId: 'article_42',
+/// EmbedCard.url(
+///   'https://open.spotify.com/track/4cOdK2w...',
+///   tracking: EmbedTracking(
+///     pageIdentifier: 'article_page',
+///     source: 'editorial',
+///     contentId: 'article_42',
+///   ),
 /// )
 /// ```
-class EmbedCard extends StatefulWidget {
+class EmbedCard extends StatelessWidget {
   final String url;
   final EmbedType? embedType;
 
-  /// Identifier for the page/screen this embed appears on.
-  /// Used for analytics and gating. Defaults to a hash of the URL.
-  final String pageIdentifier;
-
-  /// Source string passed to link-click callbacks. Defaults to `'embed'`.
-  final String source;
-
-  /// Content ID for the host-app entity that contains this embed.
-  /// Defaults to a hash-based ID.
-  final String contentId;
-
-  /// Optional DOM element identifier when multiple embeds of the same URL
-  /// appear on the same page. Defaults to null.
-  final String? elementId;
-
-  /// Secondary identifier used to force widget disposal/re-creation when the
-  /// parent changes. Defaults to an empty string.
-  final String extraIdentifier;
-
-  /// Provide an already-constructed [EmbedController] (advanced use).
-  final EmbedController? controller;
+  /// Optional tracking, analytics, and instance identifiers.
+  /// If omitted, identifiers are auto-generated from the URL.
+  final EmbedTracking? tracking;
 
   /// Pre-fetched OEmbed data. When provided, the card skips the API fetch
   /// and renders this data directly.
@@ -71,123 +57,107 @@ class EmbedCard extends StatefulWidget {
   /// Overrides [EmbedConfig.scrollable].
   final bool? scrollable;
 
+  /// Custom query parameters to pass to the OEmbed API (for supported providers).
+  final Map<String, String>? queryParameters;
+  final BaseEmbedParams? embedParams;
+  final Widget Function(BuildContext context, Widget child)? webViewBuilder;
+
   const EmbedCard({
     super.key,
     required this.url,
     this.embedType,
-    this.pageIdentifier = '',
-    this.source = 'embed',
-    this.contentId = '',
-    this.elementId,
-    this.extraIdentifier = '',
-    this.controller,
+    this.tracking,
     this.preloadedData,
     this.style,
     this.cacheConfig,
     this.scrollable,
+    this.queryParameters,
+    this.embedParams,
+    this.webViewBuilder,
   });
 
-  @override
-  State<EmbedCard> createState() => _EmbedCardState();
-}
+  /// A concise factory for creating an [EmbedCard] with a positional [url].
+  ///
+  /// This constructor is the preferred way to use the library when only the URL
+  /// is known, as it emphasizes that the library will automatically detect
+  /// the OEmbed provider.
+  factory EmbedCard.url(
+    String url, {
+    Key? key,
+    EmbedType? embedType,
+    EmbedTracking? tracking,
+    EmbedData? preloadedData,
+    EmbedStyle? style,
+    EmbedCacheConfig? cacheConfig,
+    bool? scrollable,
+    Map<String, String>? queryParameters,
+    BaseEmbedParams? embedParams,
+    Widget Function(BuildContext context, Widget child)? webViewBuilder,
+  }) {
+    return EmbedCard(
+      key: key,
+      url: url,
+      embedType: embedType,
+      tracking: tracking,
+      preloadedData: preloadedData,
+      style: style,
+      cacheConfig: cacheConfig,
+      scrollable: scrollable,
+      queryParameters: queryParameters,
+      embedParams: embedParams,
+      webViewBuilder: webViewBuilder,
+    );
+  }
 
-class _EmbedCardState extends State<EmbedCard> {
-  late final SocialEmbedParam param = () {
-    final type = widget.embedType ?? EmbedMatchers.getEmbedType(widget.url);
-    final url =
-        type == EmbedType.youtube ? getYoutubeEmbedParam(widget.url) : widget.url;
-
+  SocialEmbedParam _buildParam() {
     return SocialEmbedParam(
       url: url,
-      embedType: type,
-      source: widget.source,
-      contentId: widget.contentId.isEmpty
-          ? 'embed_${widget.url.hashCode.abs()}'
-          : widget.contentId,
-      pageIdentifier: widget.pageIdentifier.isEmpty
-          ? 'page_${widget.url.hashCode.abs()}'
-          : widget.pageIdentifier,
-      elementId: widget.elementId,
-      extraIdentifier: widget.extraIdentifier,
+      embedType: embedType,
+      tracking: tracking,
+      queryParameters: queryParameters,
+      embedParams: embedParams,
     );
-  }();
-
-  EmbedController? _internalController;
-  EmbedController get _controller => widget.controller ?? _internalController!;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (widget.controller == null && _internalController == null) {
-      final config =
-          widget.cacheConfig != null
-              ? EmbedScope.configOf(context)?.copyWith(cache: widget.cacheConfig)
-              : EmbedScope.configOf(context);
-
-      _internalController = EmbedController(
-        param: param,
-        delegate: EmbedScope.delegateOf(context),
-        config: config,
-        preloadedData: widget.preloadedData,
-      );
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && widget.embedType != EmbedType.other) {
-        EmbedScope.delegateOf(context)?.initEmbedPost(param.url);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _internalController?.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final param = _buildParam();
     final config = EmbedScope.configOf(context);
-    final style = widget.style ?? config?.style;
-    final scrollable = widget.scrollable ?? config?.scrollable ?? false;
+    final style = this.style ?? config?.style;
+    final scrollable = this.scrollable ?? config?.scrollable ?? false;
     final delegate = EmbedScope.delegateOf(context);
 
     return EmbedSurface(
       style: style,
-      footerUrl: widget.url,
-      fallbackWrapperBuilder:
-          delegate != null
-              ? (context, child) => delegate.buildSocialEmbedLinkWrapper(
+      footerUrl: url,
+      fallbackWrapperBuilder: delegate != null
+          ? (context, child) => delegate.buildSocialEmbedLinkWrapper(
                 context: context,
                 param: param,
                 child: child,
               )
-              : null,
+          : null,
       childBuilder: (context) {
-        // Phase 5: EmbedWidgetLoader is the single decision point for render mode.
-        // Previously, EmbedCard also checked for iframe URLs — that logic now lives
-        // exclusively in EmbedWidgetLoader, eliminating duplication.
-        final shownEmbed =
-            delegate?.showSocialEmbed(widget.pageIdentifier, param.url) ?? true;
+        final shownEmbed = delegate?.showSocialEmbed(
+                param.tracking.pageIdentifier!, param.url) ??
+            true;
 
         if (!shownEmbed) {
           return delegate?.buildSocialEmbedLoadButton(
                 context: context,
                 param: param,
-                identifier: widget.pageIdentifier,
+                identifier: param.tracking.pageIdentifier!,
               ) ??
               const SizedBox.shrink();
         }
 
         return EmbedWidgetLoader(
           param: param,
-          controller: _controller,
+          preloadedData: preloadedData,
           style: style,
+          cacheConfig: cacheConfig,
           scrollable: scrollable,
+          webViewBuilder: webViewBuilder,
         );
       },
     );

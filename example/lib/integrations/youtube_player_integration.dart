@@ -13,7 +13,9 @@ class YoutubePlayerIntegrationPage extends StatefulWidget {
 class _YoutubePlayerIntegrationState
     extends State<YoutubePlayerIntegrationPage> {
   // A standard YouTube video url
-  final _testUrl = 'https://www.youtube.com/watch?v=9bZkp7q19f0';
+  final _testUrl = 'https://www.youtube.com/watch?v=00BHXAzYRTA';
+  // A YouTube Shorts url
+  final _shortsUrl = 'https://www.youtube.com/shorts/nSDgHBxUbVQ';
 
   bool _controls = true;
   bool _autoplay = false;
@@ -137,6 +139,23 @@ class _YoutubePlayerIntegrationState
                         '$_controls-$_autoplay-$_loop-$_rel-$_locale-$_brightness',
                       ),
                       videoIdOrUrl: _testUrl,
+                      controls: _controls,
+                      autoplay: _autoplay,
+                      loop: _loop,
+                      rel: _rel,
+                    ),
+                    const SizedBox(height: 32),
+                    Text(
+                      'YouTube Shorts Example',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 16),
+                    YoutubeEmbedPlayer(
+                      key: ValueKey(
+                        'shorts-$_controls-$_autoplay-$_loop-$_rel-$_locale-$_brightness',
+                      ),
+                      videoIdOrUrl: _shortsUrl,
+                      aspectRatio: 9 / 16, // Shorts are vertical
                       controls: _controls,
                       autoplay: _autoplay,
                       loop: _loop,

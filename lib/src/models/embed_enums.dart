@@ -14,6 +14,8 @@ enum EmbedType {
   soundcloud,
   threads,
   reddit,
+  giphy,
+  tiktok_v1,
   other,
 }
 
@@ -23,7 +25,15 @@ extension FBEmbedChecker on EmbedType {
       this == EmbedType.facebook_post ||
       this == EmbedType.facebook_video;
 
-  bool get isTikTok => this == EmbedType.tiktok;
+  bool get isTikTok => this == EmbedType.tiktok || this == EmbedType.tiktok_v1;
+
+  bool get isVideo =>
+      this == EmbedType.youtube ||
+      this == EmbedType.vimeo ||
+      this == EmbedType.tiktok ||
+      this == EmbedType.tiktok_v1 ||
+      this == EmbedType.dailymotion ||
+      this == EmbedType.facebook_video;
 }
 
 enum EmbedButtonLocation { embed_bottom_link, embed_error, embed_body }
@@ -39,6 +49,8 @@ EmbedType? getEmbedTypeFromString(String typeString) {
       return EmbedType.x;
     case 'tiktok':
       return EmbedType.tiktok;
+    case 'tiktok_v1':
+      return EmbedType.tiktok_v1;
     case 'instagram':
       return EmbedType.instagram;
     case 'facebook':
@@ -61,6 +73,8 @@ EmbedType? getEmbedTypeFromString(String typeString) {
       return EmbedType.threads;
     case 'reddit':
       return EmbedType.reddit;
+    case 'giphy':
+      return EmbedType.giphy;
   }
 
   return null;

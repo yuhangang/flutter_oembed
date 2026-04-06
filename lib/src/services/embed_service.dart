@@ -1,15 +1,19 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/src/services/embed_apis.dart';
-import 'package:flutter_embed/src/models/embed_data.dart';
-import 'package:flutter_embed/src/models/embed_enums.dart';
-import 'package:flutter_embed/src/models/embed_loader_param.dart';
-import 'package:flutter_embed/src/models/embed_config.dart';
-import 'package:flutter_embed/src/models/embed_provider_config.dart';
 import 'package:flutter_embed/src/core/embed_delegate.dart';
 import 'package:flutter_embed/src/logging/embed_logger.dart';
+import 'package:flutter_embed/src/models/embed_config.dart';
+import 'package:flutter_embed/src/models/embed_data.dart';
+import 'package:flutter_embed/src/models/embed_cache_config.dart';
+import 'package:flutter_embed/src/models/embed_enums.dart';
+import 'package:flutter_embed/src/models/embed_loader_param.dart';
+import 'package:flutter_embed/src/models/embed_provider_config.dart';
+import 'package:flutter_embed/src/models/meta_embed_params.dart';
+import 'package:flutter_embed/src/models/soundcloud_embed_params.dart';
+import 'package:flutter_embed/src/models/vimeo_embed_params.dart';
+import 'package:flutter_embed/src/models/x_embed_params.dart';
+import 'package:flutter_embed/src/services/embed_apis.dart';
 import 'package:flutter_embed/src/services/providers_snapshot.dart';
-import 'package:flutter_embed/src/services/api/reddit_embed_api.dart';
-import 'package:collection/collection.dart';
 
 /// Result of resolving how to render an embed.
 sealed class EmbedResolvedRender {}
@@ -33,16 +37,21 @@ class EmbedService {
     EmbedDelegate? delegate,
     EmbedConfig? config,
     EmbedLogger? logger,
+    EmbedCacheConfig? cacheConfig,
   }) async {
     final resolvedLogger =
         logger ?? config?.logger ?? const EmbedLogger.disabled();
-    final cacheConfig = config?.cache;
+    final resolvedCacheConfig = cacheConfig ?? config?.cache;
     final locale = config?.locale ?? delegate?.getLocaleLanguageCode() ?? 'en';
     final brightness =
         config?.brightness ?? delegate?.getAppBrightness() ?? Brightness.light;
 
     resolvedLogger.debug(
-      'Loading embed data for ${param.url} (${param.embedType.name})',
+      'Loading embed data',
+      data: {
+        'url': param.url,
+        'embedType': param.embedType.name,
+      },
     );
 
     final api = _resolveApi(
@@ -56,8 +65,9 @@ class EmbedService {
       param.url,
       locale: locale,
       brightness: brightness,
-      cacheConfig: cacheConfig,
+      cacheConfig: resolvedCacheConfig,
       logger: resolvedLogger,
+      queryParameters: param.queryParameters,
     );
   }
 
@@ -105,7 +115,11 @@ class EmbedService {
       rule = _findRuleInSnapshot(param.url);
       if (rule != null) {
         resolvedLogger.debug(
-          'Matched dynamically discovered provider "${rule.providerName}" for ${param.url}',
+          'Matched dynamically discovered provider',
+          data: {
+            'url': param.url,
+            'provider': rule.providerName,
+          },
         );
       }
     }
@@ -114,7 +128,12 @@ class EmbedService {
     if (rule != null) {
       final endpoint = rule.resolveEndpoint(param.url);
       resolvedLogger.debug(
-        'Matched provider "${rule.providerName}" for ${param.url} -> $endpoint',
+        'Matched provider',
+        data: {
+          'url': param.url,
+          'provider': rule.providerName,
+          'endpoint': endpoint,
+        },
       );
       final ctx = EmbedProviderContext(
         url: param.url,
@@ -125,25 +144,36 @@ class EmbedService {
         facebookAppId: facebookAppId,
         facebookClientToken: facebookClientToken,
         proxyUrl: config?.proxyUrl,
+        embedParams: param.embedParams,
       );
 
-      final api =
-          rule.apiFactory?.call(ctx) ??
+      final api = rule.apiFactory?.call(ctx) ??
           GenericEmbedApi(
             endpoint,
             proxyUrl: config?.proxyUrl,
             width: param.width,
           );
-      resolvedLogger.debug('Using ${api.runtimeType} for ${param.url}');
+      resolvedLogger.debug(
+        'Using API handler',
+        data: {
+          'url': param.url,
+          'api': api.runtimeType.toString(),
+        },
+      );
       return api;
     }
 
     // 4. Legacy EmbedType dispatch as final fallback
     resolvedLogger.debug(
-      'Falling back to embed type dispatch for ${param.url} (${param.embedType.name})',
+      'Falling back to embed type dispatch',
+      data: {
+        'url': param.url,
+        'embedType': param.embedType.name,
+      },
     );
     switch (param.embedType) {
       case EmbedType.tiktok:
+      case EmbedType.tiktok_v1:
         return const TikTokEmbedApi();
 
       case EmbedType.facebook_video:
@@ -156,10 +186,11 @@ class EmbedService {
           facebookAppId,
           facebookClientToken,
           proxyUrl: config?.proxyUrl,
+          metaParams: param.embedParams as MetaEmbedParams?,
         );
 
       case EmbedType.x:
-        return const XEmbedApi();
+        return XEmbedApi(xParams: param.embedParams as XEmbedParams?);
 
       case EmbedType.spotify:
         return const SpotifyEmbedApi();
@@ -171,26 +202,37 @@ class EmbedService {
         );
 
       case EmbedType.vimeo:
-        return VimeoEmbedApi(param.width);
+        return VimeoEmbedApi(
+          param.width,
+          vimeoParams: param.embedParams as VimeoEmbedParams?,
+        );
 
       case EmbedType.dailymotion:
         return GenericEmbedApi(
           'https://www.dailymotion.com/services/oembed',
           width: param.width,
         );
-
       case EmbedType.soundcloud:
-        return GenericEmbedApi(
-          'https://soundcloud.com/oembed',
-          width: param.width,
+        return SoundCloudEmbedApi(
+          param.width,
+          soundCloudParams: param.embedParams as SoundCloudEmbedParams?,
         );
       case EmbedType.threads:
-        return GenericEmbedApi(
-          'https://graph.threads.net/v1.0/oembed',
-          width: param.width,
+        return MetaEmbedApi(
+          param.embedType,
+          param.width,
+          facebookAppId,
+          facebookClientToken,
+          proxyUrl: config?.proxyUrl,
+          metaParams: param.embedParams as MetaEmbedParams?,
         );
       case EmbedType.reddit:
         return RedditEmbedApi(width: param.width);
+      case EmbedType.giphy:
+        return GenericEmbedApi(
+          'https://giphy.com/services/oembed',
+          width: param.width,
+        );
       case EmbedType.other:
         throw Exception('Invalid embed type or provider not supported');
     }
@@ -203,6 +245,7 @@ class EmbedService {
     EmbedConfig? config,
     EmbedType? embedType,
     EmbedLogger? logger,
+    Map<String, String>? queryParameters,
   }) {
     if (config == null) return null;
     final resolvedLogger = logger ?? config.logger;
@@ -211,21 +254,36 @@ class EmbedService {
       (r) => r.matches(url),
     );
     if (rule == null) {
-      resolvedLogger.debug('No iframe provider match for $url');
+      resolvedLogger.debug('No iframe provider match', data: {'url': url});
       return null;
     }
 
     final mode = config.resolvedProviders.getRenderMode(rule.providerName);
     if (mode != EmbedRenderMode.iframe) {
       resolvedLogger.debug(
-        'Provider "${rule.providerName}" is configured for $mode, not iframe',
+        'Rendering mode mismatch',
+        data: {
+          'url': url,
+          'provider': rule.providerName,
+          'configuredMode': mode.name,
+          'requiredMode': 'iframe',
+        },
       );
       return null;
     }
 
-    final iframeUrl = rule.iframeUrlBuilder?.call(url);
+    var iframeUrl = rule.iframeUrlBuilder?.call(url);
     if (iframeUrl != null) {
-      resolvedLogger.debug('Resolved iframe URL for $url -> $iframeUrl');
+      if (queryParameters != null && queryParameters.isNotEmpty) {
+        final uri = Uri.parse(iframeUrl);
+        final params = Map<String, dynamic>.from(uri.queryParameters);
+        params.addAll(queryParameters);
+        iframeUrl = uri.replace(queryParameters: params).toString();
+      }
+      resolvedLogger.debug('Resolved iframe URL', data: {
+        'url': url,
+        'iframeUrl': iframeUrl,
+      });
     }
     return iframeUrl;
   }

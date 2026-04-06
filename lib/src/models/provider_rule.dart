@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_embed/src/models/base_embed_params.dart';
 import 'package:flutter_embed/src/services/api/base_embed_api.dart';
 
 /// Internal cache for compiled [RegExp] objects to avoid redundant parsing.
@@ -14,6 +15,7 @@ class EmbedProviderContext {
   final String facebookAppId;
   final String facebookClientToken;
   final String? proxyUrl;
+  final BaseEmbedParams? embedParams;
 
   const EmbedProviderContext({
     required this.url,
@@ -24,6 +26,7 @@ class EmbedProviderContext {
     required this.facebookAppId,
     required this.facebookClientToken,
     this.proxyUrl,
+    this.embedParams,
   });
 }
 
