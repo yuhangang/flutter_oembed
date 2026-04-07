@@ -40,11 +40,12 @@ abstract class BaseEmbedApi {
   // Caching helpers — override to inject a custom cache manager in tests.
   // ---------------------------------------------------------------------------
 
-  BaseCacheManager get _cacheManager => DefaultCacheManager();
+  @visibleForTesting
+  BaseCacheManager get cacheManager => DefaultCacheManager();
 
   Future<EmbedData?> getCachedResult(Uri uri, {EmbedLogger? logger}) async {
     try {
-      final cache = await _cacheManager.getFileFromCache(uri.toString());
+      final cache = await cacheManager.getFileFromCache(uri.toString());
       final bytes = await cache?.file.readAsBytes();
       if (bytes != null) {
         logger?.debug('Cache hit', data: {'uri': uri.toString()});
@@ -73,7 +74,7 @@ abstract class BaseEmbedApi {
       final resolvedMaxAge = maxAge ??
           oembedData.cacheAgeDuration ??
           kDefaultEmbedHtmlCacheLifeSpan;
-      await _cacheManager.putFile(
+      await cacheManager.putFile(
         uri.toString(),
         Uint8List.fromList(jsonEncode(oembedData.toJson()).codeUnits),
         maxAge: resolvedMaxAge,
@@ -103,8 +104,10 @@ abstract class BaseEmbedApi {
     EmbedCacheConfig? cacheConfig,
     EmbedLogger? logger,
     Map<String, String>? queryParameters,
+    http.Client? httpClient,
   }) async {
     final config = cacheConfig ?? const EmbedCacheConfig();
+    final client = httpClient ?? http.Client();
     final uri = constructUrl(
       url,
       locale: locale,
@@ -130,7 +133,7 @@ abstract class BaseEmbedApi {
       'url': url,
       'uri': uri.toString(),
     });
-    final response = await http.get(uri, headers: headers);
+    final response = await client.get(uri, headers: headers);
 
     if (response.statusCode == 200) {
       logger?.debug('OEmbed response received', data: {

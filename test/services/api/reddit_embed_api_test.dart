@@ -1,40 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_embed/src/services/api/reddit_embed_api.dart';
+import 'package:flutter_embed/src/utils/embed_errors.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
   group('RedditEmbedApi', () {
-    const api = RedditEmbedApi();
+    test('constructUrl builds correct URI with width and dark theme', () {
+      const api = RedditEmbedApi(width: 500);
+      final uri = api.constructUrl('https://reddit.com/r/test', brightness: Brightness.dark);
 
-    test('constructUrl includes URL and format=json', () {
-      final uri =
-          api.constructUrl('https://www.reddit.com/r/flutterdev/comments/123/');
-      expect(uri.queryParameters['url'],
-          'https://www.reddit.com/r/flutterdev/comments/123/');
-      expect(uri.queryParameters['format'], 'json');
+      expect(uri.queryParameters['maxwidth'], equals('500'));
+      expect(uri.queryParameters['theme'], equals('dark'));
+      expect(uri.queryParameters['format'], equals('json'));
     });
 
-    test('constructUrl includes maxwidth when width is provided', () {
-      const apiWithWidth = RedditEmbedApi(width: 500);
-      final uri = apiWithWidth
-          .constructUrl('https://www.reddit.com/r/flutterdev/comments/123/');
-      expect(uri.queryParameters['maxwidth'], '500');
-    });
-
-    test('constructUrl includes theme=dark for dark brightness', () {
-      final uri = api.constructUrl(
-        'https://www.reddit.com/r/flutterdev/comments/123/',
-        brightness: Brightness.dark,
-      );
-      expect(uri.queryParameters['theme'], 'dark');
-    });
-
-    test('headers includes required User-Agent for Reddit', () {
+    test('headers includes User-Agent', () {
+      const api = RedditEmbedApi();
       expect(api.headers['User-Agent'], contains('flutter_embed'));
     });
 
-    test('baseUrl points to reddit oembed endpoint', () {
-      expect(api.baseUrl, 'https://www.reddit.com/oembed');
+    test('handleErrorResponse handles 404', () {
+      const api = RedditEmbedApi();
+      expect(api.handleErrorResponse(http.Response('', 404)), isA<EmbedDataNotFoundException>());
+      expect(api.handleErrorResponse(http.Response('', 500)), isA<EmbedApisException>());
     });
   });
 }

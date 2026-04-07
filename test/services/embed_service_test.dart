@@ -1,71 +1,201 @@
+import 'dart:convert';
 import 'package:flutter_embed/src/models/embed_config.dart';
+import 'package:flutter_embed/src/models/embed_cache_config.dart';
 import 'package:flutter_embed/src/models/embed_enums.dart';
 import 'package:flutter_embed/src/models/embed_loader_param.dart';
 import 'package:flutter_embed/src/models/embed_provider_config.dart';
+import 'package:flutter_embed/src/services/api/base_embed_api.dart';
 import 'package:flutter_embed/src/services/embed_service.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:mocktail/mocktail.dart';
+
+class MockHttpClient extends Mock implements http.Client {}
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('EmbedService', () {
-    test('resolveRule matches YouTube URL', () {
-      const url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
-      final rule = EmbedService.resolveRule(url);
+    late MockHttpClient mockClient;
 
-      expect(rule, isNotNull);
-      expect(rule?.providerName, equals('YouTube'));
+    setUp(() {
+      mockClient = MockHttpClient();
+      registerFallbackValue(Uri.parse('https://example.com'));
     });
 
-    test('resolveRule matches TikTok URL', () {
-      const url = 'https://www.tiktok.com/@scout2015/video/6771039285231176966';
-      final rule = EmbedService.resolveRule(url);
+    group('resolveRule()', () {
+      test('should return a rule for YouTube URLs', () {
+        const url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+        final rule = EmbedService.resolveRule(url);
 
-      expect(rule, isNotNull);
-      expect(rule?.providerName, equals('TikTok'));
+        expect(rule, isNotNull);
+        expect(rule?.providerName, equals('YouTube'));
+      });
+
+      test('should return a rule for TikTok URLs', () {
+        const url =
+            'https://www.tiktok.com/@scout2015/video/6771039285231176966';
+        final rule = EmbedService.resolveRule(url);
+
+        expect(rule, isNotNull);
+        expect(rule?.providerName, equals('TikTok'));
+      });
+
+      test('should return null for unknown URLs', () {
+        const url = 'https://example.com/unknown';
+        final rule = EmbedService.resolveRule(url);
+
+        expect(rule, isNull);
+      });
+
+      test('should use dynamic discovery when enabled in the config', () {
+        const url = 'https://www.facebook.com/facebook/posts/10158716223136729';
+        final rule = EmbedService.resolveRule(url,
+            config: const EmbedConfig(useDynamicDiscovery: true));
+
+        expect(rule, isNotNull);
+        expect(rule?.providerName, anyOf('Facebook', 'Facebook Post'));
+      });
+
+      test('should handle subdomains correctly (e.g., m.youtube.com)', () {
+        const url = 'https://m.youtube.com/watch?v=dQw4w9WgXcQ';
+        final rule = EmbedService.resolveRule(url,
+            config: const EmbedConfig(useDynamicDiscovery: true));
+        expect(rule, isNotNull);
+        expect(rule?.providerName, equals('YouTube'));
+      });
+
+      test('should use default rules when no config is provided', () {
+        final rule = EmbedService.resolveRule('https://youtube.com/watch?v=123');
+        expect(rule, isNotNull);
+        expect(rule?.providerName, equals('YouTube'));
+      });
     });
 
-    test('resolveRule returns null for unknown URL', () {
-      const url = 'https://example.com/unknown';
-      final rule = EmbedService.resolveRule(url);
+    group('resolveIframeUrl()', () {
+      test('should return the correct iframe URL for YouTube', () {
+        const url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+        const config = EmbedConfig(
+          providers: EmbedProviderConfig(
+            providerRenderModes: {'YouTube': EmbedRenderMode.iframe},
+          ),
+        );
 
-      expect(rule, isNull);
+        final iframeUrl = EmbedService.resolveIframeUrl(url, config: config);
+
+        expect(iframeUrl, contains('youtube.com/embed/dQw4w9WgXcQ'));
+      });
+
+      test('should return null if the provider render mode is not iframe', () {
+        const url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+        const config = EmbedConfig(
+          providers: EmbedProviderConfig(
+            providerRenderModes: {'YouTube': EmbedRenderMode.oembed},
+          ),
+        );
+
+        final iframeUrl = EmbedService.resolveIframeUrl(url, config: config);
+
+        expect(iframeUrl, isNull);
+      });
+
+      test('should correctly append query parameters to the iframe URL', () {
+        const url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+        const config = EmbedConfig(
+          providers: EmbedProviderConfig(
+            providerRenderModes: {'YouTube': EmbedRenderMode.iframe},
+          ),
+        );
+
+        final iframeUrl = EmbedService.resolveIframeUrl(url,
+            config: config, queryParameters: {'rel': '0'});
+
+        expect(iframeUrl, contains('rel=0'));
+      });
     });
 
-    test('resolveIframeUrl returns correct URL for YouTube', () {
-      const url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
-      const config = EmbedConfig(
-        providers: EmbedProviderConfig(
-          providerRenderModes: {'YouTube': EmbedRenderMode.iframe},
-        ),
-      );
+    group('getResult()', () {
+      test('should fetch data using the provided httpClient', () async {
+        const url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+        final param = EmbedLoaderParam(
+          url: url,
+          embedType: EmbedType.youtube,
+          width: 640,
+        );
 
-      final iframeUrl = EmbedService.resolveIframeUrl(url, config: config);
+        final expectedResponse = {
+          'version': '1.0',
+          'type': 'video',
+          'html': '<div>YouTube Video</div>',
+        };
 
-      expect(iframeUrl, contains('youtube.com/embed/dQw4w9WgXcQ'));
+        when(() => mockClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer(
+                (_) async => http.Response(jsonEncode(expectedResponse), 200));
+
+        final result = await EmbedService.getResult(
+          param: param,
+          httpClient: mockClient,
+          cacheConfig: const EmbedCacheConfig(enabled: false),
+        );
+
+        expect(result.html, equals('<div>YouTube Video</div>'));
+        verify(() => mockClient.get(any(), headers: any(named: 'headers')))
+            .called(1);
+      });
+
+      test('should use the httpClient and cache configuration from EmbedConfig',
+          () async {
+        const url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+        final param = EmbedLoaderParam(
+          url: url,
+          embedType: EmbedType.youtube,
+          width: 640,
+        );
+
+        final expectedResponse = {
+          'version': '1.0',
+          'type': 'video',
+          'html': '<div>YouTube Video</div>',
+        };
+
+        when(() => mockClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer(
+                (_) async => http.Response(jsonEncode(expectedResponse), 200));
+
+        final result = await EmbedService.getResult(
+          param: param,
+          config: EmbedConfig(
+              httpClient: mockClient,
+              cache: const EmbedCacheConfig(enabled: false)),
+          httpClient: mockClient,
+        );
+
+        expect(result.html, equals('<div>YouTube Video</div>'));
+      });
     });
 
-    test('resolveIframeUrl returns null if render mode is not iframe', () {
-      const url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
-      const config = EmbedConfig(
-        providers: EmbedProviderConfig(
-          providerRenderModes: {'YouTube': EmbedRenderMode.oembed},
-        ),
-      );
+    group('getEmbedApiByEmbedType()', () {
+      test('should return the correct API instance for a given EmbedType', () {
+        final param = EmbedLoaderParam(
+          url: 'https://youtube.com/watch?v=123',
+          embedType: EmbedType.youtube,
+          width: 640,
+        );
+        final api = EmbedService.getEmbedApiByEmbedType(param);
+        expect(api.baseUrl, contains('youtube.com'));
+      });
 
-      final iframeUrl = EmbedService.resolveIframeUrl(url, config: config);
-
-      expect(iframeUrl, isNull);
-    });
-
-    test('getEmbedApiByEmbedType returns GenericEmbedApi for unknown URL', () {
-      const url = 'https://example.com/unknown';
-      final param = EmbedLoaderParam(
-        url: url,
-        embedType: EmbedType.other,
-        width: 640,
-      );
-      final api = EmbedService.getEmbedApiByEmbedType(param);
-
-      expect(api.baseUrl, equals(url));
+      test('should fall back to GenericEmbedApi for unknown providers', () {
+        final param = EmbedLoaderParam(
+          url: 'https://unknown-provider.com/123',
+          embedType: EmbedType.other,
+          width: 640,
+        );
+        final api = EmbedService.getEmbedApiByEmbedType(param);
+        expect(api, isA<GenericEmbedApi>());
+        expect(api.baseUrl, equals('https://unknown-provider.com/123'));
+      });
     });
   });
 }

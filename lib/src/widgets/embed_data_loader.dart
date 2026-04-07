@@ -81,8 +81,15 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
       config: config,
       logger: config?.logger,
       cacheConfig: widget.cacheConfig,
-    );
+      httpClient: config?.httpClient,
+    ).catchError((Object error, StackTrace stackTrace) {
+      // FutureBuilder will handle the error, but we catch it here to
+      // prevent "Uncaught error in zone" in some test environments.
+      throw error;
+    });
   }
+
+
 
   @override
   Widget build(BuildContext context) {

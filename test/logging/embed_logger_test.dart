@@ -3,7 +3,7 @@ import 'package:flutter_embed/src/logging/embed_logger.dart';
 
 void main() {
   group('EmbedLogger', () {
-    test('disabled logger does not emit events', () {
+    test('should not emit events when the logger is disabled', () {
       var callCount = 0;
       final logger = EmbedLogger(
         enabled: false,
@@ -17,7 +17,7 @@ void main() {
       expect(callCount, 0);
     });
 
-    test('respects the configured level threshold', () {
+    test('should respect the configured log level threshold', () {
       final events = <String>[];
       final logger = EmbedLogger.enabled(
         level: EmbedLogLevel.info,
@@ -34,7 +34,7 @@ void main() {
       expect(events, ['info:info', 'warning:warning', 'error:error']);
     });
 
-    test('debug logger forwards messages in debug mode', () {
+    test('should forward all messages when the logger is in debug mode', () {
       final events = <String>[];
       final logger = EmbedLogger.debug(
         sink: ({required level, required message, data, error, stackTrace}) {

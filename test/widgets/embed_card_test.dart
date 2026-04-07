@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_embed/src/models/embed_enums.dart';
 import 'package:flutter_embed/src/models/embed_data.dart';
+import 'package:flutter_embed/src/models/embed_cache_config.dart';
+import 'package:flutter_embed/src/models/embed_style.dart';
 import 'package:flutter_embed/src/utils/embed_matchers.dart';
 import 'package:flutter_embed/src/widgets/embed_card.dart';
 import 'package:flutter_embed/src/widgets/embed_renderer.dart';
+import 'package:flutter_embed/src/widgets/embed_widget_loader.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
@@ -331,5 +334,29 @@ void main() {
       fakePlatform.lastCreatedController?.lastLoadedHtml,
       contains('second-preloaded'),
     );
+  });
+
+  testWidgets('EmbedCard.url factory and overrides', (tester) async {
+    const style = EmbedStyle(maxScrollableHeight: 400);
+    const cache = EmbedCacheConfig(enabled: false);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: EmbedCard.url(
+            'https://youtube.com/watch?v=123',
+            style: style,
+            scrollable: true,
+            cacheConfig: cache,
+          ),
+        ),
+      ),
+    );
+
+    final loader =
+        tester.widget<EmbedWidgetLoader>(find.byType(EmbedWidgetLoader));
+    expect(loader.style, equals(style));
+    expect(loader.scrollable, isTrue);
+    expect(loader.cacheConfig, equals(cache));
   });
 }

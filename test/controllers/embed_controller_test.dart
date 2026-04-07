@@ -171,6 +171,39 @@ void main() {
         expect(controller.loadingState, EmbedLoadingState.error);
       });
     });
+
+    test('no-op after dispose', () {
+      final controller = EmbedController(
+        param: SocialEmbedParam(url: 'test', embedType: EmbedType.other),
+      );
+
+      bool notified = false;
+      controller.addListener(() => notified = true);
+
+      controller.dispose();
+
+      controller.setHeight(100);
+      controller.setLoadingState(EmbedLoadingState.loaded);
+      controller.setDidRetry();
+      controller.updateVisibility(false, onVisibilityChange: (_) {});
+
+      expect(notified, isFalse);
+    });
+
+    test('updateVisibility calls callback', () {
+      final controller = EmbedController(
+        param: SocialEmbedParam(url: 'test', embedType: EmbedType.other),
+      );
+
+      bool callbackCalled = false;
+      controller.updateVisibility(false, onVisibilityChange: (visible) {
+        callbackCalled = true;
+        expect(visible, isFalse);
+      });
+
+      expect(callbackCalled, isTrue);
+      expect(controller.isVisible, isFalse);
+    });
   });
 
   group('EmbedWebViewDriver', () {

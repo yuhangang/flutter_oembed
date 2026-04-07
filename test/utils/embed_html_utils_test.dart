@@ -4,6 +4,33 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('loadEmbedHtmlDocument', () {
+    test('X (Twitter) document', () {
+      final doc = loadEmbedHtmlDocument('<div>X</div>', type: EmbedType.x, maxWidth: 640);
+      expect(doc, contains('<div>X</div>'));
+      expect(doc, contains('overflow: hidden;'));
+    });
+
+    test('TikTok document', () {
+      final doc = loadEmbedHtmlDocument('<blockquote>TikTok</blockquote>', type: EmbedType.tiktok, maxWidth: 640);
+      expect(doc, contains('blockquote.tiktok-embed'));
+      expect(doc, contains('window.tiktok.embed()'));
+    });
+
+    test('Facebook video document', () {
+      final doc = loadEmbedHtmlDocument('<iframe>FB</iframe>', type: EmbedType.facebook_video, maxWidth: 640);
+      expect(doc, isNot(contains('background-color: white;')));
+    });
+
+    test('Reddit document', () {
+      final doc = loadEmbedHtmlDocument('<blockquote>Reddit</blockquote>', type: EmbedType.reddit, maxWidth: 640);
+      expect(doc, contains('id="reddit-container"'));
+    });
+
+    test('Other document with scrollable enabled', () {
+      final doc = loadEmbedHtmlDocument('<div>Other</div>', type: EmbedType.other, maxWidth: 640, scrollable: true);
+      expect(doc, isNot(contains('overflow: hidden;')));
+    });
+
     test('sanitizes YouTube iframe params for WebView embeds', () {
       const html = '''
 <iframe

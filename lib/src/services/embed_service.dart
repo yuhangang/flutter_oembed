@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter_embed/src/logging/embed_logger.dart';
 import 'package:flutter_embed/src/models/embed_config.dart';
 import 'package:flutter_embed/src/models/embed_data.dart';
@@ -34,6 +35,7 @@ class EmbedService {
     EmbedConfig? config,
     EmbedLogger? logger,
     EmbedCacheConfig? cacheConfig,
+    http.Client? httpClient,
   }) async {
     final resolvedLogger =
         logger ?? config?.logger ?? const EmbedLogger.disabled();
@@ -62,8 +64,10 @@ class EmbedService {
       cacheConfig: resolvedCacheConfig,
       logger: resolvedLogger,
       queryParameters: param.queryParameters,
+      httpClient: httpClient,
     );
   }
+
 
   /// Resolves the appropriate [BaseEmbedApi] for the given [param].
   static BaseEmbedApi getEmbedApiByEmbedType(

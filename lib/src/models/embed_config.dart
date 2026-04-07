@@ -5,6 +5,7 @@ import 'package:flutter_embed/src/models/embed_style.dart';
 import 'package:flutter_embed/src/logging/embed_logger.dart';
 import 'package:flutter_embed/src/models/embed_data.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:http/http.dart' as http;
 import 'dart:async';
 
 /// Unified configuration for the OEmbed library.
@@ -93,6 +94,11 @@ class EmbedConfig {
   /// [EmbedLogger.enabled] with a custom sink to forward logs elsewhere.
   final EmbedLogger logger;
 
+  /// Optional HTTP client used to fetch OEmbed data.
+  ///
+  /// This is useful for testing or providing custom configurations (e.g., custom headers).
+  final http.Client? httpClient;
+
   const EmbedConfig({
     this.providers = const EmbedProviderConfig(),
     this.cache = const EmbedCacheConfig(),
@@ -108,6 +114,7 @@ class EmbedConfig {
     this.loadTimeout = const Duration(seconds: 10),
     this.scrollable = false,
     this.logger = const EmbedLogger.disabled(),
+    this.httpClient,
   });
 
   /// Internal getter that returns the providers config with the discovery flag synced.
@@ -133,6 +140,7 @@ class EmbedConfig {
     Duration? loadTimeout,
     bool? scrollable,
     EmbedLogger? logger,
+    http.Client? httpClient,
   }) {
     return EmbedConfig(
       providers: providers ?? this.providers,
@@ -149,6 +157,8 @@ class EmbedConfig {
       loadTimeout: loadTimeout ?? this.loadTimeout,
       scrollable: scrollable ?? this.scrollable,
       logger: logger ?? this.logger,
+      httpClient: httpClient ?? this.httpClient,
     );
   }
 }
+
