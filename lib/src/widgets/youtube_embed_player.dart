@@ -19,7 +19,8 @@ import 'package:flutter_embed/src/core/embed_scope.dart';
 /// packages like [youtube_player_iframe].
 ///
 /// See: https://developers.google.com/youtube/iframe_api_reference
-// removed embed_tracking.dart
+
+
 
 const String kDefaultYoutubePlayerHost = 'https://www.youtube-nocookie.com';
 const String kYoutubeNoCookiePlayerHost = 'https://www.youtube-nocookie.com';

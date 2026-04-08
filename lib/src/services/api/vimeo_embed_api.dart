@@ -45,7 +45,7 @@ class VimeoEmbedApi extends BaseEmbedApi {
   Map<String, String> get headers => {'Referer': 'https://vimeo.com/'};
 
   @override
-  EmbedData ombedResponseModifier(EmbedData response) {
+  EmbedData oembedResponseModifier(EmbedData response) {
     return response.copyWith(
       html: response.html.replaceAll('src="//', 'src="https://'),
     );

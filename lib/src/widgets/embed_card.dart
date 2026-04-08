@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_embed/src/core/embed_scope.dart';
 import 'package:flutter_embed/src/models/base_embed_params.dart';
 import 'package:flutter_embed/src/models/embed_cache_config.dart';
+import 'package:flutter_embed/src/models/embed_config.dart';
 import 'package:flutter_embed/src/models/embed_data.dart';
 import 'package:flutter_embed/src/models/embed_enums.dart';
 import 'package:flutter_embed/src/models/embed_style.dart';
@@ -119,9 +120,16 @@ class EmbedCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final param = _buildParam();
-    final config = EmbedScope.configOf(context);
-    final style = this.style ?? config?.style;
-    final scrollable = this.scrollable ?? config?.scrollable ?? false;
+    final scopeConfig = EmbedScope.configOf(context);
+
+    // Merge per-widget onLinkTap into the effective config so it reaches the
+    // WebView's NavigationDelegate. Without this, onLinkTap was silently ignored.
+    final effectiveConfig = onLinkTap != null
+        ? (scopeConfig ?? const EmbedConfig()).copyWith(onLinkTap: onLinkTap)
+        : scopeConfig;
+
+    final style = this.style ?? effectiveConfig?.style;
+    final scrollable = this.scrollable ?? effectiveConfig?.scrollable ?? false;
 
     return EmbedSurface(
       style: style,
@@ -130,6 +138,7 @@ class EmbedCard extends StatelessWidget {
         return EmbedWidgetLoader(
           param: param,
           preloadedData: preloadedData,
+          config: effectiveConfig,
           style: style,
           cacheConfig: cacheConfig,
           scrollable: scrollable,

@@ -89,8 +89,6 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
     });
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     if (_embedFeature == null) return const SizedBox.shrink();

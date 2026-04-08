@@ -1,22 +1,60 @@
 import 'package:flutter_embed/src/models/embed_enums.dart';
 
-String loadEmbedHtmlDocument(
-  String embedData, {
-  required EmbedType type,
+// ---------------------------------------------------------------------------
+// Public helpers — called by [EmbedProviderStrategy.buildHtmlDocument]
+// overrides in each provider strategy.
+// ---------------------------------------------------------------------------
+
+/// Builds a minimal generic HTML wrapper suitable for most providers.
+String buildGenericHtmlDocument(
+  String embedHtml, {
   required double maxWidth,
   bool scrollable = false,
 }) {
   final scrollStyles = !scrollable ? 'overflow: hidden;' : '';
-  final csp = _getCspMetaTag(type);
-
-  switch (type) {
-    case EmbedType.x:
-      return '''
+  return '''
 <!DOCTYPE html><html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width">
-  $csp
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      padding-bottom: 8px; /* Breathing room to prevent clipping */
+      width: 100%;
+      $scrollStyles
+    }
+    img, iframe, video {
+      width: 100% !important;
+      height: auto !important;
+      display: block;
+      margin: 0 auto;
+    }
+  </style>
+</head>
+<body>
+  <div id="embed-container">
+    $embedHtml
+  </div>
+  $resizeObserverScript
+</body>
+</html>
+''';
+}
+
+/// HTML wrapper for X (Twitter) embeds.
+String buildXHtmlDocument(
+  String embedHtml, {
+  required double maxWidth,
+  bool scrollable = false,
+}) {
+  final scrollStyles = !scrollable ? 'overflow: hidden;' : '';
+  return '''
+<!DOCTYPE html><html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
   <style>
     html, body {
       margin: 0;
@@ -28,21 +66,26 @@ String loadEmbedHtmlDocument(
 </head>
 <body>
   <div>
-    $embedData
+    $embedHtml
   </div>
-  $_resizeObserverScript
+  $resizeObserverScript
 </body>
 </html>
 ''';
-    // Currently not in used, as current using url to load TikTok embeds
-    case EmbedType.tiktok:
-    case EmbedType.tiktok_v1:
-      return '''
+}
+
+/// HTML wrapper for TikTok embeds.
+String buildTikTokHtmlDocument(
+  String embedHtml, {
+  required double maxWidth,
+  bool scrollable = false,
+}) {
+  final scrollStyles = !scrollable ? 'overflow: hidden;' : '';
+  return '''
 <!DOCTYPE html><html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width height=device-height">
-  $csp
   <style>
     html, body {
       margin: 0;
@@ -60,7 +103,7 @@ String loadEmbedHtmlDocument(
 </head>
 <body>
   <div style="display: flex; justify-content: center;">
-    $embedData
+    $embedHtml
   </div>
   <script>
     (function() {
@@ -73,21 +116,26 @@ String loadEmbedHtmlDocument(
       setTimeout(function() { clearInterval(checkTikTok); }, 5000);
     })();
   </script>
-  $_resizeObserverScript
+  $resizeObserverScript
 </body>
 </html>
 ''';
+}
 
-    case EmbedType.facebook:
-    case EmbedType.facebook_video:
-    case EmbedType.facebook_post:
-      final isFacebookVideo = type == EmbedType.facebook_video;
-      return '''
+/// HTML wrapper for Facebook and Instagram embeds.
+String buildMetaHtmlDocument(
+  String embedHtml, {
+  required EmbedType type,
+  required double maxWidth,
+  bool scrollable = false,
+}) {
+  final scrollStyles = !scrollable ? 'overflow: hidden;' : '';
+  final isFacebookVideo = type == EmbedType.facebook_video;
+  return '''
 <!DOCTYPE html><html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width">
-  $csp
   <style>
     html, body {
       margin: 0;
@@ -102,18 +150,25 @@ String loadEmbedHtmlDocument(
   </style>
 </head>
 <body>
-  $embedData
-  $_resizeObserverScript
+  $embedHtml
+  $resizeObserverScript
 </body>
 </html>
 ''';
-    case EmbedType.instagram:
-      return '''
+}
+
+/// HTML wrapper for Instagram embeds.
+String buildInstagramHtmlDocument(
+  String embedHtml, {
+  required double maxWidth,
+  bool scrollable = false,
+}) {
+  final scrollStyles = !scrollable ? 'overflow: hidden;' : '';
+  return '''
 <!DOCTYPE html><html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width">
-  $csp
   <style>
     html, body {
       margin: 0;
@@ -123,29 +178,27 @@ String loadEmbedHtmlDocument(
   </style>
 </head>
 <body>
-  $embedData
-  $_resizeObserverScript
+  $embedHtml
+  $resizeObserverScript
 </body>
 </html>
 ''';
+}
 
-    case EmbedType.youtube:
-    case EmbedType.spotify:
-    case EmbedType.vimeo:
-    case EmbedType.dailymotion:
-    case EmbedType.soundcloud:
-    case EmbedType.threads:
-    case EmbedType.giphy:
-      final processedData = type == EmbedType.youtube
-          ? _injectYoutubeSecurityHeaders(embedData)
-          : embedData;
-      return '''
+/// HTML wrapper for YouTube embeds (includes security headers).
+String buildYouTubeHtmlDocument(
+  String embedHtml, {
+  required double maxWidth,
+  bool scrollable = false,
+}) {
+  final scrollStyles = !scrollable ? 'overflow: hidden;' : '';
+  final processedHtml = _injectYoutubeSecurityHeaders(embedHtml);
+  return '''
 <!DOCTYPE html><html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width">
-  ${type == EmbedType.youtube ? '<meta name="referrer" content="strict-origin-when-cross-origin">' : ''}
-  $csp
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <style>
     html, body {
       margin: 0;
@@ -155,19 +208,25 @@ String loadEmbedHtmlDocument(
   </style>
 </head>
 <body>
-  $processedData
-  $_resizeObserverScript
+  $processedHtml
+  $resizeObserverScript
 </body>
 </html>
 ''';
+}
 
-    case EmbedType.reddit:
-      return '''
+/// HTML wrapper for Reddit embeds.
+String buildRedditHtmlDocument(
+  String embedHtml, {
+  required double maxWidth,
+  bool scrollable = false,
+}) {
+  final scrollStyles = !scrollable ? 'overflow: hidden;' : '';
+  return '''
 <!DOCTYPE html><html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  $csp
   <style>
     html, body {
       margin: 0;
@@ -189,36 +248,17 @@ String loadEmbedHtmlDocument(
 </head>
 <body>
   <div id="reddit-container">
-    $embedData
+    $embedHtml
   </div>
-  $_resizeObserverScript
+  $resizeObserverScript
 </body>
 </html>
 ''';
-
-    case EmbedType.other:
-      return '''
-<!DOCTYPE html><html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  $csp
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      $scrollStyles
-    }
-  </style>
-</head>
-<body>
-  $embedData
-  $_resizeObserverScript
-</body>
-</html>
-''';
-  }
 }
+
+// ---------------------------------------------------------------------------
+// Private internal helpers
+// ---------------------------------------------------------------------------
 
 String _injectYoutubeSecurityHeaders(String html) {
   if (!html.contains('youtube.com/embed/') &&
@@ -252,10 +292,6 @@ String _injectYoutubeSecurityHeaders(String html) {
       params['widget_referrer'] = fallbackOrigin;
       params['origin'] = fallbackOrigin;
 
-      // DO NOT remove enablejsapi; it's required for the YoutubeEmbedPlayer
-      // and any custom JS control over the player.
-      // Note: We were previously stripping this, which caused state communication failure.
-
       final updatedSrc = uri.replace(queryParameters: params).toString();
       if (updatedSrc != currentSrc) {
         processedHtml = processedHtml.replaceFirst(currentSrc, updatedSrc);
@@ -287,29 +323,34 @@ const _errorBridgeScript = '''
 </script>
 ''';
 
-const _resizeObserverScript = '''
+const resizeObserverScript = '''
 $_errorBridgeScript
 <script>
   (function() {
-    const observer = new ResizeObserver(entries => {
-      for (let entry of entries) {
-         if (window.HeightChannel) {
-           window.HeightChannel.postMessage(document.body.scrollHeight.toString());
-         }
-      }
-    });
+    const reportHeight = () => {
+       if (window.HeightChannel) {
+         const height = Math.max(
+           document.body.scrollHeight, 
+           document.body.offsetHeight, 
+           document.documentElement.clientHeight, 
+           document.documentElement.scrollHeight, 
+           document.documentElement.offsetHeight
+         );
+         window.HeightChannel.postMessage(height.toString());
+       }
+    };
+
+    const observer = new ResizeObserver(reportHeight);
     observer.observe(document.body);
+    observer.observe(document.documentElement);
     
-    // Initial height report
-    setTimeout(() => {
-      if (window.HeightChannel) {
-        window.HeightChannel.postMessage(document.body.scrollHeight.toString());
-      }
-    }, 500);
+    // Immediate report on domContentLoaded
+    window.addEventListener('DOMContentLoaded', reportHeight);
+    window.addEventListener('load', reportHeight);
+    
+    // Safety check after a small delay
+    setTimeout(reportHeight, 500);
+    setTimeout(reportHeight, 1500);
   })();
 </script>
 ''';
-
-String _getCspMetaTag(EmbedType type) {
-  return ''; // Temporarily unrestricted to debug rendering issues
-}

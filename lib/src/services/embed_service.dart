@@ -12,20 +12,32 @@ import 'package:flutter_embed/src/models/provider_rule.dart';
 import 'package:flutter_embed/src/services/api/base_embed_api.dart';
 import 'package:flutter_embed/src/services/provider_registry.dart';
 import 'package:flutter_embed/src/services/providers_snapshot.dart';
+import 'package:flutter_embed/src/utils/embed_errors.dart';
 
 /// Result of resolving how to render an embed.
-sealed class EmbedResolvedRender {}
+sealed class EmbedResolvedRender {
+  const EmbedResolvedRender();
+}
 
-/// The OEmbed API should be called to get the embed HTML.
-final class EmbedRenderData extends EmbedResolvedRender {
-  final BaseEmbedApi api;
-  EmbedRenderData(this.api);
+/// The OEmbed API should be called to fetch the embed HTML.
+final class EmbedRenderOEmbed extends EmbedResolvedRender {
+  const EmbedRenderOEmbed();
 }
 
 /// The embed should be loaded directly via an iframe URL.
 final class EmbedRenderIframe extends EmbedResolvedRender {
   final String iframeUrl;
-  EmbedRenderIframe(this.iframeUrl);
+  const EmbedRenderIframe(this.iframeUrl);
+}
+
+/// Pre-fetched [EmbedData] is already available — skip the API call.
+final class EmbedRenderPreloaded extends EmbedResolvedRender {
+  const EmbedRenderPreloaded();
+}
+
+/// Use the provider's native player widget (e.g. TikTok v1).
+final class EmbedRenderNativePlayer extends EmbedResolvedRender {
+  const EmbedRenderNativePlayer();
 }
 
 class EmbedService {
@@ -68,13 +80,48 @@ class EmbedService {
     );
   }
 
-
   /// Resolves the appropriate [BaseEmbedApi] for the given [param].
   static BaseEmbedApi getEmbedApiByEmbedType(
     EmbedLoaderParam param, {
     EmbedLogger? logger,
   }) {
     return _resolveApi(param, logger: logger);
+  }
+
+  /// Resolves how to render [url] given [config], returning a [EmbedResolvedRender]
+  /// sealed type that callers can exhaustively pattern-match on.
+  ///
+  /// Order of precedence:
+  /// 1. Preloaded data (caller responsibility — widget checks widget.preloadedData)
+  /// 2. Native player (e.g. TikTok v1)
+  /// 3. Iframe mode (config overrides provider render mode)
+  /// 4. OEmbed API fetch
+  static EmbedResolvedRender resolveRender(
+    String url, {
+    EmbedConfig? config,
+    EmbedType? embedType,
+    EmbedLogger? logger,
+    Map<String, String>? queryParameters,
+  }) {
+    // Native player (e.g. EmbedType.tiktok_v1)
+    if (embedType == EmbedType.tiktok_v1) {
+      return const EmbedRenderNativePlayer();
+    }
+
+    // Iframe mode
+    final iframeUrl = resolveIframeUrl(
+      url,
+      config: config,
+      embedType: embedType,
+      logger: logger,
+      queryParameters: queryParameters,
+    );
+    if (iframeUrl != null) {
+      return EmbedRenderIframe(iframeUrl);
+    }
+
+    // Default: OEmbed API fetch
+    return const EmbedRenderOEmbed();
   }
 
   /// Resolves the [EmbedProviderRule] for a given [url] and [config].
@@ -86,7 +133,7 @@ class EmbedService {
 
     // 1. Check EmbedProviderConfig rules first
     if (config != null) {
-      rule = config.providers.effectiveProviders.firstWhereOrNull(
+      rule = config.resolvedProviders.effectiveProviders.firstWhereOrNull(
         (r) => r.matches(url),
       );
     } else {
@@ -97,7 +144,9 @@ class EmbedService {
     }
 
     // 2. Static discovery check
-    if (rule == null && config?.useDynamicDiscovery == true) {
+    if (rule == null &&
+        (config?.useDynamicDiscovery == true ||
+            config?.providers.useDynamicDiscovery == true)) {
       rule = _findRuleInSnapshot(url);
     }
 
@@ -153,16 +202,31 @@ class EmbedService {
       return api;
     }
 
-    // 4. Default fallback
-    resolvedLogger.debug(
-      'No rule matched, using generic API',
+    // 4. Default fallback: Only if it's a likely oEmbed endpoint
+    final isLikelyEndpoint =
+        param.url.contains('/oembed') || param.url.contains('oembed.');
+
+    if (isLikelyEndpoint) {
+      resolvedLogger.debug(
+        'Using generic oEmbed API for suspected endpoint',
+        data: {'url': param.url},
+      );
+      return GenericEmbedApi(
+        param.url,
+        proxyUrl: config?.proxyUrl,
+        width: param.width,
+      );
+    }
+
+    // If discovery failed and it's not a likely endpoint, we shouldn't attempt
+    // to use the content URL itself as an oEmbed endpoint.
+    resolvedLogger.warning(
+      'No oEmbed provider matched and URL does not look like an oEmbed endpoint',
       data: {'url': param.url},
     );
-    return GenericEmbedApi(
-      param
-          .url, // This might not be a valid oembed endpoint, but GenericEmbedApi handles it
-      proxyUrl: config?.proxyUrl,
-      width: param.width,
+    throw EmbedApisException(
+      message: 'No oEmbed provider found for ${param.url}. '
+          'Try enabling dynamic discovery or providing a manual rule.',
     );
   }
 
@@ -225,10 +289,22 @@ class EmbedService {
     // Check host and parent domains (e.g., 'www.youtube.com' -> 'youtube.com')
     for (int i = 0; i < parts.length - 1; i++) {
       final domain = parts.sublist(i).join('.');
-      final rules = kEmbedProvidersSnapshot[domain];
-      if (rules != null) {
+
+      // Try exact match (e.g. 'ted.com')
+      var rules = kEmbedProvidersSnapshot[domain];
+      if (rules == null) {
+        // Try wildcard match (e.g. '*.flickr.com' for 'www.flickr.com')
+        rules = kEmbedProvidersSnapshot['*.$domain'];
+      }
+
+      if (rules != null && rules.isNotEmpty) {
+        // First try strict regex match
         final match = rules.firstWhereOrNull((r) => r.matches(url));
         if (match != null) return match;
+
+        // Fallback: If domain matched perfectly but regex was too strict
+        // (common in generated snapshot rules), return the first rule for that domain.
+        return rules.first;
       }
     }
     return null;

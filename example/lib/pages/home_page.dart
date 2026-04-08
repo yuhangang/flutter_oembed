@@ -1,3 +1,4 @@
+import 'package:embed_example/integrations/discovery_integration.dart';
 import 'package:embed_example/integrations/html_integration.dart';
 import 'package:embed_example/integrations/markdown_integration.dart';
 import 'package:embed_example/integrations/quill_integration.dart';
@@ -91,6 +92,14 @@ class _MyHomePageState extends State<MyHomePage> {
                   color: Colors.teal,
                   page: const QuillIntegrationPage(),
                 ),
+                _buildIntegrationCard(
+                  context,
+                  title: 'Discovery',
+                  subtitle: 'Try any OEmbed URL',
+                  icon: Icons.explore_rounded,
+                  color: Colors.purple,
+                  page: const DiscoveryIntegrationPage(),
+                ),
               ],
             ),
           ),
@@ -98,7 +107,7 @@ class _MyHomePageState extends State<MyHomePage> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 32, 16, 12),
               child: Text(
-                'OEmbed Provider Samples',
+                'OEmbed Provider Samples (Verified)',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Theme.of(context).colorScheme.onSurface,
@@ -107,82 +116,109 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-            ).copyWith(bottom: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
-                final sample = samples[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color: Theme.of(context).colorScheme.outlineVariant,
-                    ),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    leading: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainer,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.outlineVariant,
-                        ),
-                      ),
-                      padding: const EdgeInsets.all(8),
-                      child: _buildProviderLogo(sample['type']),
-                    ),
-                    title: Text(
-                      sample['source'],
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: Text(
-                      sample['url'],
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontSize: 13,
-                      ),
-                    ),
-                    trailing: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surfaceContainer,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 16,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (context) => EmbedDetailsPage(
-                                sample: sample,
-                                index: index,
-                              ),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              }, childCount: samples.length),
+                final verifiedSamples =
+                    samples.where((s) => s['category'] == 'verified').toList();
+                final sample = verifiedSamples[index];
+                return _buildSampleCard(context, sample, index);
+              }, childCount: samples.where((s) => s['category'] == 'verified').length),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 32, 16, 12),
+              child: Text(
+                'Other / Experimental Providers',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(
+              bottom: 32,
+            ),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final experimentalSamples =
+                    samples
+                        .where((s) => s['category'] == 'experimental')
+                        .toList();
+                final sample = experimentalSamples[index];
+                return _buildSampleCard(context, sample, index);
+              }, childCount: samples.where((s) => s['category'] == 'experimental').length),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSampleCard(
+    BuildContext context,
+    Map<String, dynamic> sample,
+    int index,
+  ) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
+          ),
+          padding: const EdgeInsets.all(8),
+          child: _buildProviderLogo(sample['type']),
+        ),
+        title: Text(
+          sample['source'],
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(
+          sample['url'],
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 13,
+          ),
+        ),
+        trailing: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            Icons.arrow_forward_ios_rounded,
+            size: 16,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (context) => EmbedDetailsPage(sample: sample, index: index),
+            ),
+          );
+        },
       ),
     );
   }

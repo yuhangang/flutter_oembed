@@ -41,7 +41,7 @@ void main() {
       testConfig = EmbedConfig(
         httpClient: mockClient,
         cache: const EmbedCacheConfig(enabled: false),
-        loadTimeout: const Duration(milliseconds: 10),
+        loadTimeout: const Duration(milliseconds: 20),
       );
       param = SocialEmbedParam(
         url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',

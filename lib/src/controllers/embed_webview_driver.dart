@@ -8,7 +8,6 @@ import 'package:flutter_embed/src/logging/embed_logger.dart';
 import 'package:flutter_embed/src/models/embed_data.dart';
 import 'package:flutter_embed/src/models/embed_enums.dart';
 import 'package:flutter_embed/src/services/embed_service.dart';
-import 'package:flutter_embed/src/utils/embed_html_utils.dart';
 import 'package:flutter_embed/src/utils/embed_webview_controller_utils.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -110,6 +109,7 @@ class EmbedWebViewDriver {
         if (controller.loadingState != EmbedLoadingState.loaded &&
             controller.height != null &&
             controller.height! > 0) {
+          controller.cancelLoadTimeout();
           controller.setLoadingState(EmbedLoadingState.loaded);
         }
       },
@@ -197,7 +197,7 @@ class EmbedWebViewDriver {
     if (resolvedData != null) {
       if (resolvedData.html.isNotEmpty) {
         await webViewController.loadHtmlString(
-          loadEmbedHtmlDocument(
+          _strategy.buildHtmlDocument(
             resolvedData.html,
             type: controller.param.embedType,
             maxWidth: maxWidth,
@@ -224,7 +224,6 @@ class EmbedWebViewDriver {
     final url = await webViewController.currentUrl();
     if (url != null &&
         (url.startsWith('chrome-error:') ||
-            url == 'about:blank' ||
             (url.startsWith('file://') && url.contains('ERROR')))) {
       _logger.warning('WebView loaded an error page', data: {
         'url': controller.param.url,
@@ -239,10 +238,36 @@ class EmbedWebViewDriver {
     if (_isDisposed) return;
 
     if (controller.loadingState != EmbedLoadingState.loaded) {
-      // 3. Initial height check
-      await updateEmbedPostHeight();
-      if (_isDisposed) return;
+      if (_strategy.deferLoadingState) {
+        // ----- Deferred path (e.g. X/Twitter) -----
+        // The provider has its own "loaded" signal (e.g. OnTwitterLoaded JS
+        // channel). Wait up to 2 seconds for it to fire. If the signal
+        // arrives, the callback will have already set state to loaded.
+        await Future.delayed(const Duration(seconds: 2));
+        if (_isDisposed) return;
+        if (controller.loadingState == EmbedLoadingState.loaded) return;
 
+        // Fallback: signal didn't arrive in time – use height-based detection
+        await updateEmbedPostHeight();
+        if (_isDisposed) return;
+
+        if (controller.height != null && controller.height! > 0) {
+          controller.setLoadingState(EmbedLoadingState.loaded);
+        } else {
+          _logger.warning(
+            'Deferred embed load: signal not received and height is 0',
+            data: {'url': controller.param.url},
+          );
+          controller.setLoadingState(EmbedLoadingState.error);
+        }
+        return;
+      } else {
+        // 3. Initial height check
+        await updateEmbedPostHeight();
+        if (_isDisposed) return;
+      }
+
+      // ----- Generic path -----
       // 4. Post-Load Integrity Check: If height is still effectively 0 after small delay,
       // it might be a silent failure (e.g. script crashed before rendering anything)
       if (controller.height == null || controller.height! <= 1.0) {
@@ -251,6 +276,7 @@ class EmbedWebViewDriver {
       }
 
       if (controller.height != null && controller.height! > 0) {
+        controller.cancelLoadTimeout();
         controller.setLoadingState(EmbedLoadingState.loaded);
       } else {
         _logger.warning('WebView load integrity failure: effectively 0 height',

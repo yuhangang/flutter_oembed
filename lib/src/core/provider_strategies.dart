@@ -7,6 +7,7 @@ import 'package:flutter_embed/src/models/soundcloud_embed_params.dart';
 import 'package:flutter_embed/src/models/vimeo_embed_params.dart';
 import 'package:flutter_embed/src/models/x_embed_params.dart';
 import 'package:flutter_embed/src/services/embed_apis.dart';
+import 'package:flutter_embed/src/utils/embed_html_utils.dart';
 import 'package:flutter_embed/src/utils/embed_webview_controller_utils.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -20,6 +21,20 @@ class YouTubeProviderStrategy extends GenericEmbedProviderStrategy {
 
   @override
   String? resolveBaseUrl(EmbedData? data) => 'https://www.youtube-nocookie.com';
+
+  @override
+  String buildHtmlDocument(
+    String embedHtml, {
+    required EmbedType type,
+    required double maxWidth,
+    bool scrollable = false,
+  }) {
+    return buildYouTubeHtmlDocument(
+      embedHtml,
+      maxWidth: maxWidth,
+      scrollable: scrollable,
+    );
+  }
 
   @override
   BaseEmbedApi createApi(EmbedProviderContext context) {
@@ -43,6 +58,20 @@ class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
       'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) '
       'AppleWebKit/605.1.15 (KHTML, like Gecko) '
       'Version/17.4 Mobile/15E148 Safari/604.1';
+
+  @override
+  String buildHtmlDocument(
+    String embedHtml, {
+    required EmbedType type,
+    required double maxWidth,
+    bool scrollable = false,
+  }) {
+    return buildTikTokHtmlDocument(
+      embedHtml,
+      maxWidth: maxWidth,
+      scrollable: scrollable,
+    );
+  }
 
   @override
   BaseEmbedApi createApi(EmbedProviderContext context) {
@@ -71,6 +100,23 @@ class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
 
 class XProviderStrategy extends GenericEmbedProviderStrategy {
   const XProviderStrategy();
+
+  @override
+  bool get deferLoadingState => true;
+
+  @override
+  String buildHtmlDocument(
+    String embedHtml, {
+    required EmbedType type,
+    required double maxWidth,
+    bool scrollable = false,
+  }) {
+    return buildXHtmlDocument(
+      embedHtml,
+      maxWidth: maxWidth,
+      scrollable: scrollable,
+    );
+  }
 
   @override
   BaseEmbedApi createApi(EmbedProviderContext context) {
@@ -103,6 +149,28 @@ class XProviderStrategy extends GenericEmbedProviderStrategy {
 class MetaProviderStrategy extends GenericEmbedProviderStrategy {
   final EmbedType type;
   const MetaProviderStrategy(this.type);
+
+  @override
+  String buildHtmlDocument(
+    String embedHtml, {
+    required EmbedType type,
+    required double maxWidth,
+    bool scrollable = false,
+  }) {
+    if (type == EmbedType.instagram) {
+      return buildInstagramHtmlDocument(
+        embedHtml,
+        maxWidth: maxWidth,
+        scrollable: scrollable,
+      );
+    }
+    return buildMetaHtmlDocument(
+      embedHtml,
+      type: type,
+      maxWidth: maxWidth,
+      scrollable: scrollable,
+    );
+  }
 
   @override
   BaseEmbedApi createApi(EmbedProviderContext context) {
@@ -167,6 +235,20 @@ class SpotifyProviderStrategy extends GenericEmbedProviderStrategy {
 
 class RedditProviderStrategy extends GenericEmbedProviderStrategy {
   const RedditProviderStrategy();
+
+  @override
+  String buildHtmlDocument(
+    String embedHtml, {
+    required EmbedType type,
+    required double maxWidth,
+    bool scrollable = false,
+  }) {
+    return buildRedditHtmlDocument(
+      embedHtml,
+      maxWidth: maxWidth,
+      scrollable: scrollable,
+    );
+  }
 
   @override
   BaseEmbedApi createApi(EmbedProviderContext context) {

@@ -1,9 +1,10 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter_embed/src/models/provider_rule.dart';
 import 'package:flutter_embed/src/services/provider_registry.dart';
 import 'package:flutter_embed/src/services/providers_snapshot.dart';
 
 /// Controls which OEmbed providers are active and how they render content.
-class EmbedProviderConfig {
+class EmbedProviderConfig extends Equatable {
   /// Whitelisted provider names. When non-null, only these providers are used.
   /// Names match [EmbedProviderRule.providerName] (case-sensitive).
   ///
@@ -48,6 +49,15 @@ class EmbedProviderConfig {
     this.includeUnverified = false,
   });
 
+  @override
+  List<Object?> get props => [
+        enabledProviders,
+        providerRenderModes,
+        customProviders,
+        useDynamicDiscovery,
+        includeUnverified,
+      ];
+
   /// Returns true if the given provider should be used.
   bool isEnabled(String providerName) {
     if (enabledProviders == null) return true;
@@ -77,25 +87,21 @@ class EmbedProviderConfig {
     );
   }
 
-  /// Returns the full merged provider list (built-in + custom + dynamic) filtered by
+  /// Returns the full merged provider list (built-in + custom) filtered by
   /// [enabledProviders].
+  ///
+  /// Note: Dynamically discovered rules from [kEmbedProvidersSnapshot] are NOT
+  /// included here for performance reasons. [EmbedService] handles efficient
+  /// lookup in the snapshot separately.
   List<EmbedProviderRule> get effectiveProviders {
-    final Iterable<EmbedProviderRule> discoveryRules = useDynamicDiscovery
-        ? kEmbedProvidersSnapshot.values.expand((e) => e)
-        : const [];
-
     final all = <EmbedProviderRule>[
       ...customProviders,
       ...kDefaultEmbedProviders,
-      ...discoveryRules,
     ];
 
     final filtered = all.where((r) {
       if (includeUnverified) return true;
-      // If it's a custom provider or dynamic discovery, we assume verification
-      // is handled by the source or is intentional.
-      // Actually, we should probably only filter kDefaultEmbedProviders.
-      if (customProviders.contains(r) || discoveryRules.contains(r)) {
+      if (customProviders.contains(r)) {
         return true;
       }
       return r.isVerified;

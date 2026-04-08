@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_embed/src/models/embed_cache_config.dart';
 import 'package:flutter_embed/src/models/embed_provider_config.dart';
@@ -35,7 +36,7 @@ import 'dart:async';
 ///   child: ...,
 /// )
 /// ```
-class EmbedConfig {
+class EmbedConfig extends Equatable {
   /// Provider registry — controls which providers are active and how they render.
   final EmbedProviderConfig providers;
 
@@ -111,11 +112,36 @@ class EmbedConfig {
     this.onNavigationRequest,
     this.onLinkTap,
     this.useDynamicDiscovery = false,
-    this.loadTimeout = const Duration(seconds: 10),
+    this.loadTimeout = const Duration(seconds: 20),
     this.scrollable = false,
     this.logger = const EmbedLogger.disabled(),
     this.httpClient,
   });
+
+  /// Equality props — intentionally excludes function fields.
+  ///
+  /// [onNavigationRequest], [onLinkTap], and [httpClient] are omitted because
+  /// Dart closures do not implement value equality: two identical lambdas are
+  /// never `==`. Excluding them avoids false "equal" results from Equatable.
+  ///
+  /// [EmbedScope.updateShouldNotify] compensates by using [identical] instead
+  /// of `==`, so replacing the whole [EmbedConfig] (even with the same field
+  /// values but a new closure) will still trigger a rebuild.
+  @override
+  List<Object?> get props => [
+        providers,
+        cache,
+        style,
+        facebookAppId,
+        facebookClientToken,
+        proxyUrl,
+        locale,
+        brightness,
+        useDynamicDiscovery,
+        loadTimeout,
+        scrollable,
+        logger,
+      ];
 
   /// Internal getter that returns the providers config with the discovery flag synced.
   EmbedProviderConfig get resolvedProviders =>
@@ -161,4 +187,3 @@ class EmbedConfig {
     );
   }
 }
-

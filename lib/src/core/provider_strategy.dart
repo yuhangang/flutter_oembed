@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_embed/src/models/embed_data.dart';
+import 'package:flutter_embed/src/models/embed_enums.dart';
 import 'package:flutter_embed/src/models/provider_rule.dart';
 import 'package:flutter_embed/src/services/api/base_embed_api.dart';
+import 'package:flutter_embed/src/utils/embed_html_utils.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 /// Defines provider-specific behaviors for rendering and interaction.
@@ -15,9 +17,11 @@ abstract class EmbedProviderStrategy {
   /// If null, the default browser User-Agent will be used.
   String? get userAgent => null;
 
-  /// Whether this provider should use a persistent desktop User-Agent
-  /// to bypass mobile embedding restrictions.
-  bool get useDesktopUserAgent => false;
+  /// Whether the provider manages its own loading-state signal (e.g. via a
+  /// JavaScript channel callback). When `true`, [EmbedWebViewDriver] will
+  /// wait for the provider signal before falling back to height-based
+  /// detection, rather than aggressively setting an error state.
+  bool get deferLoadingState => false;
 
   /// Custom JavaScript to run when the page starts loading.
   Future<void> onPageStarted(WebViewController controller) async {}
@@ -42,6 +46,23 @@ abstract class EmbedProviderStrategy {
   /// Resolves the base URL for the WebView's HTML content.
   /// If null, no base URL will be used.
   String? resolveBaseUrl(EmbedData? data) => null;
+
+  /// Builds the full HTML document string that will be loaded into the WebView.
+  ///
+  /// Override to provide provider-specific HTML wrappers, CSS, or script
+  /// injection. The default implementation delegates to [buildGenericHtmlDocument].
+  String buildHtmlDocument(
+    String embedHtml, {
+    required EmbedType type,
+    required double maxWidth,
+    bool scrollable = false,
+  }) {
+    return buildGenericHtmlDocument(
+      embedHtml,
+      maxWidth: maxWidth,
+      scrollable: scrollable,
+    );
+  }
 
   /// Factory for creating the [BaseEmbedApi] for this provider.
   BaseEmbedApi createApi(EmbedProviderContext context);

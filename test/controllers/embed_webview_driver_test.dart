@@ -5,6 +5,7 @@ import 'package:flutter_embed/src/models/embed_config.dart';
 import 'package:flutter_embed/src/models/embed_data.dart';
 import 'package:flutter_embed/src/models/embed_enums.dart';
 import 'package:flutter_embed/src/models/social_embed_param.dart';
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -81,7 +82,8 @@ void main() {
         verifyNever(() => mockWebViewController.setNavigationDelegate(any()));
       });
 
-      test('should force a reload if forceReload is true even if already loaded',
+      test(
+          'should force a reload if forceReload is true even if already loaded',
           () async {
         controller.setLoadingState(EmbedLoadingState.loaded);
         controller.setHeight(100);
@@ -90,7 +92,7 @@ void main() {
             controller: controller, webViewController: mockWebViewController);
         await driver.initEmbedWebview(
             backgroundColor: Colors.white,
-            embedData: EmbedData(html: 'test'),
+            embedData: const EmbedData(html: 'test'),
             embedUrl: null,
             maxWidth: 640,
             forceReload: true);
@@ -99,11 +101,12 @@ void main() {
             baseUrl: any(named: 'baseUrl'))).called(1);
       });
 
-      test('should load the request URL when HTML is empty but a URL is present',
+      test(
+          'should load the request URL when HTML is empty but a URL is present',
           () async {
         final driver = EmbedWebViewDriver(
             controller: controller, webViewController: mockWebViewController);
-        final data = EmbedData(html: '', url: 'https://example.com');
+        final data = const EmbedData(html: '', url: 'https://example.com');
 
         await driver.initEmbedWebview(
             backgroundColor: Colors.white,
@@ -129,7 +132,7 @@ void main() {
             controller: controller, webViewController: mockWebViewController);
         await driver.initEmbedWebview(
             backgroundColor: Colors.white,
-            embedData: EmbedData(html: '<div></div>'),
+            embedData: const EmbedData(html: '<div></div>'),
             embedUrl: null,
             maxWidth: 640);
 
@@ -155,7 +158,7 @@ void main() {
             controller: controller, webViewController: mockWebViewController);
         await driver.initEmbedWebview(
             backgroundColor: Colors.white,
-            embedData: EmbedData(html: '<div></div>'),
+            embedData: const EmbedData(html: '<div></div>'),
             embedUrl: null,
             maxWidth: 640);
 
@@ -181,7 +184,7 @@ void main() {
             controller: controller, webViewController: mockWebViewController);
         await driver.initEmbedWebview(
             backgroundColor: Colors.white,
-            embedData: EmbedData(html: '<div></div>'),
+            embedData: const EmbedData(html: '<div></div>'),
             embedUrl: null,
             maxWidth: 640);
 
@@ -199,63 +202,73 @@ void main() {
     group('onPageFinished()', () {
       test(
           'should set the controller state to error if the captured height is 0',
-          () async {
-        NavigationDelegate? capturedDelegate;
-        when(() => mockWebViewController.setNavigationDelegate(any()))
-            .thenAnswer((inv) {
-          capturedDelegate = inv.positionalArguments.first;
-          return Future.value();
-        });
-        when(() => mockWebViewController.currentUrl())
-            .thenAnswer((_) async => 'https://example.com');
-        // Return 0 for height
-        when(() => mockWebViewController.runJavaScriptReturningResult(any()))
-            .thenAnswer((_) async => '0');
+          () => fakeAsync((async) {
+                NavigationDelegate? capturedDelegate;
+                when(() => mockWebViewController.setNavigationDelegate(any()))
+                    .thenAnswer((inv) {
+                  capturedDelegate = inv.positionalArguments.first;
+                  return Future.value();
+                });
+                when(() => mockWebViewController.currentUrl())
+                    .thenAnswer((_) async => 'https://example.com');
+                // Return 0 for height
+                when(() =>
+                        mockWebViewController.runJavaScriptReturningResult(any()))
+                    .thenAnswer((_) async => '0');
 
-        final driver = EmbedWebViewDriver(
-            controller: controller, webViewController: mockWebViewController);
-        await driver.initEmbedWebview(
-            backgroundColor: Colors.white,
-            embedData: EmbedData(html: '<div></div>'),
-            embedUrl: null,
-            maxWidth: 640);
+                final driver = EmbedWebViewDriver(
+                    controller: controller,
+                    webViewController: mockWebViewController);
+                driver.initEmbedWebview(
+                    backgroundColor: Colors.white,
+                    embedData: const EmbedData(html: '<div></div>'),
+                    embedUrl: null,
+                    maxWidth: 640);
 
-        capturedDelegate!.onPageFinished!('https://example.com');
+                // Wait for init async work
+                async.flushMicrotasks();
 
-        // Wait for all the delays in _handleEmbedPageFinished
-        await Future.delayed(const Duration(milliseconds: 2000));
+                capturedDelegate!.onPageFinished!('https://example.com');
 
-        expect(controller.loadingState, EmbedLoadingState.error);
-      });
+                // Wait for all the delays in _handleEmbedPageFinished (approx 1500ms)
+                async.elapse(const Duration(milliseconds: 2500));
 
-      test('should set the controller height and state to loaded for a valid height',
-          () async {
-        NavigationDelegate? capturedDelegate;
-        when(() => mockWebViewController.setNavigationDelegate(any()))
-            .thenAnswer((inv) {
-          capturedDelegate = inv.positionalArguments.first;
-          return Future.value();
-        });
-        when(() => mockWebViewController.currentUrl())
-            .thenAnswer((_) async => 'https://example.com');
-        when(() => mockWebViewController.runJavaScriptReturningResult(any()))
-            .thenAnswer((_) async => '300');
+                expect(controller.loadingState, EmbedLoadingState.error);
+              }));
 
-        final driver = EmbedWebViewDriver(
-            controller: controller, webViewController: mockWebViewController);
-        await driver.initEmbedWebview(
-            backgroundColor: Colors.white,
-            embedData: EmbedData(html: '<div></div>'),
-            embedUrl: null,
-            maxWidth: 640);
+      test(
+          'should set the controller height and state to loaded for a valid height',
+          () => fakeAsync((async) {
+                NavigationDelegate? capturedDelegate;
+                when(() => mockWebViewController.setNavigationDelegate(any()))
+                    .thenAnswer((inv) {
+                  capturedDelegate = inv.positionalArguments.first;
+                  return Future.value();
+                });
+                when(() => mockWebViewController.currentUrl())
+                    .thenAnswer((_) async => 'https://example.com');
+                when(() =>
+                        mockWebViewController.runJavaScriptReturningResult(any()))
+                    .thenAnswer((_) async => '300');
 
-        capturedDelegate!.onPageFinished!('https://example.com');
+                final driver = EmbedWebViewDriver(
+                    controller: controller,
+                    webViewController: mockWebViewController);
+                driver.initEmbedWebview(
+                    backgroundColor: Colors.white,
+                    embedData: const EmbedData(html: '<div></div>'),
+                    embedUrl: null,
+                    maxWidth: 640);
 
-        await Future.delayed(const Duration(milliseconds: 2000));
+                async.flushMicrotasks();
 
-        expect(controller.height, equals(300.0));
-        expect(controller.loadingState, EmbedLoadingState.loaded);
-      });
+                capturedDelegate!.onPageFinished!('https://example.com');
+
+                async.elapse(const Duration(milliseconds: 2500));
+
+                expect(controller.height, equals(300.0));
+                expect(controller.loadingState, EmbedLoadingState.loaded);
+              }));
     });
 
     group('updateEmbedPostHeight()', () {

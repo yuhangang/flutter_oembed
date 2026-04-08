@@ -5,11 +5,7 @@ import 'package:flutter_embed/src/utils/embed_link_utils.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 
-typedef EmbedLinkCallback = void Function(
-  String url,
-  EmbedType embedType,
-  EmbedButtonLocation embedButtonLocation,
-);
+
 
 class SocialEmbedParam extends Equatable {
   final String url;

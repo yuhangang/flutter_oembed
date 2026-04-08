@@ -38,7 +38,7 @@ class TestEmbedApi extends GenericEmbedApi {
   BaseCacheManager get cacheManager => mockCacheManager ?? super.cacheManager;
 
   @override
-  EmbedData ombedResponseModifier(EmbedData response) {
+  EmbedData oembedResponseModifier(EmbedData response) {
     return response.copyWith(title: 'Modified');
   }
 }
@@ -153,7 +153,8 @@ void main() {
         expect(result.html, equals('<div>Cached</div>'));
         verify(() => mockCache.getFileFromCache(any<String>(),
             ignoreMemCache: any(named: 'ignoreMemCache'))).called(1);
-        verifyNever(() => mockClient.get(any(), headers: any(named: 'headers')));
+        verifyNever(
+            () => mockClient.get(any(), headers: any(named: 'headers')));
       });
 
       test('should save successfully fetched network data to the cache',
@@ -229,7 +230,8 @@ void main() {
                 ignoreMemCache: any(named: 'ignoreMemCache')))
             .thenAnswer((_) async => mockFileInfo);
         when(() => mockFileInfo.file).thenReturn(mockFile);
-        when(() => mockFile.readAsBytes()).thenAnswer((_) async => Uint8List(0));
+        when(() => mockFile.readAsBytes())
+            .thenAnswer((_) async => Uint8List(0));
 
         final result =
             await api.getCachedResult(Uri.parse('https://example.com'));
@@ -247,7 +249,7 @@ void main() {
             .thenThrow(Exception('Cache error'));
 
         await api.setCachedResult(
-            Uri.parse('https://example.com'), EmbedData(html: ''));
+            Uri.parse('https://example.com'), const EmbedData(html: ''));
         // No crash means it's handled
       });
 
@@ -260,7 +262,7 @@ void main() {
             .thenAnswer((_) async => MockFile());
 
         await api.setCachedResult(
-            Uri.parse('https://example.com'), EmbedData(html: 'test'));
+            Uri.parse('https://example.com'), const EmbedData(html: 'test'));
 
         verify(() => mockCache.putFile(any<String>(), any<Uint8List>(),
             maxAge: const Duration(days: 7),

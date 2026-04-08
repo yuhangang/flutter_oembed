@@ -16,10 +16,11 @@ enum EmbedType {
   reddit,
   giphy,
   tiktok_v1,
+  nytimes,
   other,
 }
 
-extension FBEmbedChecker on EmbedType {
+extension EmbedTypeChecks on EmbedType {
   bool get isFacebook =>
       this == EmbedType.facebook ||
       this == EmbedType.facebook_post ||
@@ -35,8 +36,6 @@ extension FBEmbedChecker on EmbedType {
       this == EmbedType.dailymotion ||
       this == EmbedType.facebook_video;
 }
-
-enum EmbedButtonLocation { embed_bottom_link, embed_error, embed_body }
 
 enum EmbedLoadingState { loading, noConnection, error, loaded }
 
@@ -75,6 +74,8 @@ EmbedType? getEmbedTypeFromString(String typeString) {
       return EmbedType.reddit;
     case 'giphy':
       return EmbedType.giphy;
+    case 'nytimes':
+      return EmbedType.nytimes;
   }
 
   return null;

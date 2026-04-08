@@ -23,6 +23,31 @@ void main() {
       );
     });
 
+    test('Tumblr pattern matches with protocol and optional www', () {
+      final tumblrRules = kDefaultEmbedProviders.where(
+        (r) => r.providerName == 'Tumblr',
+      );
+      expect(
+        tumblrRules.any((r) => r.matches('https://www.tumblr.com/post/1')),
+        isTrue,
+      );
+      expect(
+        tumblrRules.any((r) => r.matches('http://tumblr.com/post/1')),
+        isTrue,
+      );
+    });
+
+    test('The New York Times pattern matches standard article URLs', () {
+      final nytRules = kDefaultEmbedProviders.where(
+        (r) => r.providerName == 'The New York Times',
+      );
+      expect(
+        nytRules.any((r) => r.matches(
+            'https://www.nytimes.com/2023/01/01/world/europe/ukraine-russia-war.html')),
+        isTrue,
+      );
+    });
+
     test('TikTok iframeUrlBuilder returns v3 embed URL for videos', () {
       final tiktok = kDefaultEmbedProviders.firstWhere(
         (r) => r.providerName == 'TikTok',

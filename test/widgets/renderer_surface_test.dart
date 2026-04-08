@@ -19,7 +19,7 @@ void main() {
 
   group('EmbedRenderer', () {
     testWidgets('maxWidth and config integration', (tester) async {
-      final data = EmbedData(html: '<div>Test</div>');
+      final data = const EmbedData(html: '<div>Test</div>');
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -38,16 +38,17 @@ void main() {
       await tester.pump();
 
       final constrainedBoxFinder = find.byWidgetPredicate(
-        (widget) => widget is ConstrainedBox && widget.constraints.maxWidth == 300,
+        (widget) =>
+            widget is ConstrainedBox && widget.constraints.maxWidth == 300,
       );
       expect(constrainedBoxFinder, findsOneWidget);
-      
+
       // Clear timers from WebView
       await tester.pump(const Duration(seconds: 11));
     });
 
     testWidgets('handles null providerUrl', (tester) async {
-      final data = EmbedData(html: '<div>Test</div>', providerUrl: null);
+      final data = const EmbedData(html: '<div>Test</div>', providerUrl: null);
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -71,7 +72,8 @@ void main() {
         MaterialApp(
           home: EmbedSurface(
             childBuilder: (context) => const Text('Child'),
-            fallbackWrapperBuilder: (context, child) => Container(key: const Key('wrapper'), child: child),
+            fallbackWrapperBuilder: (context, child) =>
+                Container(key: const Key('wrapper'), child: child),
           ),
         ),
       );
@@ -96,7 +98,8 @@ void main() {
           home: EmbedSurface(
             childBuilder: (context) => const Text('Child'),
             style: EmbedStyle(
-              footerBuilder: (context, url) => Text('Footer: $url', key: const Key('footer')),
+              footerBuilder: (context, url) =>
+                  Text('Footer: $url', key: const Key('footer')),
             ),
             footerUrl: 'https://example.com',
           ),

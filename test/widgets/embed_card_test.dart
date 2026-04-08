@@ -242,7 +242,7 @@ void main() {
   testWidgets('EmbedRenderer renders preloaded data without EmbedScope', (
     tester,
   ) async {
-    final data = EmbedData(
+    final data = const EmbedData(
       html: '<div id="preloaded-renderer">renderer-html</div>',
       providerUrl: 'https://www.youtube.com',
     );
@@ -267,7 +267,7 @@ void main() {
   testWidgets('EmbedCard preloadedData bypasses fetch path and loads HTML', (
     tester,
   ) async {
-    final data = EmbedData(
+    final data = const EmbedData(
       html: '<div id="preloaded-card">card-html</div>',
       providerUrl: 'https://www.youtube.com',
     );
@@ -295,11 +295,11 @@ void main() {
     const firstUrl = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
     const secondUrl = 'https://www.youtube.com/watch?v=9bZkp7q19f0';
 
-    final firstData = EmbedData(
+    final firstData = const EmbedData(
       html: '<div id="first-preloaded">first</div>',
       providerUrl: 'https://www.youtube.com',
     );
-    final secondData = EmbedData(
+    final secondData = const EmbedData(
       html: '<div id="second-preloaded">second</div>',
       providerUrl: 'https://www.youtube.com',
     );

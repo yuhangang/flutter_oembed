@@ -51,6 +51,14 @@ class EmbedScope extends InheritedWidget {
     await DefaultCacheManager().emptyCache();
   }
 
+  /// Returns `true` when the widget should notify dependents of a change.
+  ///
+  /// Uses [identical] rather than `==` because [EmbedConfig] extends [Equatable]
+  /// and deliberately excludes function fields (e.g. `onLinkTap`,
+  /// `onNavigationRequest`, `httpClient`) from its equality check to avoid
+  /// comparing closures. An identity change therefore captures all mutations,
+  /// including callback-only updates.
   @override
-  bool updateShouldNotify(EmbedScope oldWidget) => config != oldWidget.config;
+  bool updateShouldNotify(EmbedScope oldWidget) =>
+      !identical(config, oldWidget.config);
 }

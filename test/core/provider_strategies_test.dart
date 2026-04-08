@@ -130,8 +130,14 @@ void main() {
     test('GenericEmbedProviderStrategy', () {
       const strategy = GenericEmbedProviderStrategy();
       expect(strategy.resolveBaseUrl(null), isNull);
-      expect(strategy.resolveBaseUrl(EmbedData(html: '', providerUrl: 'https://example.com/')), equals('https://example.com'));
-      expect(strategy.resolveBaseUrl(EmbedData(html: '', providerUrl: 'https://example.com')), equals('https://example.com'));
+      expect(
+          strategy.resolveBaseUrl(
+              const EmbedData(html: '', providerUrl: 'https://example.com/')),
+          equals('https://example.com'));
+      expect(
+          strategy.resolveBaseUrl(
+              const EmbedData(html: '', providerUrl: 'https://example.com')),
+          equals('https://example.com'));
 
       final api = strategy.createApi(defaultContext);
       expect(api, isA<GenericEmbedApi>());

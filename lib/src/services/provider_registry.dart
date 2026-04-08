@@ -164,39 +164,28 @@ final List<EmbedProviderRule> kDefaultEmbedProviders = [
     isVerified: true,
   ),
   const EmbedProviderRule(
-    pattern: r'https?:\/\/(www\.)?flickr\.com\/.*',
-    endpoint: 'https://www.flickr.com/services/oembed/',
+    pattern: r'https?:\/\/(?:www\.|secure\.)?(?:flickr\.com|flic\.kr)\/.*',
+    endpoint: 'https://www.flickr.com/services/oembed/?format=json',
     providerName: 'Flickr',
+    isVerified: true,
   ),
   const EmbedProviderRule(
     pattern: r'https?:\/\/(www\.)?ted\.com\/talks\/.*',
     endpoint: 'https://www.ted.com/services/v1/oembed.json',
     providerName: 'TED',
+    isVerified: false,
   ),
   const EmbedProviderRule(
-    pattern: r'https?:\/\/(www\.)?tumblr\.com\/.*',
+    pattern: r'^https?:\/\/(?:www\.)?tumblr\.com\/.*',
     endpoint: 'https://www.tumblr.com/oembed/1.0',
     providerName: 'Tumblr',
-  ),
-  const EmbedProviderRule(
-    pattern: r'https?:\/\/(www\.)?imgur\.com\/.*',
-    endpoint: 'https://api.imgur.com/oembed',
-    providerName: 'Imgur',
-  ),
-  const EmbedProviderRule(
-    pattern: r'https?:\/\/(www\.)?mixcloud\.com\/.*',
-    endpoint: 'https://app.mixcloud.com/oembed/',
-    providerName: 'Mixcloud',
-  ),
-  const EmbedProviderRule(
-    pattern: r'https?:\/\/(www\.)?kickstarter\.com\/.*',
-    endpoint: 'https://www.kickstarter.com/services/oembed',
-    providerName: 'Kickstarter',
+    isVerified: true,
   ),
   const EmbedProviderRule(
     pattern: r'https?:\/\/pca\.st\/.*',
     endpoint: 'https://pca.st/oembed.json',
     providerName: 'Pocket Casts',
+    isVerified: true,
   ),
   const EmbedProviderRule(
     pattern: r'https?:\/\/(www\.)?(twitter|x)\.com\/.*',
@@ -233,6 +222,12 @@ final List<EmbedProviderRule> kDefaultEmbedProviders = [
     pattern: r'https?:\/\/media\.giphy\.com\/media\/.*\/giphy\.gif',
     endpoint: 'https://giphy.com/services/oembed',
     providerName: 'Giphy',
+    isVerified: true,
+  ),
+  const EmbedProviderRule(
+    pattern: r'^https?:\/\/(?:www\.)?nytimes\.com\/.*',
+    endpoint: 'https://www.nytimes.com/svc/oembed/json/',
+    providerName: 'The New York Times',
     isVerified: true,
   ),
 ];

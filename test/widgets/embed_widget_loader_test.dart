@@ -23,7 +23,7 @@ void main() {
   group('EmbedWidgetLoader', () {
     testWidgets('shows EmbedWebView when preloadedData is provided',
         (tester) async {
-      final data = EmbedData(
+      final data = const EmbedData(
         type: 'rich',
         html: '<div>Preloaded</div>',
       );
@@ -69,9 +69,11 @@ void main() {
 
     testWidgets('didUpdateWidget replaces controller', (tester) async {
       final param1 = SocialEmbedParam(
-          url: 'https://youtube.com/1', embedType: EmbedType.youtube);
+          url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          embedType: EmbedType.youtube);
       final param2 = SocialEmbedParam(
-          url: 'https://youtube.com/2', embedType: EmbedType.youtube);
+          url: 'https://www.youtube.com/watch?v=L_jWHffIx5E',
+          embedType: EmbedType.youtube);
 
       await tester.pumpWidget(
         MaterialApp(
@@ -94,7 +96,8 @@ void main() {
 
     testWidgets('didChangeDependencies updates scopeConfig', (tester) async {
       final param = SocialEmbedParam(
-          url: 'https://youtube.com/1', embedType: EmbedType.youtube);
+          url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+          embedType: EmbedType.youtube);
 
       await tester.pumpWidget(
         MaterialApp(

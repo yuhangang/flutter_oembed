@@ -6,6 +6,7 @@ import 'package:flutter_embed/src/models/embed_loader_param.dart';
 import 'package:flutter_embed/src/models/embed_provider_config.dart';
 import 'package:flutter_embed/src/services/api/base_embed_api.dart';
 import 'package:flutter_embed/src/services/embed_service.dart';
+import 'package:flutter_embed/src/utils/embed_errors.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
@@ -69,6 +70,48 @@ void main() {
         final rule = EmbedService.resolveRule('https://youtube.com/watch?v=123');
         expect(rule, isNotNull);
         expect(rule?.providerName, equals('YouTube'));
+      });
+
+      test('should match wildcard domains in snapshot (e.g., flickr.com)', () {
+        const url = 'https://www.flickr.com/photos/123';
+        final rule = EmbedService.resolveRule(url,
+            config: const EmbedConfig(useDynamicDiscovery: true));
+        expect(rule, isNotNull);
+        expect(rule?.providerName, equals('Flickr'));
+      });
+
+      test('should discover Tumblr as a verified provider by default', () {
+        const url = 'https://www.tumblr.com/post/123';
+        final rule = EmbedService.resolveRule(url);
+        expect(rule, isNotNull);
+        expect(rule?.providerName, equals('Tumblr'));
+        expect(rule?.isVerified, isTrue);
+      });
+
+      test(
+          'should resolve Tumblr endpoint for photomatt URL shape from discovery example',
+          () {
+        const url =
+            'https://www.tumblr.com/photomatt/765038139535097856/the-new-auto-follow-on-tumblr-is-so-good';
+        final rule =
+            EmbedService.resolveRule(url, config: const EmbedConfig(useDynamicDiscovery: true));
+        expect(rule, isNotNull);
+        expect(rule?.providerName, equals('Tumblr'));
+
+        final api = EmbedService.getEmbedApiByEmbedType(
+          EmbedLoaderParam(
+            url: url,
+            embedType: EmbedType.other,
+            width: 640,
+          ),
+        );
+        expect(api, isA<GenericEmbedApi>());
+        expect(api.baseUrl, equals('https://www.tumblr.com/oembed/1.0'));
+
+        final requestUri = api.constructUrl(url);
+        expect(requestUri.origin + requestUri.path,
+            equals('https://www.tumblr.com/oembed/1.0'));
+        expect(requestUri.queryParameters['url'], equals(url));
       });
     });
 
@@ -186,15 +229,25 @@ void main() {
         expect(api.baseUrl, contains('youtube.com'));
       });
 
-      test('should fall back to GenericEmbedApi for unknown providers', () {
+      test('should throw EmbedApisException if no rule matches and not a likely endpoint', () {
         final param = EmbedLoaderParam(
           url: 'https://unknown-provider.com/123',
           embedType: EmbedType.other,
           width: 640,
         );
+        expect(() => EmbedService.getEmbedApiByEmbedType(param),
+            throwsA(isA<EmbedApisException>()));
+      });
+
+      test('should allow fallback to GenericEmbedApi ONLY if it looks like an endpoint', () {
+        final param = EmbedLoaderParam(
+          url: 'https://unknown-provider.com/api/oembed.json?url=https://target.com',
+          embedType: EmbedType.other,
+          width: 640,
+        );
         final api = EmbedService.getEmbedApiByEmbedType(param);
         expect(api, isA<GenericEmbedApi>());
-        expect(api.baseUrl, equals('https://unknown-provider.com/123'));
+        expect(api.baseUrl, contains('/oembed.json'));
       });
     });
   });

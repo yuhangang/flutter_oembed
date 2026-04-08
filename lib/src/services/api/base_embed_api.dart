@@ -29,12 +29,17 @@ abstract class BaseEmbedApi {
   });
 
   /// Optional HTTP headers to include with every request.
-  Map<String, String> get headers => {};
+  ///
+  /// Defaults to include a standard `User-Agent` to avoid bot-blocking.
+  Map<String, String> get headers => {
+        'User-Agent': 'flutter_oembed/1.0',
+        'Accept': 'application/json',
+      };
 
   /// Called after a successful API response.
   ///
   /// Use this to normalise or post-process the [EmbedData] before caching.
-  EmbedData ombedResponseModifier(EmbedData response) => response;
+  EmbedData oembedResponseModifier(EmbedData response) => response;
 
   // ---------------------------------------------------------------------------
   // Caching helpers — override to inject a custom cache manager in tests.
@@ -107,6 +112,7 @@ abstract class BaseEmbedApi {
     http.Client? httpClient,
   }) async {
     final config = cacheConfig ?? const EmbedCacheConfig();
+    final isInternalClient = httpClient == null;
     final client = httpClient ?? http.Client();
     final uri = constructUrl(
       url,
@@ -129,40 +135,46 @@ abstract class BaseEmbedApi {
       logger?.debug('Cache disabled', data: {'url': url});
     }
 
-    logger?.debug('Fetching OEmbed response from network', data: {
-      'url': url,
-      'uri': uri.toString(),
-    });
-    final response = await client.get(uri, headers: headers);
-
-    if (response.statusCode == 200) {
-      logger?.debug('OEmbed response received', data: {
+    try {
+      logger?.debug('Fetching OEmbed response from network', data: {
         'url': url,
-        'statusCode': response.statusCode,
-        'body': response.body,
+        'uri': uri.toString(),
       });
+      final response = await client.get(uri, headers: headers);
 
-      final decoded = ombedResponseModifier(
-        EmbedData.fromJson(json.decode(response.body)),
-      );
-
-      if (config.enabled) {
-        final ttl = config.resolve(decoded.cacheAgeDuration);
-        await setCachedResult(uri, decoded, maxAge: ttl, logger: logger);
-      }
-
-      logger?.info('Fetched OEmbed response', data: {'url': url});
-      return decoded;
-    } else {
-      logger?.warning(
-        'OEmbed request failed',
-        data: {
+      if (response.statusCode == 200) {
+        logger?.debug('OEmbed response received', data: {
           'url': url,
           'statusCode': response.statusCode,
           'body': response.body,
-        },
-      );
-      throw handleErrorResponse(response);
+        });
+
+        final decoded = oembedResponseModifier(
+          EmbedData.fromJson(json.decode(response.body)),
+        );
+
+        if (config.enabled) {
+          final ttl = config.resolve(decoded.cacheAgeDuration);
+          await setCachedResult(uri, decoded, maxAge: ttl, logger: logger);
+        }
+
+        logger?.info('Fetched OEmbed response', data: {'url': url});
+        return decoded;
+      } else {
+        logger?.warning(
+          'OEmbed request failed',
+          data: {
+            'url': url,
+            'statusCode': response.statusCode,
+            'body': response.body,
+          },
+        );
+        throw handleErrorResponse(response);
+      }
+    } finally {
+      if (isInternalClient) {
+        client.close();
+      }
     }
   }
 }
@@ -187,6 +199,7 @@ class GenericEmbedApi extends BaseEmbedApi {
 
   @override
   String get baseUrl {
+    // Standardize URL by handling format placeholder
     final resolved = endpoint.replaceAll('{format}', 'json');
     return proxyUrl != null ? '$proxyUrl/$resolved' : resolved;
   }
@@ -201,16 +214,21 @@ class GenericEmbedApi extends BaseEmbedApi {
     Brightness brightness = Brightness.light,
     Map<String, String>? queryParameters,
   }) {
-    final params = {
-      'url': url,
-      if (width != null) 'maxwidth': width!.toInt().toString(),
-    };
+    final uri = Uri.parse(baseUrl);
+    final params = Map<String, String>.from(uri.queryParameters);
+    params['url'] = url;
+    // Always request JSON format unless specified otherwise
+    params.putIfAbsent('format', () => 'json');
+
+    if (width != null) {
+      params['maxwidth'] = width!.toInt().toString();
+    }
 
     if (queryParameters != null) {
       params.addAll(queryParameters);
     }
 
-    return Uri.parse(baseUrl).replace(
+    return uri.replace(
       queryParameters: params,
     );
   }

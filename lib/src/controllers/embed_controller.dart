@@ -28,7 +28,7 @@ class EmbedController extends ChangeNotifier {
   @override
   void dispose() {
     _isDisposed = true;
-    _timeoutTimer?.cancel();
+    cancelLoadTimeout();
     super.dispose();
   }
 
@@ -74,12 +74,17 @@ class EmbedController extends ChangeNotifier {
 
   void startLoadTimeout() {
     _timeoutTimer?.cancel();
-    final timeout = config?.loadTimeout ?? const Duration(seconds: 10);
+    final timeout = config?.loadTimeout ?? const Duration(seconds: 20);
     _timeoutTimer = Timer(timeout, () {
       if (!_isDisposed && loadingState != EmbedLoadingState.loaded) {
         _logger.warning('Embed load timed out after $timeout for ${param.url}');
         setLoadingState(EmbedLoadingState.error);
       }
     });
+  }
+
+  void cancelLoadTimeout() {
+    _timeoutTimer?.cancel();
+    _timeoutTimer = null;
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_embed/src/controllers/embed_controller.dart';
 import 'package:flutter_embed/src/controllers/embed_webview_driver.dart';
+import 'package:flutter_embed/src/models/embed_config.dart';
 import 'package:flutter_embed/src/models/embed_enums.dart';
 import 'package:flutter_embed/src/models/social_embed_param.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -162,12 +163,15 @@ void main() {
 
     test('timeout timer triggers error state', () {
       fakeAsync((async) {
-        final controller = EmbedController(param: testParam);
+        final controller = EmbedController(
+          param: testParam,
+          config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
+        );
 
         controller.startLoadTimeout();
         expect(controller.loadingState, EmbedLoadingState.loading);
 
-        async.elapse(const Duration(seconds: 11));
+        async.elapse(const Duration(seconds: 6));
         expect(controller.loadingState, EmbedLoadingState.error);
       });
     });
@@ -333,6 +337,7 @@ void main() {
         controller: controller,
         webViewController: mockWebViewController,
       );
+      // ignore: prefer_const_constructors
       final embedData = EmbedData(
         providerUrl: 'https://www.facebook.com',
         html: '<div>code</div>',
@@ -592,9 +597,8 @@ void main() {
       await Future.delayed(Duration.zero);
 
       // Verify bind script was run (from TwitterProviderStrategy)
-      verify(() => mockWebViewController
-          .runJavaScript(any(that: contains("twttr.events.bind('loaded'"))))
-          .called(1);
+      verify(() => mockWebViewController.runJavaScript(
+          any(that: contains("twttr.events.bind('loaded'")))).called(1);
     });
 
     test('NavigationDelegate triggers TikTok Photo mute', () async {

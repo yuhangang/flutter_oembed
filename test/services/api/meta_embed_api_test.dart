@@ -14,11 +14,13 @@ void main() {
     const width = 640.0;
 
     test('constructUrl for facebook_post', () {
-      const api = MetaEmbedApi(EmbedType.facebook_post, width, appId, clientToken);
+      const api =
+          MetaEmbedApi(EmbedType.facebook_post, width, appId, clientToken);
       final uri = api.constructUrl('https://facebook.com/post/1');
 
       expect(uri.path, contains('embed_post'));
-      expect(uri.queryParameters['access_token'], equals('$appId|$clientToken'));
+      expect(
+          uri.queryParameters['access_token'], equals('$appId|$clientToken'));
       expect(uri.queryParameters['maxwidth'], equals('640'));
     });
 
@@ -38,7 +40,9 @@ void main() {
     });
 
     test('constructUrl with proxyUrl', () {
-      const api = MetaEmbedApi(EmbedType.facebook_post, width, appId, clientToken, proxyUrl: 'https://myproxy.com');
+      const api = MetaEmbedApi(
+          EmbedType.facebook_post, width, appId, clientToken,
+          proxyUrl: 'https://myproxy.com');
       final uri = api.constructUrl('https://facebook.com/post/1');
 
       expect(uri.toString(), startsWith('https://myproxy.com'));
@@ -46,31 +50,47 @@ void main() {
 
     test('constructUrl with metaParams', () {
       const params = MetaEmbedParams(omitscript: true);
-      const api = MetaEmbedApi(EmbedType.facebook_post, width, appId, clientToken, metaParams: params);
+      const api = MetaEmbedApi(
+          EmbedType.facebook_post, width, appId, clientToken,
+          metaParams: params);
       final uri = api.constructUrl('https://facebook.com/post/1');
 
       expect(uri.queryParameters['omitscript'], equals('true'));
     });
 
-    test('ombedResponseModifier fixes protocol-less src', () {
-      const api = MetaEmbedApi(EmbedType.facebook_post, width, appId, clientToken);
-      final data = EmbedData(html: '<script src="//connect.facebook.net"></script>');
-      final modified = api.ombedResponseModifier(data);
+    test('oembedResponseModifier fixes protocol-less src', () {
+      const api =
+          MetaEmbedApi(EmbedType.facebook_post, width, appId, clientToken);
+      final data = const EmbedData(
+          html: '<script src="//connect.facebook.net"></script>');
+      final modified = api.oembedResponseModifier(data);
 
       expect(modified.html, contains('src="https://connect.facebook.net"'));
     });
 
-    test('handleErrorResponse returns EmbedDataNotFoundException for code 24', () {
-      const api = MetaEmbedApi(EmbedType.facebook_post, width, appId, clientToken);
-      final response = http.Response(jsonEncode({'error': {'code': 24}}), 400);
-      
-      expect(api.handleErrorResponse(response), isA<EmbedDataNotFoundException>());
+    test('handleErrorResponse returns EmbedDataNotFoundException for code 24',
+        () {
+      const api =
+          MetaEmbedApi(EmbedType.facebook_post, width, appId, clientToken);
+      final response = http.Response(
+          jsonEncode({
+            'error': {'code': 24}
+          }),
+          400);
+
+      expect(
+          api.handleErrorResponse(response), isA<EmbedDataNotFoundException>());
     });
 
     test('handleErrorResponse returns EmbedApisException for other codes', () {
-      const api = MetaEmbedApi(EmbedType.facebook_post, width, appId, clientToken);
-      final response = http.Response(jsonEncode({'error': {'code': 100}}), 400);
-      
+      const api =
+          MetaEmbedApi(EmbedType.facebook_post, width, appId, clientToken);
+      final response = http.Response(
+          jsonEncode({
+            'error': {'code': 100}
+          }),
+          400);
+
       expect(api.handleErrorResponse(response), isA<EmbedApisException>());
     });
   });

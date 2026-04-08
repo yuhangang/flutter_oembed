@@ -1,3 +1,4 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 
 /// Per-widget visual customization for OEmbed embeds.
@@ -5,7 +6,7 @@ import 'package:flutter/material.dart';
 /// When provided to [EmbedCard] or [EmbedRenderer], these builders override
 /// global rendering properties, making [EmbedScope] optional for
 /// simple usage.
-class EmbedStyle {
+class EmbedStyle extends Equatable {
   /// Wraps the entire embed widget. Use this to add borders, border radius,
   /// shadows, padding, etc.
   ///
@@ -62,6 +63,12 @@ class EmbedStyle {
     this.borderRadius,
     this.maxScrollableHeight = 400.0,
   });
+
+  @override
+  List<Object?> get props => [
+        borderRadius,
+        maxScrollableHeight,
+      ];
 
   /// Returns a copy of this style with the given fields replaced.
   EmbedStyle copyWith({

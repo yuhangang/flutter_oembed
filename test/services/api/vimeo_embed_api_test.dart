@@ -23,16 +23,16 @@ void main() {
       expect(uri.queryParameters['loop'], equals('true'));
     });
 
-    test('ombedResponseModifier fixes protocol-relative URLs', () {
+    test('oembedResponseModifier fixes protocol-relative URLs', () {
       const api = VimeoEmbedApi(640);
-      final data = EmbedData(
+      final data = const EmbedData(
         url: 'https://vimeo.com/123',
         html: '<iframe src="//player.vimeo.com/video/123"></iframe>',
         providerName: 'Vimeo',
         type: 'video',
       );
 
-      final modified = api.ombedResponseModifier(data);
+      final modified = api.oembedResponseModifier(data);
       expect(
           modified.html, contains('src="https://player.vimeo.com/video/123"'));
     });

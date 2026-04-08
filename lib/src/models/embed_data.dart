@@ -1,4 +1,6 @@
-class EmbedData {
+import 'package:equatable/equatable.dart';
+
+class EmbedData extends Equatable {
   final String html;
   final String? url;
   final String? thumbnailUrl;
@@ -12,7 +14,7 @@ class EmbedData {
   final double? height;
   final double? cacheAge;
 
-  EmbedData({
+  const EmbedData({
     required this.html,
     this.url,
     this.thumbnailUrl,
@@ -27,6 +29,22 @@ class EmbedData {
     this.cacheAge,
   });
 
+  @override
+  List<Object?> get props => [
+        html,
+        url,
+        thumbnailUrl,
+        title,
+        authorName,
+        authorUrl,
+        providerName,
+        providerUrl,
+        type,
+        width,
+        height,
+        cacheAge,
+      ];
+
   static double? _parseDouble(dynamic value) {
     if (value == null) return null;
     if (value is double) return value;
@@ -36,16 +54,25 @@ class EmbedData {
   }
 
   factory EmbedData.fromJson(Map<String, dynamic> json) {
+    final type = json['type'];
+    final url = json['url'];
+    var html = json['html'] ?? '';
+
+    // Fallback for 'photo' oEmbed type if HTML is missing
+    if (html.isEmpty && type == 'photo' && url != null) {
+      html = '<img src="$url" style="max-width: 100%; height: auto;" />';
+    }
+
     return EmbedData(
-      html: json['html'] ?? '',
-      url: json['url'],
+      html: html,
+      url: url,
       thumbnailUrl: json['thumbnail_url'],
       title: json['title'],
       authorName: json['author_name'],
       authorUrl: json['author_url'],
       providerName: json['provider_name'],
       providerUrl: json['provider_url'],
-      type: json['type'],
+      type: type,
       width: _parseDouble(json['width']),
       height: _parseDouble(json['height']),
       cacheAge: _parseDouble(json['cache_age']),

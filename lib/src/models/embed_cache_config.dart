@@ -1,5 +1,7 @@
+import 'package:equatable/equatable.dart';
+
 /// Configuration for OEmbed response caching.
-class EmbedCacheConfig {
+class EmbedCacheConfig extends Equatable {
   /// Whether caching is enabled. When false, every request hits the network.
   final bool enabled;
 
@@ -21,6 +23,14 @@ class EmbedCacheConfig {
     this.respectApiCacheAge = true,
     this.maxCacheDuration,
   });
+
+  @override
+  List<Object?> get props => [
+        enabled,
+        defaultCacheDuration,
+        respectApiCacheAge,
+        maxCacheDuration,
+      ];
 
   /// Resolves the cache duration for a given OEmbed [cacheAgeDuration] from
   /// the API response.

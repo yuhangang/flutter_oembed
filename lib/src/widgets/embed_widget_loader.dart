@@ -3,9 +3,9 @@ import 'package:flutter_embed/src/controllers/embed_controller.dart';
 import 'package:flutter_embed/src/core/embed_scope.dart';
 import 'package:flutter_embed/src/models/embed_config.dart';
 import 'package:flutter_embed/src/models/embed_cache_config.dart';
-import 'package:flutter_embed/src/models/embed_enums.dart';
 import 'package:flutter_embed/src/models/embed_data.dart';
 import 'package:flutter_embed/src/models/embed_loader_param.dart';
+import 'package:flutter_embed/src/models/embed_enums.dart';
 import 'package:flutter_embed/src/models/embed_style.dart';
 import 'package:flutter_embed/src/services/embed_service.dart';
 import 'package:flutter_embed/src/models/social_embed_param.dart';
@@ -19,6 +19,7 @@ class EmbedWidgetLoader extends StatefulWidget {
     super.key,
     required this.param,
     this.preloadedData,
+    this.config,
     this.style,
     this.cacheConfig,
     this.scrollable = false,
@@ -27,6 +28,9 @@ class EmbedWidgetLoader extends StatefulWidget {
 
   final SocialEmbedParam param;
   final EmbedData? preloadedData;
+  /// Optional config override. If provided, takes precedence over [EmbedScope].
+  /// Used by [EmbedCard] to merge per-widget callbacks (e.g. [onLinkTap]).
+  final EmbedConfig? config;
   final EmbedStyle? style;
   final EmbedCacheConfig? cacheConfig;
   final bool scrollable;
@@ -43,16 +47,19 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
   @override
   void initState() {
     super.initState();
-    _scopeConfig = EmbedScope.configOf(context, listen: false);
+    // Prefer the explicit config override; fall back to EmbedScope.
+    _scopeConfig = widget.config ?? EmbedScope.configOf(context, listen: false);
     _controller = _createController(
       config: _scopeConfig,
     );
-    _scheduleInitEmbedPost();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // widget.config takes full precedence; only react to scope changes when
+    // no explicit config is provided.
+    if (widget.config != null) return;
     final config = EmbedScope.configOf(context);
     if (config != _scopeConfig) {
       _scopeConfig = config;
@@ -64,9 +71,10 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
   void didUpdateWidget(covariant EmbedWidgetLoader oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.param != widget.param ||
-        oldWidget.preloadedData != widget.preloadedData) {
+        oldWidget.preloadedData != widget.preloadedData ||
+        !identical(oldWidget.config, widget.config)) {
+      _scopeConfig = widget.config ?? EmbedScope.configOf(context);
       _replaceController(config: _scopeConfig);
-      _scheduleInitEmbedPost();
     }
   }
 
@@ -88,11 +96,8 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
     previous.dispose();
   }
 
-  void _scheduleInitEmbedPost() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Init logic removed as it was tracking related
-    });
-  }
+
+
 
   @override
   void dispose() {
@@ -102,7 +107,8 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
 
   @override
   Widget build(BuildContext context) {
-    final config = _controller.config ?? EmbedScope.configOf(context);
+    // Prefer explicit config override, then controller config, then scope.
+    final config = widget.config ?? _controller.config ?? EmbedScope.configOf(context);
     final style = widget.style ?? config?.style;
     final logger = config?.logger;
 
@@ -120,6 +126,7 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
 
         return LayoutBuilder(
           builder: (context, constraints) {
+            // Short-circuit for pre-fetched data (avoids a resolveRender call).
             if (widget.preloadedData != null) {
               return EmbedWebView.data(
                 param: widget.param,
@@ -132,49 +139,46 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
               );
             }
 
-            if (widget.param.embedType == EmbedType.tiktok_v1) {
-              return TikTokEmbedPlayer(
-                videoIdOrUrl: widget.param.url,
-                maxWidth: constraints.maxWidth,
-                embedParams: widget.param.embedParams as TikTokEmbedParams?,
-              );
-            }
-
-            final iframeUrl = EmbedService.resolveIframeUrl(
+            final render = EmbedService.resolveRender(
               widget.param.url,
               config: config,
+              embedType: widget.param.embedType,
               logger: logger,
               queryParameters: widget.param.queryParameters,
             );
 
-            if (iframeUrl != null) {
-              return EmbedWebView.url(
-                param: widget.param,
-                url: iframeUrl,
-                maxWidth: constraints.maxWidth,
-                controller: _controller,
-                style: style,
-                scrollable: widget.scrollable,
-                webViewBuilder: widget.webViewBuilder,
-              );
-            }
-
-            return EmbedDataLoader(
-              param: widget.param,
-              controller: _controller,
-              config: config,
-              style: style,
-              cacheConfig: widget.cacheConfig,
-              scrollable: widget.scrollable,
-              webViewBuilder: widget.webViewBuilder,
-              loaderParam: EmbedLoaderParam(
-                url: widget.param.url,
-                embedType: widget.param.embedType,
-                width: constraints.maxWidth,
-                queryParameters: widget.param.queryParameters,
-                embedParams: widget.param.embedParams,
-              ),
-            );
+            return switch (render) {
+              EmbedRenderNativePlayer() => TikTokEmbedPlayer(
+                  videoIdOrUrl: widget.param.url,
+                  maxWidth: constraints.maxWidth,
+                  embedParams: widget.param.embedParams as TikTokEmbedParams?,
+                ),
+              EmbedRenderIframe(:final iframeUrl) => EmbedWebView.url(
+                  param: widget.param,
+                  url: iframeUrl,
+                  maxWidth: constraints.maxWidth,
+                  controller: _controller,
+                  style: style,
+                  scrollable: widget.scrollable,
+                  webViewBuilder: widget.webViewBuilder,
+                ),
+              EmbedRenderOEmbed() || EmbedRenderPreloaded() => EmbedDataLoader(
+                  param: widget.param,
+                  controller: _controller,
+                  config: config,
+                  style: style,
+                  cacheConfig: widget.cacheConfig,
+                  scrollable: widget.scrollable,
+                  webViewBuilder: widget.webViewBuilder,
+                  loaderParam: EmbedLoaderParam(
+                    url: widget.param.url,
+                    embedType: widget.param.embedType,
+                    width: constraints.maxWidth,
+                    queryParameters: widget.param.queryParameters,
+                    embedParams: widget.param.embedParams,
+                  ),
+                ),
+            };
           },
         );
       },

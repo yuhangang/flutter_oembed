@@ -74,7 +74,7 @@ class MetaEmbedApi extends BaseEmbedApi {
       'url': url,
       if (appId.isNotEmpty && clientToken.isNotEmpty)
         'access_token': '$appId|$clientToken',
-      if (embedType.isFacebook && metaParams?.maxwidth == null)
+      if (metaParams?.maxwidth == null)
         'maxwidth': width.toInt().toString(),
     };
 
@@ -94,7 +94,7 @@ class MetaEmbedApi extends BaseEmbedApi {
   }
 
   @override
-  EmbedData ombedResponseModifier(EmbedData response) {
+  EmbedData oembedResponseModifier(EmbedData response) {
     return response.copyWith(
       html: response.html.replaceAll('src="//', 'src="https://'),
     );
@@ -102,8 +102,13 @@ class MetaEmbedApi extends BaseEmbedApi {
 
   @override
   Exception handleErrorResponse(http.Response response) {
-    final errorCode = jsonDecode(response.body)?['error']?['code'];
-    if (errorCode == 24) return EmbedDataNotFoundException();
+    try {
+      final body = jsonDecode(response.body);
+      final errorCode = body?['error']?['code'];
+      if (errorCode == 24) return EmbedDataNotFoundException();
+    } catch (_) {
+      // Body is not valid JSON, fall through to generic error
+    }
     return EmbedApisException();
   }
 }

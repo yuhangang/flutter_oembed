@@ -1,24 +1,6 @@
 import 'package:flutter_embed/src/models/embed_enums.dart';
 
 extension EmbedTypeExtension on EmbedType {
-  String get svgIconUrl {
-    switch (this) {
-      case EmbedType.x:
-        return 'assets/icons/embed_icon_x.svg';
-      case EmbedType.tiktok:
-      case EmbedType.tiktok_v1:
-        return 'assets/icons/embed_icon_tiktok.svg';
-      case EmbedType.instagram:
-        return 'assets/icons/embed_icon_instagram.svg';
-      case EmbedType.facebook:
-      case EmbedType.facebook_post:
-      case EmbedType.facebook_video:
-        return 'assets/icons/embed_icon_facebook.svg';
-      default:
-        return '';
-    }
-  }
-
   String get displayName {
     switch (this) {
       case EmbedType.x:
@@ -50,6 +32,8 @@ extension EmbedTypeExtension on EmbedType {
         return 'Reddit';
       case EmbedType.giphy:
         return 'GIPHY';
+      case EmbedType.nytimes:
+        return 'NYTimes';
     }
   }
 
@@ -59,6 +43,7 @@ extension EmbedTypeExtension on EmbedType {
       case EmbedType.facebook_post:
       case EmbedType.facebook_video:
       case EmbedType.instagram:
+      case EmbedType.threads:
         return true;
       default:
         return false;

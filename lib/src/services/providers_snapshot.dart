@@ -11,12 +11,12 @@ const Map<String, List<EmbedProviderRule>> kEmbedProvidersSnapshot = {
     EmbedProviderRule(
       providerName: 'Flickr',
       pattern: r'^https?:\/\/.*\..*\.flickr\.com\/.*\/.*',
-      endpoint: 'https://www.flickr.com/services/oembed/',
+      endpoint: 'https://www.flickr.com/services/oembed',
     ),
     EmbedProviderRule(
       providerName: 'Flickr',
       pattern: r'^https?:\/\/.*\..*\.flickr\.com\/.*\/.*',
-      endpoint: 'https://www.flickr.com/services/oembed/',
+      endpoint: 'https://www.flickr.com/services/oembed',
     ),
   ],
   '*.wordpress.com': [
@@ -922,34 +922,34 @@ const Map<String, List<EmbedProviderRule>> kEmbedProvidersSnapshot = {
     EmbedProviderRule(
       providerName: 'Flickr',
       pattern: r'^https?:\/\/flic\.kr\/p\/.*',
-      endpoint: 'https://www.flickr.com/services/oembed/',
+      endpoint: 'https://www.flickr.com/services/oembed?format=json',
     ),
     EmbedProviderRule(
       providerName: 'Flickr',
       pattern: r'^https?:\/\/flic\.kr\/s\/.*',
-      endpoint: 'https://www.flickr.com/services/oembed/',
+      endpoint: 'https://www.flickr.com/services/oembed?format=json',
     ),
     EmbedProviderRule(
       providerName: 'Flickr',
       pattern: r'^https?:\/\/flic\.kr\/p\/.*',
-      endpoint: 'https://www.flickr.com/services/oembed/',
+      endpoint: 'https://www.flickr.com/services/oembed?format=json',
     ),
     EmbedProviderRule(
       providerName: 'Flickr',
       pattern: r'^https?:\/\/flic\.kr\/s\/.*',
-      endpoint: 'https://www.flickr.com/services/oembed/',
+      endpoint: 'https://www.flickr.com/services/oembed?format=json',
     ),
   ],
   'flickr.com': [
     EmbedProviderRule(
       providerName: 'Flickr',
       pattern: r'^https?:\/\/.*\.flickr\.com\/photos\/.*',
-      endpoint: 'https://www.flickr.com/services/oembed/',
+      endpoint: 'https://www.flickr.com/services/oembed?format=json',
     ),
     EmbedProviderRule(
       providerName: 'Flickr',
       pattern: r'^https?:\/\/.*\.flickr\.com\/photos\/.*',
-      endpoint: 'https://www.flickr.com/services/oembed/',
+      endpoint: 'https://www.flickr.com/services/oembed?format=json',
     ),
   ],
   'flipnot.es': [

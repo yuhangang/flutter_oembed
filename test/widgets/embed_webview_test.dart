@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_embed/src/controllers/embed_controller.dart';
+import 'package:flutter_embed/src/models/embed_config.dart';
 import 'package:flutter_embed/src/models/embed_data.dart';
 import 'package:flutter_embed/src/models/embed_enums.dart';
 import 'package:flutter_embed/src/models/social_embed_param.dart';
@@ -26,8 +27,11 @@ void main() {
         url: 'https://youtube.com/watch?v=123',
         embedType: EmbedType.youtube,
       );
-      controller = EmbedController(param: param);
-      data = EmbedData(html: '<div>Test</div>');
+      controller = EmbedController(
+        param: param,
+        config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
+      );
+      data = const EmbedData(html: '<div>Test</div>');
     });
 
     tearDown(() {
@@ -54,7 +58,8 @@ void main() {
       await tester.pump(const Duration(seconds: 11));
     });
 
-    testWidgets('should trigger re-initialization when didUpdateWidget is called',
+    testWidgets(
+        'should trigger re-initialization when didUpdateWidget is called',
         (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -110,7 +115,8 @@ void main() {
       await tester.pump(const Duration(seconds: 11));
     });
 
-    testWidgets('should allow retry logic when the controller is in an error state',
+    testWidgets(
+        'should allow retry logic when the controller is in an error state',
         (tester) async {
       controller.setLoadingState(EmbedLoadingState.error);
 
@@ -136,7 +142,8 @@ void main() {
       await tester.pump(const Duration(seconds: 11));
     });
 
-    testWidgets('should trigger re-initialization when a new controller is provided',
+    testWidgets(
+        'should trigger re-initialization when a new controller is provided',
         (tester) async {
       await tester.pumpWidget(
         MaterialApp(
