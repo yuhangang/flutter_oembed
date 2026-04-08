@@ -1,10 +1,10 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/src/models/embed_cache_config.dart';
-import 'package:flutter_embed/src/models/embed_provider_config.dart';
-import 'package:flutter_embed/src/models/embed_style.dart';
-import 'package:flutter_embed/src/logging/embed_logger.dart';
-import 'package:flutter_embed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/embed_provider_config.dart';
+import 'package:flutter_oembed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/logging/embed_logger.dart';
+import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';

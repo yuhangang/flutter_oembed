@@ -1,7 +1,7 @@
-import 'package:flutter_embed/src/controllers/embed_navigation_handler.dart';
-import 'package:flutter_embed/src/models/embed_config.dart';
-import 'package:flutter_embed/src/models/embed_enums.dart';
-import 'package:flutter_embed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/controllers/embed_navigation_handler.dart';
+import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:webview_flutter/webview_flutter.dart';

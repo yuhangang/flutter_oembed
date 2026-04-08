@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/src/core/provider_strategy.dart';
-import 'package:flutter_embed/src/models/base_embed_params.dart';
-import 'package:flutter_embed/src/services/api/base_embed_api.dart';
+import 'package:flutter_oembed/src/core/provider_strategy.dart';
+import 'package:flutter_oembed/src/models/base_embed_params.dart';
+import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 
 /// Internal cache for compiled [RegExp] objects to avoid redundant parsing.
 final Map<String, RegExp> _oembedRegexCache = {};

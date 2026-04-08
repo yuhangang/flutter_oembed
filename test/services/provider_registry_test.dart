@@ -1,6 +1,6 @@
-import 'package:flutter_embed/src/models/embed_config.dart';
-import 'package:flutter_embed/src/models/embed_provider_config.dart';
-import 'package:flutter_embed/src/services/embed_service.dart';
+import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/embed_provider_config.dart';
+import 'package:flutter_oembed/src/services/embed_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -55,7 +55,8 @@ void main() {
       expect(rule?.shouldAllowNavigation?.call('https://google.com'), isFalse);
     });
 
-    test('should correctly identify allowed navigation for Facebook embeds', () {
+    test('should correctly identify allowed navigation for Facebook embeds',
+        () {
       final rule = EmbedService.resolveRule('https://www.facebook.com/post/1');
       expect(
           rule?.shouldAllowNavigation

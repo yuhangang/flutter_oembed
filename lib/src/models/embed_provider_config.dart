@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
-import 'package:flutter_embed/src/models/provider_rule.dart';
-import 'package:flutter_embed/src/services/provider_registry.dart';
-import 'package:flutter_embed/src/services/providers_snapshot.dart';
+import 'package:flutter_oembed/src/models/provider_rule.dart';
+import 'package:flutter_oembed/src/services/provider_registry.dart';
+import 'package:flutter_oembed/src/services/providers_snapshot.dart';
 
 /// Controls which OEmbed providers are active and how they render content.
 class EmbedProviderConfig extends Equatable {

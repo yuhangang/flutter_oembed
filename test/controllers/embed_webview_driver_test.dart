@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/src/controllers/embed_controller.dart';
-import 'package:flutter_embed/src/controllers/embed_webview_driver.dart';
-import 'package:flutter_embed/src/models/embed_config.dart';
-import 'package:flutter_embed/src/models/embed_data.dart';
-import 'package:flutter_embed/src/models/embed_enums.dart';
-import 'package:flutter_embed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/controllers/embed_controller.dart';
+import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
+import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -212,9 +212,8 @@ void main() {
                 when(() => mockWebViewController.currentUrl())
                     .thenAnswer((_) async => 'https://example.com');
                 // Return 0 for height
-                when(() =>
-                        mockWebViewController.runJavaScriptReturningResult(any()))
-                    .thenAnswer((_) async => '0');
+                when(() => mockWebViewController.runJavaScriptReturningResult(
+                    any())).thenAnswer((_) async => '0');
 
                 final driver = EmbedWebViewDriver(
                     controller: controller,
@@ -247,9 +246,8 @@ void main() {
                 });
                 when(() => mockWebViewController.currentUrl())
                     .thenAnswer((_) async => 'https://example.com');
-                when(() =>
-                        mockWebViewController.runJavaScriptReturningResult(any()))
-                    .thenAnswer((_) async => '300');
+                when(() => mockWebViewController.runJavaScriptReturningResult(
+                    any())).thenAnswer((_) async => '300');
 
                 final driver = EmbedWebViewDriver(
                     controller: controller,

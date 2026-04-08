@@ -3,10 +3,10 @@ import 'dart:typed_data';
 import 'package:file/file.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_embed/src/services/api/base_embed_api.dart';
-import 'package:flutter_embed/src/models/embed_data.dart';
-import 'package:flutter_embed/src/models/embed_cache_config.dart';
-import 'package:flutter_embed/src/utils/embed_errors.dart';
+import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
+import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/embed_cache_config.dart';
+import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
 

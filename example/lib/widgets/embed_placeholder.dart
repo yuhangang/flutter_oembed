@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/flutter_embed.dart';
+import 'package:flutter_oembed/flutter_oembed.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:embed_example/utils/platform_utils.dart';
 

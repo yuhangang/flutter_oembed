@@ -2,11 +2,11 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:flutter_embed/src/logging/embed_logger.dart';
-import 'package:flutter_embed/src/models/embed_cache_config.dart';
-import 'package:flutter_embed/src/models/embed_constant.dart';
-import 'package:flutter_embed/src/models/embed_data.dart';
-import 'package:flutter_embed/src/utils/embed_errors.dart';
+import 'package:flutter_oembed/src/logging/embed_logger.dart';
+import 'package:flutter_oembed/src/models/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/embed_constant.dart';
+import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:http/http.dart' as http;
 
 /// Base class for all OEmbed API clients.
@@ -236,6 +236,6 @@ class GenericEmbedApi extends BaseEmbedApi {
   @override
   Exception handleErrorResponse(http.Response response) {
     if (response.statusCode == 404) return EmbedDataNotFoundException();
-    return EmbedApisException();
+    return const EmbedApisException();
   }
 }

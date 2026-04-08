@@ -3,7 +3,7 @@ import 'package:embed_example/utils/settings_controller.dart';
 import 'package:embed_example/widgets/config_menu_action.dart';
 import 'package:embed_example/widgets/embed_placeholder.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/flutter_embed.dart';
+import 'package:flutter_oembed/flutter_oembed.dart';
 import 'package:flutter_html/flutter_html.dart';
 
 String? _extractEmbedUrlFromHtml(ExtensionContext context) {

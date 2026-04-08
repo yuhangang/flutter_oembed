@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_embed/src/models/soundcloud_embed_params.dart';
-import 'package:flutter_embed/src/services/api/base_embed_api.dart';
-import 'package:flutter_embed/src/utils/embed_errors.dart';
+import 'package:flutter_oembed/src/models/soundcloud_embed_params.dart';
+import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
+import 'package:flutter_oembed/src/utils/embed_errors.dart';
 
 /// OEmbed API client for SoundCloud.
 class SoundCloudEmbedApi extends BaseEmbedApi {
@@ -43,6 +43,6 @@ class SoundCloudEmbedApi extends BaseEmbedApi {
   @override
   Exception handleErrorResponse(http.Response response) {
     if (response.statusCode == 404) return EmbedDataNotFoundException();
-    return EmbedApisException();
+    return const EmbedApisException();
   }
 }

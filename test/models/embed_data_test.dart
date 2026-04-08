@@ -1,4 +1,4 @@
-import 'package:flutter_embed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

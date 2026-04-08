@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/src/widgets/tiktok_embed_player.dart';
-import 'package:flutter_embed/src/widgets/embed_webview.dart';
-import 'package:flutter_embed/src/models/tiktok_embed_params.dart';
+import 'package:flutter_oembed/src/widgets/tiktok_embed_player.dart';
+import 'package:flutter_oembed/src/widgets/embed_webview.dart';
+import 'package:flutter_oembed/src/models/tiktok_embed_params.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';

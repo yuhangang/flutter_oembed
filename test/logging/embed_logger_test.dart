@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_embed/src/logging/embed_logger.dart';
+import 'package:flutter_oembed/src/logging/embed_logger.dart';
 
 void main() {
   group('EmbedLogger', () {

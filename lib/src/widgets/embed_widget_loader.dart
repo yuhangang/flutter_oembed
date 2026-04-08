@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/src/controllers/embed_controller.dart';
-import 'package:flutter_embed/src/core/embed_scope.dart';
-import 'package:flutter_embed/src/models/embed_config.dart';
-import 'package:flutter_embed/src/models/embed_cache_config.dart';
-import 'package:flutter_embed/src/models/embed_data.dart';
-import 'package:flutter_embed/src/models/embed_loader_param.dart';
-import 'package:flutter_embed/src/models/embed_enums.dart';
-import 'package:flutter_embed/src/models/embed_style.dart';
-import 'package:flutter_embed/src/services/embed_service.dart';
-import 'package:flutter_embed/src/models/social_embed_param.dart';
-import 'package:flutter_embed/src/widgets/embed_data_loader.dart';
-import 'package:flutter_embed/src/widgets/embed_webview.dart';
-import 'package:flutter_embed/src/widgets/tiktok_embed_player.dart';
-import 'package:flutter_embed/src/models/tiktok_embed_params.dart';
+import 'package:flutter_oembed/src/controllers/embed_controller.dart';
+import 'package:flutter_oembed/src/core/embed_scope.dart';
+import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/embed_loader_param.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/services/embed_service.dart';
+import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/widgets/embed_data_loader.dart';
+import 'package:flutter_oembed/src/widgets/embed_webview.dart';
+import 'package:flutter_oembed/src/widgets/tiktok_embed_player.dart';
+import 'package:flutter_oembed/src/models/tiktok_embed_params.dart';
 
 class EmbedWidgetLoader extends StatefulWidget {
   const EmbedWidgetLoader({
@@ -28,6 +28,7 @@ class EmbedWidgetLoader extends StatefulWidget {
 
   final SocialEmbedParam param;
   final EmbedData? preloadedData;
+
   /// Optional config override. If provided, takes precedence over [EmbedScope].
   /// Used by [EmbedCard] to merge per-widget callbacks (e.g. [onLinkTap]).
   final EmbedConfig? config;
@@ -96,9 +97,6 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
     previous.dispose();
   }
 
-
-
-
   @override
   void dispose() {
     _controller.dispose();
@@ -108,7 +106,8 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
   @override
   Widget build(BuildContext context) {
     // Prefer explicit config override, then controller config, then scope.
-    final config = widget.config ?? _controller.config ?? EmbedScope.configOf(context);
+    final config =
+        widget.config ?? _controller.config ?? EmbedScope.configOf(context);
     final style = widget.style ?? config?.style;
     final logger = config?.logger;
 

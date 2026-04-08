@@ -1,12 +1,12 @@
 import 'dart:convert';
-import 'package:flutter_embed/src/models/embed_config.dart';
-import 'package:flutter_embed/src/models/embed_cache_config.dart';
-import 'package:flutter_embed/src/models/embed_enums.dart';
-import 'package:flutter_embed/src/models/embed_loader_param.dart';
-import 'package:flutter_embed/src/models/embed_provider_config.dart';
-import 'package:flutter_embed/src/services/api/base_embed_api.dart';
-import 'package:flutter_embed/src/services/embed_service.dart';
-import 'package:flutter_embed/src/utils/embed_errors.dart';
+import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/embed_loader_param.dart';
+import 'package:flutter_oembed/src/models/embed_provider_config.dart';
+import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
+import 'package:flutter_oembed/src/services/embed_service.dart';
+import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
@@ -67,7 +67,8 @@ void main() {
       });
 
       test('should use default rules when no config is provided', () {
-        final rule = EmbedService.resolveRule('https://youtube.com/watch?v=123');
+        final rule =
+            EmbedService.resolveRule('https://youtube.com/watch?v=123');
         expect(rule, isNotNull);
         expect(rule?.providerName, equals('YouTube'));
       });
@@ -93,8 +94,8 @@ void main() {
           () {
         const url =
             'https://www.tumblr.com/photomatt/765038139535097856/the-new-auto-follow-on-tumblr-is-so-good';
-        final rule =
-            EmbedService.resolveRule(url, config: const EmbedConfig(useDynamicDiscovery: true));
+        final rule = EmbedService.resolveRule(url,
+            config: const EmbedConfig(useDynamicDiscovery: true));
         expect(rule, isNotNull);
         expect(rule?.providerName, equals('Tumblr'));
 
@@ -229,7 +230,9 @@ void main() {
         expect(api.baseUrl, contains('youtube.com'));
       });
 
-      test('should throw EmbedApisException if no rule matches and not a likely endpoint', () {
+      test(
+          'should throw EmbedApisException if no rule matches and not a likely endpoint',
+          () {
         final param = EmbedLoaderParam(
           url: 'https://unknown-provider.com/123',
           embedType: EmbedType.other,
@@ -239,9 +242,12 @@ void main() {
             throwsA(isA<EmbedApisException>()));
       });
 
-      test('should allow fallback to GenericEmbedApi ONLY if it looks like an endpoint', () {
+      test(
+          'should allow fallback to GenericEmbedApi ONLY if it looks like an endpoint',
+          () {
         final param = EmbedLoaderParam(
-          url: 'https://unknown-provider.com/api/oembed.json?url=https://target.com',
+          url:
+              'https://unknown-provider.com/api/oembed.json?url=https://target.com',
           embedType: EmbedType.other,
           width: 640,
         );

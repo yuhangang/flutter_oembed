@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/src/controllers/embed_controller.dart';
-import 'package:flutter_embed/src/models/embed_enums.dart';
-import 'package:flutter_embed/src/models/social_embed_param.dart';
-import 'package:flutter_embed/src/widgets/embed_webview.dart';
-import 'package:flutter_embed/src/widgets/embed_surface.dart';
-import 'package:flutter_embed/src/core/embed_scope.dart';
-import 'package:flutter_embed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/controllers/embed_controller.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/widgets/embed_webview.dart';
+import 'package:flutter_oembed/src/widgets/embed_surface.dart';
+import 'package:flutter_oembed/src/core/embed_scope.dart';
+import 'package:flutter_oembed/src/models/embed_config.dart';
 
 /// A standalone player widget for TikTok's native embedded player (v1).
 ///
 /// Unlike the standard [EmbedCard] which relies on the oEmbed API or standard
 /// iframe fallbacks, this uses the `tiktok.com/player/v1/` endpoint which
 /// supports advanced customization.
-import 'package:flutter_embed/src/models/tiktok_embed_params.dart';
+import 'package:flutter_oembed/src/models/tiktok_embed_params.dart';
 
 class TikTokEmbedPlayer extends StatefulWidget {
   /// The TikTok video URL or video ID.

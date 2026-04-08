@@ -1,18 +1,18 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_embed/src/logging/embed_logger.dart';
-import 'package:flutter_embed/src/models/embed_config.dart';
-import 'package:flutter_embed/src/models/embed_data.dart';
-import 'package:flutter_embed/src/models/embed_cache_config.dart';
-import 'package:flutter_embed/src/models/embed_enums.dart';
-import 'package:flutter_embed/src/models/embed_loader_param.dart';
-import 'package:flutter_embed/src/models/embed_provider_config.dart';
-import 'package:flutter_embed/src/models/provider_rule.dart';
-import 'package:flutter_embed/src/services/api/base_embed_api.dart';
-import 'package:flutter_embed/src/services/provider_registry.dart';
-import 'package:flutter_embed/src/services/providers_snapshot.dart';
-import 'package:flutter_embed/src/utils/embed_errors.dart';
+import 'package:flutter_oembed/src/logging/embed_logger.dart';
+import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/embed_loader_param.dart';
+import 'package:flutter_oembed/src/models/embed_provider_config.dart';
+import 'package:flutter_oembed/src/models/provider_rule.dart';
+import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
+import 'package:flutter_oembed/src/services/provider_registry.dart';
+import 'package:flutter_oembed/src/services/providers_snapshot.dart';
+import 'package:flutter_oembed/src/utils/embed_errors.dart';
 
 /// Result of resolving how to render an embed.
 sealed class EmbedResolvedRender {
@@ -292,10 +292,7 @@ class EmbedService {
 
       // Try exact match (e.g. 'ted.com')
       var rules = kEmbedProvidersSnapshot[domain];
-      if (rules == null) {
-        // Try wildcard match (e.g. '*.flickr.com' for 'www.flickr.com')
-        rules = kEmbedProvidersSnapshot['*.$domain'];
-      }
+      rules ??= kEmbedProvidersSnapshot['*.$domain'];
 
       if (rules != null && rules.isNotEmpty) {
         // First try strict regex match

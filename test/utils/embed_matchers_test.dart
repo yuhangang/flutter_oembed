@@ -1,11 +1,12 @@
-import 'package:flutter_embed/src/models/embed_enums.dart';
-import 'package:flutter_embed/src/utils/embed_matchers.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/utils/embed_matchers.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('EmbedMatchers', () {
     group('getEmbedType()', () {
-      test('should return EmbedType.youtube when a YouTube URL is provided', () {
+      test('should return EmbedType.youtube when a YouTube URL is provided',
+          () {
         expect(EmbedMatchers.getEmbedType('https://youtube.com/watch?v=123'),
             equals(EmbedType.youtube));
         expect(EmbedMatchers.getEmbedType('https://youtu.be/123'),
@@ -29,7 +30,8 @@ void main() {
             equals(EmbedType.reddit));
       });
 
-      test('should return EmbedType.instagram when an Instagram URL is provided',
+      test(
+          'should return EmbedType.instagram when an Instagram URL is provided',
           () {
         expect(EmbedMatchers.getEmbedType('https://instagram.com/p/1'),
             equals(EmbedType.instagram));
@@ -41,18 +43,21 @@ void main() {
             equals(EmbedType.facebook));
       });
 
-      test('should return EmbedType.threads when a Threads URL is provided', () {
+      test('should return EmbedType.threads when a Threads URL is provided',
+          () {
         expect(EmbedMatchers.getEmbedType('https://threads.net/@u/post/1'),
             equals(EmbedType.threads));
       });
 
-      test('should return EmbedType.soundcloud when a SoundCloud URL is provided',
+      test(
+          'should return EmbedType.soundcloud when a SoundCloud URL is provided',
           () {
         expect(EmbedMatchers.getEmbedType('https://soundcloud.com/u/p'),
             equals(EmbedType.soundcloud));
       });
 
-      test('should return EmbedType.spotify when a Spotify URL is provided', () {
+      test('should return EmbedType.spotify when a Spotify URL is provided',
+          () {
         expect(EmbedMatchers.getEmbedType('https://open.spotify.com/track/1'),
             equals(EmbedType.spotify));
       });
@@ -71,7 +76,8 @@ void main() {
             equals(EmbedType.instagram));
         expect(EmbedMatchers.fromProviderName('Spotify'),
             equals(EmbedType.spotify));
-        expect(EmbedMatchers.fromProviderName('Vimeo'), equals(EmbedType.vimeo));
+        expect(
+            EmbedMatchers.fromProviderName('Vimeo'), equals(EmbedType.vimeo));
         expect(EmbedMatchers.fromProviderName('Dailymotion'),
             equals(EmbedType.dailymotion));
         expect(EmbedMatchers.fromProviderName('SoundCloud'),
@@ -80,7 +86,8 @@ void main() {
             equals(EmbedType.threads));
         expect(
             EmbedMatchers.fromProviderName('Reddit'), equals(EmbedType.reddit));
-        expect(EmbedMatchers.fromProviderName('Giphy'), equals(EmbedType.giphy));
+        expect(
+            EmbedMatchers.fromProviderName('Giphy'), equals(EmbedType.giphy));
         expect(
             EmbedMatchers.fromProviderName('Unknown'), equals(EmbedType.other));
       });
@@ -94,8 +101,10 @@ void main() {
             EmbedMatchers.fromProviderName('Facebook',
                 url: 'https://fb.com/video.php?id=1'),
             equals(EmbedType.facebook_video));
-        expect(EmbedMatchers.fromProviderName('Facebook',
-            url: 'https://fb.watch/1'), equals(EmbedType.facebook_video));
+        expect(
+            EmbedMatchers.fromProviderName('Facebook',
+                url: 'https://fb.watch/1'),
+            equals(EmbedType.facebook_video));
 
         expect(
             EmbedMatchers.fromProviderName('Facebook',

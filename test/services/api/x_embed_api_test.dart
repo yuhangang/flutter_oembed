@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_embed/src/services/api/x_embed_api.dart';
+import 'package:flutter_oembed/src/services/api/x_embed_api.dart';
 
 void main() {
   group('XEmbedApi', () {

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/src/controllers/embed_controller.dart';
-import 'package:flutter_embed/src/core/embed_scope.dart';
-import 'package:flutter_embed/src/models/embed_enums.dart';
-import 'package:flutter_embed/src/models/embed_data.dart';
-import 'package:flutter_embed/src/models/embed_style.dart';
-import 'package:flutter_embed/src/models/social_embed_param.dart';
-import 'package:flutter_embed/src/controllers/embed_webview_driver.dart';
+import 'package:flutter_oembed/src/controllers/embed_controller.dart';
+import 'package:flutter_oembed/src/core/embed_scope.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 

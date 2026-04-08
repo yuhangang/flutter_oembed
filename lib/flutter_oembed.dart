@@ -13,7 +13,7 @@
 library;
 
 // ============================================================
-// flutter_embed — Public API
+// flutter_oembed — Public API
 // ============================================================
 //
 // Configuration & Scope

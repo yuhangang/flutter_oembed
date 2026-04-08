@@ -5,7 +5,7 @@ import 'package:embed_example/widgets/embed_placeholder.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill/quill_delta.dart';
-import 'package:flutter_embed/flutter_embed.dart';
+import 'package:flutter_oembed/flutter_oembed.dart';
 
 class OEmbedBlockEmbed extends CustomBlockEmbed {
   const OEmbedBlockEmbed(String url) : super('oembed', url);

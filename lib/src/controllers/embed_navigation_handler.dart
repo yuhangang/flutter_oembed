@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:collection/collection.dart';
-import 'package:flutter_embed/src/models/embed_enums.dart';
-import 'package:flutter_embed/src/models/embed_config.dart';
-import 'package:flutter_embed/src/models/social_embed_param.dart';
-import 'package:flutter_embed/src/logging/embed_logger.dart';
-import 'package:flutter_embed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/logging/embed_logger.dart';
+import 'package:flutter_oembed/src/models/embed_data.dart';
 
 /// Encapsulates the [NavigationDelegate] creation logic, keeping
 /// [EmbedController] focused on state management.

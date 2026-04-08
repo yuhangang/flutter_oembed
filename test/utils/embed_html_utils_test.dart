@@ -1,6 +1,6 @@
-import 'package:flutter_embed/src/core/provider_strategies.dart';
-import 'package:flutter_embed/src/core/provider_strategy.dart';
-import 'package:flutter_embed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/core/provider_strategies.dart';
+import 'package:flutter_oembed/src/core/provider_strategy.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -49,7 +49,9 @@ void main() {
       expect(doc, contains('id="reddit-container"'));
     });
 
-    test('GenericEmbedProviderStrategy with scrollable=true omits overflow hidden', () {
+    test(
+        'GenericEmbedProviderStrategy with scrollable=true omits overflow hidden',
+        () {
       const strategy = GenericEmbedProviderStrategy();
       final doc = strategy.buildHtmlDocument(
         '<div>Other</div>',
@@ -60,7 +62,8 @@ void main() {
       expect(doc, isNot(contains('overflow: hidden;')));
     });
 
-    test('YouTubeProviderStrategy sanitizes iframe params for WebView embeds', () {
+    test('YouTubeProviderStrategy sanitizes iframe params for WebView embeds',
+        () {
       const html = '''
 <iframe
   src="https://www.youtube.com/embed/dQw4w9WgXcQ?enablejsapi=1&origin=https://www.youtube.com"
@@ -86,10 +89,11 @@ void main() {
         contains('referrerpolicy="strict-origin-when-cross-origin"'),
       );
       expect(document, contains('playsinline=1'));
-      expect(
-          document, contains('widget_referrer=https%3A%2F%2Fwww.youtube-nocookie.com'));
+      expect(document,
+          contains('widget_referrer=https%3A%2F%2Fwww.youtube-nocookie.com'));
       expect(document, contains('enablejsapi=1'));
-      expect(document, contains('origin=https%3A%2F%2Fwww.youtube-nocookie.com'));
+      expect(
+          document, contains('origin=https%3A%2F%2Fwww.youtube-nocookie.com'));
     });
   });
 }

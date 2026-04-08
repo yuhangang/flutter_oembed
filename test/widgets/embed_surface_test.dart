@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_embed/src/models/embed_style.dart';
-import 'package:flutter_embed/src/widgets/embed_surface.dart';
+import 'package:flutter_oembed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/widgets/embed_surface.dart';
 
 void main() {
   testWidgets('uses wrapperBuilder before borderRadius', (tester) async {

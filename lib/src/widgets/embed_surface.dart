@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/models/embed_style.dart';
 
 /// Shared presentation shell for embed widgets.
 ///

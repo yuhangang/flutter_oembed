@@ -1,17 +1,17 @@
 import 'dart:io';
 
-import 'package:flutter_embed/src/controllers/embed_controller.dart';
-import 'package:flutter_embed/src/services/embed_service.dart';
-import 'package:flutter_embed/src/models/embed_data.dart';
-import 'package:flutter_embed/src/models/embed_config.dart';
-import 'package:flutter_embed/src/models/embed_style.dart';
-import 'package:flutter_embed/src/models/embed_loader_param.dart';
-import 'package:flutter_embed/src/models/social_embed_param.dart';
-import 'package:flutter_embed/src/widgets/embed_webview.dart';
-import 'package:flutter_embed/src/utils/embed_errors.dart';
+import 'package:flutter_oembed/src/controllers/embed_controller.dart';
+import 'package:flutter_oembed/src/services/embed_service.dart';
+import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/models/embed_loader_param.dart';
+import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/widgets/embed_webview.dart';
+import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/src/core/embed_scope.dart';
-import 'package:flutter_embed/src/models/embed_cache_config.dart';
+import 'package:flutter_oembed/src/core/embed_scope.dart';
+import 'package:flutter_oembed/src/models/embed_cache_config.dart';
 
 class EmbedDataLoader extends StatefulWidget {
   final SocialEmbedParam param;

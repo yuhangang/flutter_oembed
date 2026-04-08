@@ -5,7 +5,7 @@ import 'package:embed_example/widgets/config_menu_action.dart';
 import 'package:embed_example/widgets/embed_placeholder.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/flutter_embed.dart';
+import 'package:flutter_oembed/flutter_oembed.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:markdown_widget/markdown_widget.dart';
 

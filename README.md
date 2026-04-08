@@ -1,4 +1,4 @@
-# flutter_embed
+# flutter_oembed
 
 A powerful, easy-to-use Flutter package for embedding social media content and other rich media using the oEmbed protocol.
 
@@ -14,7 +14,7 @@ A powerful, easy-to-use Flutter package for embedding social media content and o
 
 ## Supported Providers
 
-`flutter_embed` supports the following verified oEmbed providers out of the box:
+`flutter_oembed` supports the following verified oEmbed providers out of the box:
 
 | Category | Providers |
 | :--- | :--- |
@@ -24,11 +24,11 @@ A powerful, easy-to-use Flutter package for embedding social media content and o
 
 ## Getting started
 
-Add `flutter_embed` to your `pubspec.yaml`:
+Add `flutter_oembed` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_embed: ^0.0.1
+  flutter_oembed: ^0.0.1
 ```
 
 ## Usage

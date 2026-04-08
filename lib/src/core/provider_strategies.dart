@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/src/core/provider_strategy.dart';
-import 'package:flutter_embed/src/models/embed_data.dart';
-import 'package:flutter_embed/src/models/embed_enums.dart';
-import 'package:flutter_embed/src/models/meta_embed_params.dart';
-import 'package:flutter_embed/src/models/soundcloud_embed_params.dart';
-import 'package:flutter_embed/src/models/vimeo_embed_params.dart';
-import 'package:flutter_embed/src/models/x_embed_params.dart';
-import 'package:flutter_embed/src/services/embed_apis.dart';
-import 'package:flutter_embed/src/utils/embed_html_utils.dart';
-import 'package:flutter_embed/src/utils/embed_webview_controller_utils.dart';
+import 'package:flutter_oembed/src/core/provider_strategy.dart';
+import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/meta_embed_params.dart';
+import 'package:flutter_oembed/src/models/soundcloud_embed_params.dart';
+import 'package:flutter_oembed/src/models/vimeo_embed_params.dart';
+import 'package:flutter_oembed/src/models/x_embed_params.dart';
+import 'package:flutter_oembed/src/services/embed_apis.dart';
+import 'package:flutter_oembed/src/utils/embed_html_utils.dart';
+import 'package:flutter_oembed/src/utils/embed_webview_controller_utils.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class YouTubeProviderStrategy extends GenericEmbedProviderStrategy {

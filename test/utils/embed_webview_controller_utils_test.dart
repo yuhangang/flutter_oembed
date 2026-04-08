@@ -1,4 +1,4 @@
-import 'package:flutter_embed/src/utils/embed_webview_controller_utils.dart';
+import 'package:flutter_oembed/src/utils/embed_webview_controller_utils.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:webview_flutter/webview_flutter.dart';

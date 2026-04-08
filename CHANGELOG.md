@@ -1,6 +1,6 @@
-## 0.0.1
+## 1.0.0-beta
 
-* Initial release of `flutter_embed`.
+* Initial stable release of `flutter_oembed`.
 * Supports X (Twitter), TikTok, Instagram, Facebook, YouTube, Spotify, Vimeo, and more.
 * Provides `EmbedCard` widget for easy embedding.
 * Built-in caching system for oEmbed responses.

@@ -1,4 +1,4 @@
-import 'package:flutter_embed/flutter_embed.dart';
+import 'package:flutter_oembed/flutter_oembed.dart';
 
 const List<Map<String, dynamic>> samples = [
   {

@@ -1,6 +1,6 @@
 import 'package:embed_example/utils/settings_controller.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/flutter_embed.dart';
+import 'package:flutter_oembed/flutter_oembed.dart';
 
 class VideoSettingsSheet extends StatefulWidget {
   final EmbedType embedType;

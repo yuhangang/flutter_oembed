@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_embed/src/models/soundcloud_embed_params.dart';
-import 'package:flutter_embed/src/services/api/soundcloud_embed_api.dart';
+import 'package:flutter_oembed/src/models/soundcloud_embed_params.dart';
+import 'package:flutter_oembed/src/services/api/soundcloud_embed_api.dart';
 
 void main() {
   group('SoundCloudEmbedParams', () {

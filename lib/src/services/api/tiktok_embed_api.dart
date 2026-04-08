@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_embed/src/services/api/base_embed_api.dart';
-import 'package:flutter_embed/src/utils/embed_errors.dart';
+import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
+import 'package:flutter_oembed/src/utils/embed_errors.dart';
 
 /// OEmbed API client for TikTok.
 class TikTokEmbedApi extends BaseEmbedApi {
@@ -25,5 +25,6 @@ class TikTokEmbedApi extends BaseEmbedApi {
   }
 
   @override
-  Exception handleErrorResponse(http.Response response) => EmbedApisException();
+  Exception handleErrorResponse(http.Response response) =>
+      const EmbedApisException();
 }

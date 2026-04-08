@@ -1,4 +1,4 @@
-import 'package:flutter_embed/src/models/base_embed_params.dart';
+import 'package:flutter_oembed/src/models/base_embed_params.dart';
 
 /// Parameters for YouTube embeds.
 ///

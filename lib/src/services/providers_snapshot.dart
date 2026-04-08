@@ -2,7 +2,7 @@
 // Source: https://oembed.com/providers.json (snapshot)
 // Regenerate by running: dart tool/generate_providers.dart
 // ignore_for_file: lines_longer_than_80_chars
-import 'package:flutter_embed/src/models/provider_rule.dart';
+import 'package:flutter_oembed/src/models/provider_rule.dart';
 
 /// A bundled snapshot of OEmbed providers marked for discovery.
 /// Indexed by domain for O(1) lookup performance.

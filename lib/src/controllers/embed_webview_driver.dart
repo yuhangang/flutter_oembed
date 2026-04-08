@@ -1,14 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/src/controllers/embed_controller.dart';
-import 'package:flutter_embed/src/controllers/embed_navigation_handler.dart';
-import 'package:flutter_embed/src/core/provider_strategy.dart';
-import 'package:flutter_embed/src/logging/embed_logger.dart';
-import 'package:flutter_embed/src/models/embed_data.dart';
-import 'package:flutter_embed/src/models/embed_enums.dart';
-import 'package:flutter_embed/src/services/embed_service.dart';
-import 'package:flutter_embed/src/utils/embed_webview_controller_utils.dart';
+import 'package:flutter_oembed/src/controllers/embed_controller.dart';
+import 'package:flutter_oembed/src/controllers/embed_navigation_handler.dart';
+import 'package:flutter_oembed/src/core/provider_strategy.dart';
+import 'package:flutter_oembed/src/logging/embed_logger.dart';
+import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/services/embed_service.dart';
+import 'package:flutter_oembed/src/utils/embed_webview_controller_utils.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 /// Internal driver that manages the low-level [WebViewController] interactions.

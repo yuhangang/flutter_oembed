@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/src/models/embed_enums.dart';
-import 'package:flutter_embed/src/models/embed_data.dart';
-import 'package:flutter_embed/src/models/embed_style.dart';
-import 'package:flutter_embed/src/models/social_embed_param.dart';
-import 'package:flutter_embed/src/widgets/embed_widget_loader.dart';
-import 'package:flutter_embed/src/core/embed_scope.dart';
-import 'package:flutter_embed/src/widgets/embed_surface.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/widgets/embed_widget_loader.dart';
+import 'package:flutter_oembed/src/core/embed_scope.dart';
+import 'package:flutter_oembed/src/widgets/embed_surface.dart';
 
 //
 /// A pure renderer for OEmbed data.

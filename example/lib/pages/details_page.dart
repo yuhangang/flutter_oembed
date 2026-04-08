@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/flutter_embed.dart';
+import 'package:flutter_oembed/flutter_oembed.dart';
 import 'package:embed_example/utils/settings_controller.dart';
 import 'package:embed_example/utils/url_launcher_utils.dart';
 import 'package:embed_example/widgets/config_menu_action.dart';

@@ -1,7 +1,7 @@
-import 'package:flutter_embed/src/core/provider_strategies.dart';
-import 'package:flutter_embed/src/models/embed_enums.dart';
-import 'package:flutter_embed/src/models/provider_rule.dart';
-import 'package:flutter_embed/src/utils/embed_link_utils.dart';
+import 'package:flutter_oembed/src/core/provider_strategies.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/provider_rule.dart';
+import 'package:flutter_oembed/src/utils/embed_link_utils.dart';
 
 // ---------------------------------------------------------------------------
 // Iframe URL builders

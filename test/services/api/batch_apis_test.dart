@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/src/models/embed_data.dart';
-import 'package:flutter_embed/src/models/soundcloud_embed_params.dart';
-import 'package:flutter_embed/src/models/vimeo_embed_params.dart';
-import 'package:flutter_embed/src/models/x_embed_params.dart';
-import 'package:flutter_embed/src/services/api/soundcloud_embed_api.dart';
-import 'package:flutter_embed/src/services/api/spotify_embed_api.dart';
-import 'package:flutter_embed/src/services/api/tiktok_embed_api.dart';
-import 'package:flutter_embed/src/services/api/vimeo_embed_api.dart';
-import 'package:flutter_embed/src/services/api/x_embed_api.dart';
-import 'package:flutter_embed/src/utils/embed_errors.dart';
+import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/soundcloud_embed_params.dart';
+import 'package:flutter_oembed/src/models/vimeo_embed_params.dart';
+import 'package:flutter_oembed/src/models/x_embed_params.dart';
+import 'package:flutter_oembed/src/services/api/soundcloud_embed_api.dart';
+import 'package:flutter_oembed/src/services/api/spotify_embed_api.dart';
+import 'package:flutter_oembed/src/services/api/tiktok_embed_api.dart';
+import 'package:flutter_oembed/src/services/api/vimeo_embed_api.dart';
+import 'package:flutter_oembed/src/services/api/x_embed_api.dart';
+import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 

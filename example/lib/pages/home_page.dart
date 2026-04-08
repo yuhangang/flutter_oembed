@@ -9,7 +9,7 @@ import 'package:embed_example/widgets/config_menu_action.dart';
 import 'package:embed_example/utils/platform_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:flutter_embed/flutter_embed.dart';
+import 'package:flutter_oembed/flutter_oembed.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -118,12 +118,18 @@ class _MyHomePageState extends State<MyHomePage> {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final verifiedSamples =
-                    samples.where((s) => s['category'] == 'verified').toList();
-                final sample = verifiedSamples[index];
-                return _buildSampleCard(context, sample, index);
-              }, childCount: samples.where((s) => s['category'] == 'verified').length),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final verifiedSamples =
+                      samples
+                          .where((s) => s['category'] == 'verified')
+                          .toList();
+                  final sample = verifiedSamples[index];
+                  return _buildSampleCard(context, sample, index);
+                },
+                childCount:
+                    samples.where((s) => s['category'] == 'verified').length,
+              ),
             ),
           ),
           SliverToBoxAdapter(
@@ -139,18 +145,24 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16).copyWith(
-              bottom: 32,
-            ),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+            ).copyWith(bottom: 32),
             sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final experimentalSamples =
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final experimentalSamples =
+                      samples
+                          .where((s) => s['category'] == 'experimental')
+                          .toList();
+                  final sample = experimentalSamples[index];
+                  return _buildSampleCard(context, sample, index);
+                },
+                childCount:
                     samples
                         .where((s) => s['category'] == 'experimental')
-                        .toList();
-                final sample = experimentalSamples[index];
-                return _buildSampleCard(context, sample, index);
-              }, childCount: samples.where((s) => s['category'] == 'experimental').length),
+                        .length,
+              ),
             ),
           ),
         ],

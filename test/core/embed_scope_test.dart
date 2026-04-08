@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/src/core/embed_scope.dart';
-import 'package:flutter_embed/src/models/embed_config.dart';
-import 'package:flutter_embed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/core/embed_scope.dart';
+import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('EmbedScope', () {
     testWidgets('configOf and styleOf', (tester) async {
       const config = EmbedConfig(style: EmbedStyle(maxScrollableHeight: 500));
-      
+
       late EmbedConfig? capturedConfig;
       late EmbedStyle? capturedStyle;
 
@@ -32,7 +32,7 @@ void main() {
     test('updateShouldNotify', () {
       const config1 = EmbedConfig(facebookAppId: '1');
       const config2 = EmbedConfig(facebookAppId: '2');
-      
+
       const scope1 = EmbedScope(config: config1, child: SizedBox());
       const scope2 = EmbedScope(config: config1, child: SizedBox());
       const scope3 = EmbedScope(config: config2, child: SizedBox());

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_embed/src/models/embed_data.dart';
-import 'package:flutter_embed/src/models/embed_enums.dart';
-import 'package:flutter_embed/src/models/provider_rule.dart';
-import 'package:flutter_embed/src/services/api/base_embed_api.dart';
-import 'package:flutter_embed/src/utils/embed_html_utils.dart';
+import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/provider_rule.dart';
+import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
+import 'package:flutter_oembed/src/utils/embed_html_utils.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 /// Defines provider-specific behaviors for rendering and interaction.

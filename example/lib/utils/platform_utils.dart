@@ -1,4 +1,4 @@
-import 'package:flutter_embed/flutter_embed.dart';
+import 'package:flutter_oembed/flutter_oembed.dart';
 
 /// Platform logo asset mapping
 String? getPlatformAsset(EmbedType type) {

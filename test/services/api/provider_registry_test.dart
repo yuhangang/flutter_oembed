@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_embed/src/models/provider_rule.dart';
-import 'package:flutter_embed/src/services/provider_registry.dart';
+import 'package:flutter_oembed/src/models/provider_rule.dart';
+import 'package:flutter_oembed/src/services/provider_registry.dart';
 
 void main() {
   group('kDefaultEmbedProviders', () {

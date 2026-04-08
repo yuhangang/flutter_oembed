@@ -2,11 +2,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_embed/src/models/embed_enums.dart';
-import 'package:flutter_embed/src/models/embed_data.dart';
-import 'package:flutter_embed/src/services/api/base_embed_api.dart';
-import 'package:flutter_embed/src/utils/embed_errors.dart';
-import 'package:flutter_embed/src/models/meta_embed_params.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
+import 'package:flutter_oembed/src/utils/embed_errors.dart';
+import 'package:flutter_oembed/src/models/meta_embed_params.dart';
 
 /// OEmbed API client for Meta platforms (Facebook + Instagram).
 class MetaEmbedApi extends BaseEmbedApi {
@@ -74,8 +74,7 @@ class MetaEmbedApi extends BaseEmbedApi {
       'url': url,
       if (appId.isNotEmpty && clientToken.isNotEmpty)
         'access_token': '$appId|$clientToken',
-      if (metaParams?.maxwidth == null)
-        'maxwidth': width.toInt().toString(),
+      if (metaParams?.maxwidth == null) 'maxwidth': width.toInt().toString(),
     };
 
     if (metaParams != null) {
@@ -109,6 +108,6 @@ class MetaEmbedApi extends BaseEmbedApi {
     } catch (_) {
       // Body is not valid JSON, fall through to generic error
     }
-    return EmbedApisException();
+    return const EmbedApisException();
   }
 }

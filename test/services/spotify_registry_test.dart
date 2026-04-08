@@ -1,6 +1,6 @@
-import 'package:flutter_embed/src/models/embed_config.dart';
-import 'package:flutter_embed/src/models/embed_provider_config.dart';
-import 'package:flutter_embed/src/services/embed_service.dart';
+import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/embed_provider_config.dart';
+import 'package:flutter_oembed/src/services/embed_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
