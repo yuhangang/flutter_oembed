@@ -204,25 +204,31 @@ You can add any OEmbed-supported URL using `url`, `href`, `src`, `data-url`, as 
         actions: const [ConfigMenuAction()],
       ),
       body: MarkdownWidget(
+        padding: EdgeInsets.only(
+          top: 16,
+          left: 16,
+          right: 16,
+          bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
+        ),
         key: ValueKey('markdown_${settings.locale}-${settings.brightness}'),
         data: markdownData,
         config: MarkdownConfig(
-          configs: [
-            SmartLinkConfig(
-              style: const TextStyle(
-                color: Colors.blue,
-                decoration: TextDecoration.underline,
+            configs: [
+              SmartLinkConfig(
+                style: const TextStyle(
+                  color: Colors.blue,
+                  decoration: TextDecoration.underline,
+                ),
+                onTap: (url) {},
               ),
-              onTap: (url) {},
-            ),
-          ],
+            ],
+          ),
+          markdownGenerator: MarkdownGenerator(
+            generators: [smartLinkGenerator, oembedGenerator],
+            blockSyntaxList: const [EmbedBlockSyntax()],
+            extensionSet: md.ExtensionSet.gitHubFlavored,
+          ),
         ),
-        markdownGenerator: MarkdownGenerator(
-          generators: [smartLinkGenerator, oembedGenerator],
-          blockSyntaxList: const [EmbedBlockSyntax()],
-          extensionSet: md.ExtensionSet.gitHubFlavored,
-        ),
-      ),
     );
   }
 }

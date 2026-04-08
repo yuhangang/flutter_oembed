@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
 import 'package:flutter_oembed/src/models/embed_constant.dart';
 import 'package:flutter_oembed/src/models/embed_provider_config.dart';
+import 'package:flutter_oembed/src/models/embed_strings.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/logging/embed_logger.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
@@ -60,8 +61,15 @@ class EmbedConfig extends Equatable {
   /// BCP-47 locale code passed to provider APIs that support localisation.
   final String locale;
 
-  /// App brightness, forwarded to providers that support theme switching (e.g. X/Twitter).
+  /// App brightness, forwarded to providers that support theme switching.
+  ///
+  /// Currently this is honored by X, Reddit, and [YoutubeEmbedPlayer].
+  /// Other built-in providers may ignore it because their upstream embed APIs
+  /// do not expose a stable theme parameter.
   final Brightness brightness;
+
+  /// User-facing copy used by package-provided loading, retry, and semantics.
+  final EmbedStrings strings;
 
   /// Custom navigation request handler.
   /// If provided, this is called before the default navigation logic.
@@ -110,6 +118,7 @@ class EmbedConfig extends Equatable {
     this.proxyUrl,
     this.locale = 'en',
     this.brightness = Brightness.light,
+    this.strings = const EmbedStrings(),
     this.onNavigationRequest,
     this.onLinkTap,
     this.useDynamicDiscovery = false,
@@ -138,6 +147,7 @@ class EmbedConfig extends Equatable {
         proxyUrl,
         locale,
         brightness,
+        strings,
         useDynamicDiscovery,
         loadTimeout,
         scrollable,
@@ -160,6 +170,7 @@ class EmbedConfig extends Equatable {
     String? proxyUrl,
     String? locale,
     Brightness? brightness,
+    EmbedStrings? strings,
     FutureOr<NavigationDecision>? Function(NavigationRequest)?
         onNavigationRequest,
     void Function(String url, EmbedData? data)? onLinkTap,
@@ -178,6 +189,7 @@ class EmbedConfig extends Equatable {
       proxyUrl: proxyUrl ?? this.proxyUrl,
       locale: locale ?? this.locale,
       brightness: brightness ?? this.brightness,
+      strings: strings ?? this.strings,
       onNavigationRequest: onNavigationRequest ?? this.onNavigationRequest,
       onLinkTap: onLinkTap ?? this.onLinkTap,
       useDynamicDiscovery: useDynamicDiscovery ?? this.useDynamicDiscovery,

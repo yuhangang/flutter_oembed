@@ -278,11 +278,16 @@ class _QuillIntegrationPageState extends State<QuillIntegrationPage> {
           Expanded(
             child: Container(
               color: Colors.white,
-              padding: const EdgeInsets.all(16.0),
               child: QuillEditor.basic(
                 controller: _controller,
                 focusNode: _focusNode,
                 config: QuillEditorConfig(
+                  padding: EdgeInsets.only(
+                    top: 16,
+                    left: 16,
+                    right: 16,
+                    bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
+                  ),
                   embedBuilders: [OEmbedEmbedBuilder()],
                 ),
               ),

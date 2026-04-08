@@ -117,6 +117,9 @@ class _HtmlIntegrationPageState extends State<HtmlIntegrationPage> {
         actions: const [ConfigMenuAction()],
       ),
       body: SingleChildScrollView(
+        padding: EdgeInsets.only(
+          bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
+        ),
         child: Html(
           key: ValueKey('html_${settings.locale}-${settings.brightness}'),
           data: htmlData,

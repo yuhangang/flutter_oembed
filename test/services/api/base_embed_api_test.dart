@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:file/file.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
@@ -74,6 +75,18 @@ void main() {
             api.constructUrl(contentUrl, queryParameters: {'custom': 'value'});
 
         expect(uri.queryParameters['custom'], equals('value'));
+      });
+
+      test('should ignore brightness because generic oembed has no theme map',
+          () {
+        const api = GenericEmbedApi(endpoint);
+        final lightUri =
+            api.constructUrl(contentUrl, brightness: Brightness.light);
+        final darkUri =
+            api.constructUrl(contentUrl, brightness: Brightness.dark);
+
+        expect(darkUri.queryParameters, equals(lightUri.queryParameters));
+        expect(darkUri.queryParameters.containsKey('theme'), isFalse);
       });
     });
 

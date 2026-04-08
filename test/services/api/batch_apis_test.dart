@@ -29,6 +29,17 @@ void main() {
       expect(api.handleErrorResponse(http.Response('', 500)),
           isA<EmbedApisException>());
     });
+
+    test('constructUrl ignores brightness', () {
+      const api = SoundCloudEmbedApi(640);
+      final lightUri =
+          api.constructUrl('https://soundcloud.com/test', brightness: Brightness.light);
+      final darkUri =
+          api.constructUrl('https://soundcloud.com/test', brightness: Brightness.dark);
+
+      expect(darkUri.queryParameters, equals(lightUri.queryParameters));
+      expect(darkUri.queryParameters.containsKey('theme'), isFalse);
+    });
   });
 
   group('SpotifyEmbedApi', () {
@@ -47,6 +58,21 @@ void main() {
       expect(api.handleErrorResponse(http.Response('', 500)),
           isA<EmbedApisException>());
     });
+
+    test('constructUrl ignores brightness', () {
+      const api = SpotifyEmbedApi();
+      final lightUri = api.constructUrl(
+        'https://spotify.com/track/1',
+        brightness: Brightness.light,
+      );
+      final darkUri = api.constructUrl(
+        'https://spotify.com/track/1',
+        brightness: Brightness.dark,
+      );
+
+      expect(darkUri.queryParameters, equals(lightUri.queryParameters));
+      expect(darkUri.queryParameters.containsKey('theme'), isFalse);
+    });
   });
 
   group('TikTokEmbedApi', () {
@@ -59,6 +85,21 @@ void main() {
       const api = TikTokEmbedApi();
       expect(api.handleErrorResponse(http.Response('', 404)),
           isA<EmbedApisException>());
+    });
+
+    test('constructUrl ignores brightness', () {
+      const api = TikTokEmbedApi();
+      final lightUri = api.constructUrl(
+        'https://tiktok.com/video/1',
+        brightness: Brightness.light,
+      );
+      final darkUri = api.constructUrl(
+        'https://tiktok.com/video/1',
+        brightness: Brightness.dark,
+      );
+
+      expect(darkUri.queryParameters, equals(lightUri.queryParameters));
+      expect(darkUri.queryParameters.containsKey('theme'), isFalse);
     });
   });
 
@@ -83,6 +124,17 @@ void main() {
           isA<EmbedDataNotFoundException>());
       expect(api.handleErrorResponse(http.Response('', 500)),
           isA<EmbedApisException>());
+    });
+
+    test('constructUrl ignores brightness', () {
+      const api = VimeoEmbedApi(640);
+      final lightUri =
+          api.constructUrl('https://vimeo.com/1', brightness: Brightness.light);
+      final darkUri =
+          api.constructUrl('https://vimeo.com/1', brightness: Brightness.dark);
+
+      expect(darkUri.queryParameters, equals(lightUri.queryParameters));
+      expect(darkUri.queryParameters.containsKey('theme'), isFalse);
     });
   });
 

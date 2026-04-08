@@ -1,6 +1,7 @@
 import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_constant.dart';
 import 'package:flutter_oembed/src/models/embed_provider_config.dart';
+import 'package:flutter_oembed/src/models/embed_strings.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -50,8 +51,17 @@ void main() {
 
     test('copyWith', () {
       const config = EmbedConfig();
-      final updated = config.copyWith(facebookAppId: 'new');
+      final updated = config.copyWith(
+        facebookAppId: 'new',
+        strings: const EmbedStrings(
+          loadingSemanticsLabel: 'Memuat kandungan',
+        ),
+      );
       expect(updated.facebookAppId, equals('new'));
+      expect(
+        updated.strings.loadingSemanticsLabel,
+        equals('Memuat kandungan'),
+      );
     });
 
     test('defaults use shared embed constants', () {

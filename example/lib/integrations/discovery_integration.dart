@@ -31,7 +31,12 @@ class _DiscoveryIntegrationPageState extends State<DiscoveryIntegrationPage> {
         actions: const [ConfigMenuAction()],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.only(
+          top: 16,
+          left: 16,
+          right: 16,
+          bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

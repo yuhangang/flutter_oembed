@@ -119,7 +119,7 @@ class _MyHomePageState extends State<MyHomePage> {
             padding: EdgeInsets.only(
               left: 16,
               right: 16,
-              bottom: MediaQuery.viewPaddingOf(context).bottom,
+              bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
             ),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(

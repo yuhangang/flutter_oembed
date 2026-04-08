@@ -3,6 +3,7 @@ import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/embed_strings.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
@@ -46,9 +47,6 @@ class EmbedWebView extends StatefulWidget {
 }
 
 class _EmbedViewState extends State<EmbedWebView> {
-  static const _loadingSemanticsLabel = 'Loading embedded content';
-  static const _contentSemanticsLabel = 'Embedded content';
-
   late EmbedWebViewDriver _driver;
 
   @override
@@ -99,30 +97,38 @@ class _EmbedViewState extends State<EmbedWebView> {
     super.dispose();
   }
 
-  Widget _buildLoadingOverlay(BuildContext context, EmbedStyle? style) {
+  Widget _buildLoadingOverlay(
+    BuildContext context,
+    EmbedStyle? style,
+    EmbedStrings strings,
+  ) {
     final loadingChild = style?.loadingBuilder?.call(context) ??
         const Center(child: CircularProgressIndicator());
     return Semantics(
       container: true,
       liveRegion: true,
-      label: _loadingSemanticsLabel,
+      label: strings.loadingSemanticsLabel,
       child: loadingChild,
     );
   }
 
-  Widget _buildWebView(BuildContext context, EmbedStyle? style) {
+  Widget _buildWebView(
+    BuildContext context,
+    EmbedStyle? style,
+    EmbedStrings strings,
+  ) {
     return Semantics(
       container: true,
-      label: _contentSemanticsLabel,
+      label: strings.contentSemanticsLabel,
       child: WebViewWidget(controller: _driver.webViewController),
     );
   }
 
-  String _retrySemanticsLabel(EmbedLoadingState state) {
+  String _retrySemanticsLabel(EmbedLoadingState state, EmbedStrings strings) {
     return switch (state) {
       EmbedLoadingState.noConnection =>
-        'Retry embedded content after connection error',
-      _ => 'Retry embedded content after load error',
+        strings.retryAfterConnectionErrorSemanticsLabel,
+      _ => strings.retryAfterLoadErrorSemanticsLabel,
     };
   }
 
@@ -133,6 +139,7 @@ class _EmbedViewState extends State<EmbedWebView> {
       builder: (context, child) {
         final config = widget.controller.config ?? EmbedScope.configOf(context);
         final style = widget.style ?? config?.style;
+        final strings = config?.strings ?? const EmbedStrings();
         final loadingState = widget.controller.loadingState;
         final double? aspectRatio = widget.data?.aspectRatio ??
             widget.controller.preloadedData?.aspectRatio;
@@ -153,9 +160,9 @@ class _EmbedViewState extends State<EmbedWebView> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              _buildWebView(context, style),
+              _buildWebView(context, style, strings),
               if (loadingState == EmbedLoadingState.loading)
-                _buildLoadingOverlay(context, style)
+                _buildLoadingOverlay(context, style, strings)
               else if (loadingState == EmbedLoadingState.error ||
                   loadingState == EmbedLoadingState.noConnection)
                 Semantics(
@@ -163,8 +170,8 @@ class _EmbedViewState extends State<EmbedWebView> {
                   liveRegion: true,
                   button: true,
                   enabled: true,
-                  label: _retrySemanticsLabel(loadingState),
-                  hint: 'Double tap to retry',
+                  label: _retrySemanticsLabel(loadingState, strings),
+                  hint: strings.retryHint,
                   child: GestureDetector(
                     onTap: () {
                       widget.controller.setLoadingState(

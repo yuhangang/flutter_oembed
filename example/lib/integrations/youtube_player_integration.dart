@@ -156,6 +156,11 @@ class _YoutubePlayerIntegrationState
               ),
             ),
           ),
+          SliverPadding(
+            padding: EdgeInsets.only(
+              bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
+            ),
+          ),
         ],
       ),
     );

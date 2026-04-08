@@ -7,6 +7,7 @@ import 'package:flutter_oembed/src/models/embed_cache_config.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_loader_param.dart';
+import 'package:flutter_oembed/src/models/embed_strings.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/widgets/embed_data_loader.dart';
@@ -134,6 +135,46 @@ void main() {
 
         expect(
           find.bySemanticsLabel('Loading embedded content'),
+          findsOneWidget,
+        );
+
+        completer.complete(http.Response('{}', 200));
+      } finally {
+        semanticsHandle.dispose();
+      }
+    });
+
+    testWidgets('uses configured strings for loading semantics',
+        (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+      try {
+        final completer = Completer<http.Response>();
+        when(() => mockClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer((_) => completer.future);
+
+        final localizedConfig = testConfig.copyWith(
+          strings: const EmbedStrings(
+            loadingSemanticsLabel: 'Memuat kandungan benam',
+          ),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedDataLoader(
+                param: param,
+                loaderParam: loaderParam,
+                controller: controller,
+                config: localizedConfig,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        expect(
+          find.bySemanticsLabel('Memuat kandungan benam'),
           findsOneWidget,
         );
 

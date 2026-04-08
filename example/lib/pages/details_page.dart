@@ -45,25 +45,33 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
       appBar: AppBar(
         title: Text('${widget.sample['source']} Embed'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
-          const ConfigMenuAction(),
-          if (widget.sample['type'] == EmbedType.vimeo ||
-              widget.sample['type'] == EmbedType.x ||
-              widget.sample['type'] == EmbedType.facebook ||
-              widget.sample['type'] == EmbedType.facebook_post ||
-              widget.sample['type'] == EmbedType.facebook_video ||
-              widget.sample['type'] == EmbedType.instagram ||
-              widget.sample['type'] == EmbedType.threads ||
-              widget.sample['type'] == EmbedType.soundcloud ||
-              widget.sample['type'] == EmbedType.tiktok_v1)
-            IconButton(
-              icon: const Icon(Icons.tune_rounded),
-              onPressed: _showSettingsSheet,
-            ),
-        ],
+        actions: [const ConfigMenuAction()],
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton:
+          (widget.sample['type'] == EmbedType.vimeo ||
+                  widget.sample['type'] == EmbedType.x ||
+                  widget.sample['type'] == EmbedType.facebook ||
+                  widget.sample['type'] == EmbedType.facebook_post ||
+                  widget.sample['type'] == EmbedType.facebook_video ||
+                  widget.sample['type'] == EmbedType.instagram ||
+                  widget.sample['type'] == EmbedType.threads ||
+                  widget.sample['type'] == EmbedType.soundcloud ||
+                  widget.sample['type'] == EmbedType.tiktok_v1)
+              ? FloatingActionButton.extended(
+                elevation: 0,
+                onPressed: _showSettingsSheet,
+                label: Text('Parameters'),
+                icon: const Icon(Icons.tune_rounded),
+              )
+              : null,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.only(
+          bottom:
+              16.0 + kToolbarHeight + MediaQuery.viewPaddingOf(context).bottom,
+          left: 16.0,
+          right: 16.0,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

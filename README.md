@@ -4,19 +4,17 @@ A Flutter package for embedding rich social and media content with oEmbed APIs a
 
 ## Current Package Status
 
-- Current package version: `1.0.0-beta`
+- Current package version: `1.0.0`
 - Verified platforms: Android, iOS
 - Not supported currently: Flutter Web
 - Not yet verified for release: macOS, Windows, Linux
 
-If you are consuming the package before the stable release lands, use the current beta line:
+Use the current stable line:
 
 ```yaml
 dependencies:
-  flutter_oembed: ^1.0.0-beta
+  flutter_oembed: ^1.0.0
 ```
-
-Update this version to `^1.0.0` once the stable release is published.
 
 ## Features
 
@@ -44,8 +42,23 @@ Update this version to `^1.0.0` once the stable release is published.
 
 - Meta providers such as Facebook, Instagram, and Threads require a Meta App ID and Client Token.
 - Provider behavior is not uniform. Some providers expose less metadata or more restrictive embed behavior than others.
-- Dark mode support varies by provider. `brightness` is not guaranteed to affect every provider embed.
 - The package auto-pauses media when embeds leave the viewport, but there is no stable public media-control API yet.
+
+### Brightness Support Matrix
+
+`EmbedConfig.brightness` is not a universal dark-mode switch. It is only forwarded where the upstream provider or native player path exposes a stable theme setting.
+
+| Provider path | `brightness` support | Notes |
+| :--- | :--- | :--- |
+| X | Supported | Mapped to the `theme` query parameter |
+| Reddit | Supported | Mapped to the `theme=dark` query parameter |
+| `YoutubeEmbedPlayer` | Supported | Mapped to the YouTube player `theme` setting unless you override `theme` manually |
+| Facebook / Instagram / Threads | Not supported | Meta oEmbed endpoints do not expose a package-level dark-mode switch here |
+| Spotify | Not supported | Current oEmbed endpoint ignores package brightness |
+| TikTok | Not supported | Current oEmbed and native player integrations do not map brightness |
+| Vimeo | Not supported | Current oEmbed endpoint ignores package brightness |
+| SoundCloud | Not supported | Current oEmbed endpoint ignores package brightness |
+| Dailymotion / Giphy / NYTimes / generic oEmbed providers | Not supported | No package-level brightness mapping is currently implemented |
 
 ## Supported Providers
 

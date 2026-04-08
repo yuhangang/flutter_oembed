@@ -41,18 +41,36 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
 
   // TikTok state
   late bool _tkControls;
+  late bool _tkProgressBar;
+  late bool _tkPlayButton;
+  late bool _tkVolumeControl;
+  late bool _tkFullscreenButton;
+  late bool _tkTimestamp;
   late bool _tkAutoplay;
   late bool _tkLoop;
   late bool _tkMusicInfo;
   late bool _tkDescription;
+  late bool _tkRel;
+  late bool _tkNativeContextMenu;
+  late bool _tkClosedCaption;
+  late bool _tkMuted;
 
   // YouTube state
   late String? _ytTheme;
   late String? _ytColor;
 
+  bool _isInitialized = false;
+
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_isInitialized) return;
+
     final settings = ExampleSettingsProvider.of(context).settings;
 
     _vimeoAutoplay = settings.vimeoParams.autoplay ?? false;
@@ -85,13 +103,24 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
 
     // TikTok state
     _tkControls = settings.tiktokParams.controls;
+    _tkProgressBar = settings.tiktokParams.progressBar;
+    _tkPlayButton = settings.tiktokParams.playButton;
+    _tkVolumeControl = settings.tiktokParams.volumeControl;
+    _tkFullscreenButton = settings.tiktokParams.fullscreenButton;
+    _tkTimestamp = settings.tiktokParams.timestamp;
     _tkAutoplay = settings.tiktokParams.autoplay;
     _tkLoop = settings.tiktokParams.loop;
     _tkMusicInfo = settings.tiktokParams.musicInfo;
     _tkDescription = settings.tiktokParams.description;
+    _tkRel = settings.tiktokParams.rel;
+    _tkNativeContextMenu = settings.tiktokParams.nativeContextMenu;
+    _tkClosedCaption = settings.tiktokParams.closedCaption;
+    _tkMuted = settings.tiktokParams.muted;
 
     _ytTheme = settings.youtubeParams.theme;
     _ytColor = settings.youtubeParams.color;
+
+    _isInitialized = true;
   }
 
   void _apply() {
@@ -138,10 +167,19 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
       controller.updateTikTok(
         TikTokEmbedParams(
           controls: _tkControls,
+          progressBar: _tkProgressBar,
+          playButton: _tkPlayButton,
+          volumeControl: _tkVolumeControl,
+          fullscreenButton: _tkFullscreenButton,
+          timestamp: _tkTimestamp,
           autoplay: _tkAutoplay,
           loop: _tkLoop,
           musicInfo: _tkMusicInfo,
           description: _tkDescription,
+          rel: _tkRel,
+          nativeContextMenu: _tkNativeContextMenu,
+          closedCaption: _tkClosedCaption,
+          muted: _tkMuted,
         ),
       );
     } else if (widget.embedType == EmbedType.youtube) {
@@ -430,6 +468,31 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
         onChanged: (v) => setState(() => _tkControls = v),
       ),
       SwitchListTile(
+        title: const Text('Progress Bar'),
+        value: _tkProgressBar,
+        onChanged: (v) => setState(() => _tkProgressBar = v),
+      ),
+      SwitchListTile(
+        title: const Text('Play Button'),
+        value: _tkPlayButton,
+        onChanged: (v) => setState(() => _tkPlayButton = v),
+      ),
+      SwitchListTile(
+        title: const Text('Volume Control'),
+        value: _tkVolumeControl,
+        onChanged: (v) => setState(() => _tkVolumeControl = v),
+      ),
+      SwitchListTile(
+        title: const Text('Fullscreen Button'),
+        value: _tkFullscreenButton,
+        onChanged: (v) => setState(() => _tkFullscreenButton = v),
+      ),
+      SwitchListTile(
+        title: const Text('Timestamp'),
+        value: _tkTimestamp,
+        onChanged: (v) => setState(() => _tkTimestamp = v),
+      ),
+      SwitchListTile(
         title: const Text('Autoplay'),
         value: _tkAutoplay,
         onChanged: (v) => setState(() => _tkAutoplay = v),
@@ -448,6 +511,27 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
         title: const Text('Description'),
         value: _tkDescription,
         onChanged: (v) => setState(() => _tkDescription = v),
+      ),
+      SwitchListTile(
+        title: const Text('Related Videos (Rel)'),
+        subtitle: const Text('Show recommended vs author videos'),
+        value: _tkRel,
+        onChanged: (v) => setState(() => _tkRel = v),
+      ),
+      SwitchListTile(
+        title: const Text('Native Context Menu'),
+        value: _tkNativeContextMenu,
+        onChanged: (v) => setState(() => _tkNativeContextMenu = v),
+      ),
+      SwitchListTile(
+        title: const Text('Closed Caption'),
+        value: _tkClosedCaption,
+        onChanged: (v) => setState(() => _tkClosedCaption = v),
+      ),
+      SwitchListTile(
+        title: const Text('Muted'),
+        value: _tkMuted,
+        onChanged: (v) => setState(() => _tkMuted = v),
       ),
     ];
   }

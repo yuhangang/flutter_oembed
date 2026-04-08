@@ -3,6 +3,7 @@ import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/embed_strings.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -83,6 +84,45 @@ void main() {
         );
       } finally {
         controller.dispose();
+        semanticsHandle.dispose();
+      }
+    });
+
+    testWidgets('uses configured strings for retry semantics', (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+      final customController = EmbedController(
+        param: param,
+        config: const EmbedConfig(
+          strings: EmbedStrings(
+            retryAfterLoadErrorSemanticsLabel: 'Cuba semula kandungan benam',
+            retryHint: 'Ketik dua kali untuk cuba lagi',
+          ),
+        ),
+      );
+
+      try {
+        customController.setLoadingState(EmbedLoadingState.error);
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 640,
+                controller: customController,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        expect(
+          find.bySemanticsLabel('Cuba semula kandungan benam'),
+          findsOneWidget,
+        );
+      } finally {
+        customController.dispose();
         semanticsHandle.dispose();
       }
     });

@@ -69,6 +69,15 @@ void main() {
               loop: true,
               musicInfo: true,
               description: true,
+              progressBar: false,
+              playButton: false,
+              volumeControl: false,
+              fullscreenButton: false,
+              timestamp: false,
+              rel: false,
+              nativeContextMenu: false,
+              closedCaption: false,
+              muted: true,
             ),
           ),
         ),
@@ -80,6 +89,15 @@ void main() {
       expect(webView.url, contains('loop=1'));
       expect(webView.url, contains('music_info=1'));
       expect(webView.url, contains('description=1'));
+      expect(webView.url, contains('progress_bar=0'));
+      expect(webView.url, contains('play_button=0'));
+      expect(webView.url, contains('volume_control=0'));
+      expect(webView.url, contains('fullscreen_button=0'));
+      expect(webView.url, contains('timestamp=0'));
+      expect(webView.url, contains('rel=0'));
+      expect(webView.url, contains('native_context_menu=0'));
+      expect(webView.url, contains('closed_caption=0'));
+      expect(webView.url, contains('muted=1'));
     });
 
     testWidgets('should not crash when the player is disposed', (tester) async {

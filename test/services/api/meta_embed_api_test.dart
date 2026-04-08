@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
@@ -56,6 +57,22 @@ void main() {
       final uri = api.constructUrl('https://facebook.com/post/1');
 
       expect(uri.queryParameters['omitscript'], equals('true'));
+    });
+
+    test('constructUrl ignores brightness for meta providers', () {
+      const api =
+          MetaEmbedApi(EmbedType.facebook_post, width, appId, clientToken);
+      final lightUri = api.constructUrl(
+        'https://facebook.com/post/1',
+        brightness: Brightness.light,
+      );
+      final darkUri = api.constructUrl(
+        'https://facebook.com/post/1',
+        brightness: Brightness.dark,
+      );
+
+      expect(darkUri.queryParameters, equals(lightUri.queryParameters));
+      expect(darkUri.queryParameters.containsKey('theme'), isFalse);
     });
 
     test('oembedResponseModifier fixes protocol-less src', () {

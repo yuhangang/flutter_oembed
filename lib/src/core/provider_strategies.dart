@@ -4,6 +4,7 @@ import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/meta_embed_params.dart';
 import 'package:flutter_oembed/src/models/soundcloud_embed_params.dart';
+import 'package:flutter_oembed/src/models/tiktok_embed_params.dart';
 import 'package:flutter_oembed/src/models/vimeo_embed_params.dart';
 import 'package:flutter_oembed/src/models/x_embed_params.dart';
 import 'package:flutter_oembed/src/services/embed_apis.dart';
@@ -75,7 +76,7 @@ class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
 
   @override
   BaseEmbedApi createApi(EmbedProviderContext context) {
-    return const TikTokEmbedApi();
+    return TikTokEmbedApi(tiktokParams: context.embedParams as TikTokEmbedParams?);
   }
 
   @override

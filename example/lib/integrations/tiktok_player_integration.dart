@@ -122,6 +122,11 @@ class _TikTokPlayerIntegrationState extends State<TikTokPlayerIntegrationPage> {
               ),
             ),
           ),
+          SliverPadding(
+            padding: EdgeInsets.only(
+              bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
+            ),
+          ),
         ],
       ),
     );

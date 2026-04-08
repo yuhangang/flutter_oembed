@@ -14,6 +14,7 @@ Use this checklist before publishing `flutter_oembed`.
 - Confirm [README.md](/Users/yuhang.ang/Desktop/Projects/flutter_oembed/README.md) matches the version line being published.
 - Confirm platform support and Flutter Web status are stated explicitly.
 - Confirm provider credential requirements and known limitations are accurate.
+- Confirm the brightness support matrix only claims support for providers that actually honor `EmbedConfig.brightness`.
 
 ## Required Automated Checks
 

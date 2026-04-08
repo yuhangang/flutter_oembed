@@ -7,6 +7,7 @@ import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/models/embed_loader_param.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/embed_strings.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter/material.dart';
@@ -40,8 +41,6 @@ class EmbedDataLoader extends StatefulWidget {
 }
 
 class _EmbedDataLoaderState extends State<EmbedDataLoader> {
-  static const _loadingSemanticsLabel = 'Loading embedded content';
-
   Future<EmbedData>? _embedFeature;
   EmbedConfig? _resolvedConfig;
 
@@ -91,17 +90,17 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
     });
   }
 
-  String _errorSemanticsLabel(Object? error) {
+  String _errorSemanticsLabel(Object? error, EmbedStrings strings) {
     if (error is EmbedDataNotFoundException) {
-      return 'Embedded content not found';
+      return strings.notFoundSemanticsLabel;
     }
     if (error is EmbedDataRestrictedAccessException) {
-      return 'Embedded content is restricted';
+      return strings.restrictedSemanticsLabel;
     }
     if (error is SocketException) {
-      return 'Embedded content failed to load because of a network error';
+      return strings.networkErrorSemanticsLabel;
     }
-    return 'Embedded content failed to load';
+    return strings.genericLoadErrorSemanticsLabel;
   }
 
   @override
@@ -114,6 +113,11 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
         return AnimatedBuilder(
           animation: widget.controller,
           builder: (context, child) {
+            final strings = (widget.config ??
+                        _resolvedConfig ??
+                        EmbedScope.configOf(context))
+                    ?.strings ??
+                const EmbedStrings();
             final didRetry = widget.controller.didRetry;
             if (snapshot.connectionState == ConnectionState.waiting) {
               final loadingWidget =
@@ -122,7 +126,7 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
               return Semantics(
                 container: true,
                 liveRegion: true,
-                label: _loadingSemanticsLabel,
+                label: strings.loadingSemanticsLabel,
                 child: loadingWidget,
               );
             }
@@ -138,7 +142,7 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
                 return Semantics(
                   container: true,
                   liveRegion: true,
-                  label: _errorSemanticsLabel(error),
+                  label: _errorSemanticsLabel(error, strings),
                   child: errorWidget,
                 );
               }
@@ -149,8 +153,8 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
                   liveRegion: true,
                   button: true,
                   enabled: true,
-                  label: _errorSemanticsLabel(error),
-                  hint: 'Double tap to retry',
+                  label: _errorSemanticsLabel(error, strings),
+                  hint: strings.retryHint,
                   child: GestureDetector(
                     onTap: () {
                       if (error is! SocketException) {
@@ -169,13 +173,13 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
                 );
               }
 
-              return Semantics(
-                container: true,
-                liveRegion: true,
-                label: _errorSemanticsLabel(error),
-                child: errorWidget,
-              );
-            }
+                return Semantics(
+                  container: true,
+                  liveRegion: true,
+                  label: _errorSemanticsLabel(error, strings),
+                  child: errorWidget,
+                );
+              }
 
             if (snapshot.hasData && snapshot.data != null) {
               return EmbedWebView.data(
