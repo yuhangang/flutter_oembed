@@ -40,6 +40,10 @@ class EmbedSurface extends StatelessWidget {
       );
     }
 
-    return child;
+    return Semantics(
+      container: true,
+      label: 'Embedded content',
+      child: child,
+    );
   }
 }

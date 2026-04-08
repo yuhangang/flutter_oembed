@@ -44,8 +44,10 @@ class XEmbedApi extends BaseEmbedApi {
 
   @override
   Exception handleErrorResponse(http.Response response) {
-    if (response.statusCode == 404) return EmbedDataNotFoundException();
-    if (response.statusCode == 403) return EmbedDataRestrictedAccessException();
+    if (response.statusCode == 404) return const EmbedDataNotFoundException();
+    if (response.statusCode == 403) {
+      return const EmbedDataRestrictedAccessException();
+    }
     return const EmbedApisException();
   }
 }

@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/embed_constant.dart';
 import 'package:flutter_oembed/src/models/embed_provider_config.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/logging/embed_logger.dart';
@@ -81,7 +82,7 @@ class EmbedConfig extends Equatable {
   final bool useDynamicDiscovery;
 
   /// Timeout duration for the WebView to finish loading before showing an error.
-  /// Defaults to 10 seconds.
+  /// Defaults to [kDefaultEmbedLoadTimeout].
   final Duration loadTimeout;
 
   /// Whether the WebView should be scrollable internally.
@@ -112,7 +113,7 @@ class EmbedConfig extends Equatable {
     this.onNavigationRequest,
     this.onLinkTap,
     this.useDynamicDiscovery = false,
-    this.loadTimeout = const Duration(seconds: 20),
+    this.loadTimeout = kDefaultEmbedLoadTimeout,
     this.scrollable = false,
     this.logger = const EmbedLogger.disabled(),
     this.httpClient,

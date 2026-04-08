@@ -26,7 +26,7 @@ class SpotifyEmbedApi extends BaseEmbedApi {
 
   @override
   Exception handleErrorResponse(http.Response response) {
-    if (response.statusCode == 404) return EmbedDataNotFoundException();
+    if (response.statusCode == 404) return const EmbedDataNotFoundException();
     return const EmbedApisException();
   }
 }

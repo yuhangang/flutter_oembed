@@ -62,6 +62,19 @@ void main() {
       expect(doc, isNot(contains('overflow: hidden;')));
     });
 
+    test('GenericEmbedProviderStrategy styles iframe correctly', () {
+      const strategy = GenericEmbedProviderStrategy();
+      final doc = strategy.buildHtmlDocument(
+        '<iframe height="400"></iframe>',
+        type: EmbedType.other,
+        maxWidth: 640,
+      );
+      expect(doc, contains('iframe {'));
+      expect(doc, isNot(contains('iframe {\n      width: 100% !important;\n      height: auto !important;')));
+      expect(doc, contains('border: none;'));
+      expect(doc, contains('width: 100% !important;'));
+    });
+
     test('YouTubeProviderStrategy sanitizes iframe params for WebView embeds',
         () {
       const html = '''

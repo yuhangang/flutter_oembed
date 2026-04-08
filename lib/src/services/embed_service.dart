@@ -5,6 +5,7 @@ import 'package:flutter_oembed/src/logging/embed_logger.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/base_embed_params.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_loader_param.dart';
 import 'package:flutter_oembed/src/models/embed_provider_config.dart';
@@ -86,6 +87,38 @@ class EmbedService {
     EmbedLogger? logger,
   }) {
     return _resolveApi(param, logger: logger);
+  }
+
+  /// Resolves the cache request URI used for a given content [url].
+  ///
+  /// Returns `null` when no matching provider can be resolved.
+  static Uri? resolveCacheUri(
+    String url, {
+    EmbedConfig? config,
+    EmbedType? embedType,
+    double? width,
+    Map<String, String>? queryParameters,
+    BaseEmbedParams? embedParams,
+    EmbedLogger? logger,
+  }) {
+    try {
+      final param = EmbedLoaderParam(
+        url: url,
+        embedType: embedType ?? EmbedType.other,
+        width: width ?? 0,
+        queryParameters: queryParameters,
+        embedParams: embedParams,
+      );
+      final api = _resolveApi(param, config: config, logger: logger);
+      return api.constructUrl(
+        url,
+        locale: config?.locale ?? 'en',
+        brightness: config?.brightness ?? Brightness.light,
+        queryParameters: queryParameters,
+      );
+    } on EmbedProviderNotFoundException {
+      return null;
+    }
   }
 
   /// Resolves how to render [url] given [config], returning a [EmbedResolvedRender]
@@ -224,10 +257,7 @@ class EmbedService {
       'No oEmbed provider matched and URL does not look like an oEmbed endpoint',
       data: {'url': param.url},
     );
-    throw EmbedApisException(
-      message: 'No oEmbed provider found for ${param.url}. '
-          'Try enabling dynamic discovery or providing a manual rule.',
-    );
+    throw EmbedProviderNotFoundException(url: param.url);
   }
 
   /// Resolves the iframe URL for a given content URL if iframe mode is active.
@@ -295,13 +325,8 @@ class EmbedService {
       rules ??= kEmbedProvidersSnapshot['*.$domain'];
 
       if (rules != null && rules.isNotEmpty) {
-        // First try strict regex match
         final match = rules.firstWhereOrNull((r) => r.matches(url));
         if (match != null) return match;
-
-        // Fallback: If domain matched perfectly but regex was too strict
-        // (common in generated snapshot rules), return the first rule for that domain.
-        return rules.first;
       }
     }
     return null;

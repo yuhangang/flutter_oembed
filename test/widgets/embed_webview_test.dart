@@ -58,6 +58,35 @@ void main() {
       await tester.pump(const Duration(seconds: 11));
     });
 
+    testWidgets('exposes loading semantics while the embed is loading',
+        (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 640,
+                controller: controller,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        expect(
+          find.bySemanticsLabel('Loading embedded content'),
+          findsOneWidget,
+        );
+      } finally {
+        controller.dispose();
+        semanticsHandle.dispose();
+      }
+    });
+
     testWidgets(
         'should trigger re-initialization when didUpdateWidget is called',
         (tester) async {
@@ -118,28 +147,37 @@ void main() {
     testWidgets(
         'should allow retry logic when the controller is in an error state',
         (tester) async {
-      controller.setLoadingState(EmbedLoadingState.error);
+      final semanticsHandle = tester.ensureSemantics();
+      try {
+        controller.setLoadingState(EmbedLoadingState.error);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: EmbedWebView.data(
-              param: param,
-              data: data,
-              maxWidth: 640,
-              controller: controller,
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 640,
+                controller: controller,
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pump();
-      final refreshIcon = find.byIcon(Icons.refresh);
-      expect(refreshIcon, findsOneWidget);
+        await tester.pump();
+        final refreshIcon = find.byIcon(Icons.refresh);
+        expect(refreshIcon, findsOneWidget);
+        expect(
+          find.bySemanticsLabel('Retry embedded content after load error'),
+          findsOneWidget,
+        );
 
-      await tester.tap(refreshIcon);
-      expect(controller.loadingState, EmbedLoadingState.loading);
-      await tester.pump(const Duration(seconds: 11));
+        await tester.tap(refreshIcon);
+        expect(controller.loadingState, EmbedLoadingState.loading);
+        await tester.pump(const Duration(seconds: 11));
+      } finally {
+        semanticsHandle.dispose();
+      }
     });
 
     testWidgets(

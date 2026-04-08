@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 
 class EmbedData extends Equatable {
+  static const _unset = Object();
+
   final String html;
   final String? url;
   final String? thumbnailUrl;
@@ -98,31 +100,41 @@ class EmbedData extends Equatable {
 
   EmbedData copyWith({
     String? html,
-    String? url,
-    String? thumbnailUrl,
-    String? title,
-    String? authorName,
-    String? authorUrl,
-    String? providerName,
-    String? providerUrl,
-    String? type,
-    double? width,
-    double? height,
-    double? cacheAge,
+    Object? url = _unset,
+    Object? thumbnailUrl = _unset,
+    Object? title = _unset,
+    Object? authorName = _unset,
+    Object? authorUrl = _unset,
+    Object? providerName = _unset,
+    Object? providerUrl = _unset,
+    Object? type = _unset,
+    Object? width = _unset,
+    Object? height = _unset,
+    Object? cacheAge = _unset,
   }) {
     return EmbedData(
       html: html ?? this.html,
-      url: url ?? this.url,
-      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
-      title: title ?? this.title,
-      authorName: authorName ?? this.authorName,
-      authorUrl: authorUrl ?? this.authorUrl,
-      providerName: providerName ?? this.providerName,
-      providerUrl: providerUrl ?? this.providerUrl,
-      type: type ?? this.type,
-      width: width ?? this.width,
-      height: height ?? this.height,
-      cacheAge: cacheAge ?? this.cacheAge,
+      url: identical(url, _unset) ? this.url : url as String?,
+      thumbnailUrl: identical(thumbnailUrl, _unset)
+          ? this.thumbnailUrl
+          : thumbnailUrl as String?,
+      title: identical(title, _unset) ? this.title : title as String?,
+      authorName: identical(authorName, _unset)
+          ? this.authorName
+          : authorName as String?,
+      authorUrl:
+          identical(authorUrl, _unset) ? this.authorUrl : authorUrl as String?,
+      providerName: identical(providerName, _unset)
+          ? this.providerName
+          : providerName as String?,
+      providerUrl: identical(providerUrl, _unset)
+          ? this.providerUrl
+          : providerUrl as String?,
+      type: identical(type, _unset) ? this.type : type as String?,
+      width: identical(width, _unset) ? this.width : width as double?,
+      height: identical(height, _unset) ? this.height : height as double?,
+      cacheAge:
+          identical(cacheAge, _unset) ? this.cacheAge : cacheAge as double?,
     );
   }
 

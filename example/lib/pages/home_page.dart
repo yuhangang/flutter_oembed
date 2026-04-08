@@ -116,7 +116,11 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.only(
+              left: 16,
+              right: 16,
+              bottom: MediaQuery.viewPaddingOf(context).bottom,
+            ),
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
@@ -129,39 +133,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 },
                 childCount:
                     samples.where((s) => s['category'] == 'verified').length,
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 32, 16, 12),
-              child: Text(
-                'Other / Experimental Providers',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-            ).copyWith(bottom: 32),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final experimentalSamples =
-                      samples
-                          .where((s) => s['category'] == 'experimental')
-                          .toList();
-                  final sample = experimentalSamples[index];
-                  return _buildSampleCard(context, sample, index);
-                },
-                childCount:
-                    samples
-                        .where((s) => s['category'] == 'experimental')
-                        .length,
               ),
             ),
           ),

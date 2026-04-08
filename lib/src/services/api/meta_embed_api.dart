@@ -104,7 +104,7 @@ class MetaEmbedApi extends BaseEmbedApi {
     try {
       final body = jsonDecode(response.body);
       final errorCode = body?['error']?['code'];
-      if (errorCode == 24) return EmbedDataNotFoundException();
+      if (errorCode == 24) return const EmbedDataNotFoundException();
     } catch (_) {
       // Body is not valid JSON, fall through to generic error
     }

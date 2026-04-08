@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/base_embed_params.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/services/embed_service.dart';
 
 /// Provides [EmbedConfig] to the widget subtree.
 ///
@@ -18,6 +21,9 @@ import 'package:flutter_oembed/src/models/embed_style.dart';
 /// )
 /// ```
 class EmbedScope extends InheritedWidget {
+  @visibleForTesting
+  static BaseCacheManager cacheManager = DefaultCacheManager();
+
   final EmbedConfig config;
 
   const EmbedScope({
@@ -48,7 +54,38 @@ class EmbedScope extends InheritedWidget {
 
   /// Clears all cached OEmbed data from the persistent storage.
   static Future<void> clearCache() async {
-    await DefaultCacheManager().emptyCache();
+    await cacheManager.emptyCache();
+  }
+
+  /// Removes a single cached OEmbed response for the given content URL and request shape.
+  ///
+  /// Pass the same request parameters used to fetch the embed if you want to
+  /// evict a width- or query-dependent cache entry precisely.
+  ///
+  /// Returns `true` when a matching cache key could be resolved and a removal
+  /// request was issued. Returns `false` when no provider could be resolved.
+  static Future<bool> evictCacheForUrl(
+    String url, {
+    EmbedConfig? config,
+    EmbedType? embedType,
+    double? width,
+    Map<String, String>? queryParameters,
+    BaseEmbedParams? embedParams,
+  }) async {
+    final cacheUri = EmbedService.resolveCacheUri(
+      url,
+      config: config,
+      embedType: embedType,
+      width: width,
+      queryParameters: queryParameters,
+      embedParams: embedParams,
+    );
+    if (cacheUri == null) {
+      return false;
+    }
+
+    await cacheManager.removeFile(cacheUri.toString());
+    return true;
   }
 
   /// Returns `true` when the widget should notify dependents of a change.

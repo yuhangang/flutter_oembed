@@ -66,6 +66,16 @@ void main() {
         expect(rule?.providerName, equals('YouTube'));
       });
 
+      test(
+          'should not fall back to the first snapshot rule when the host matches but the pattern does not',
+          () {
+        const url = 'https://www.youtube.com/channel/UC123456789';
+        final rule = EmbedService.resolveRule(url,
+            config: const EmbedConfig(useDynamicDiscovery: true));
+
+        expect(rule, isNull);
+      });
+
       test('should use default rules when no config is provided', () {
         final rule =
             EmbedService.resolveRule('https://youtube.com/watch?v=123');
@@ -239,7 +249,7 @@ void main() {
           width: 640,
         );
         expect(() => EmbedService.getEmbedApiByEmbedType(param),
-            throwsA(isA<EmbedApisException>()));
+            throwsA(isA<EmbedProviderNotFoundException>()));
       });
 
       test(

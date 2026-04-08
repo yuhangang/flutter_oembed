@@ -1,39 +1,63 @@
 # flutter_oembed
 
-A powerful, easy-to-use Flutter package for embedding social media content and other rich media using the oEmbed protocol.
+A Flutter package for embedding rich social and media content with oEmbed APIs and WebView rendering.
 
-## Features
+## Current Package Status
 
-- **Multi-provider Support:** X (Twitter), TikTok, Instagram, Facebook, YouTube, Spotify, Vimeo, and more.
-- **Dynamic Sizing:** Automatically adjusts height to fit embedded content.
-- **Smart Caching:** Built-in caching for oEmbed responses to improve performance and respect rate limits.
-- **Iframe Optimization:** Direct iframe rendering support for YouTube and Spotify to skip API round-trips.
-- **Privacy & Security:** Securely handles authentication tokens and implements Content Security Policy (CSP).
-- **Extensible:** Easily add custom providers and render rules.
-- **Rich Media Support:** Embed not just posts, but also videos, music, and more.
+- Current package version: `1.0.0-beta`
+- Verified platforms: Android, iOS
+- Not supported currently: Flutter Web
+- Not yet verified for release: macOS, Windows, Linux
 
-## Supported Providers
-
-`flutter_oembed` supports the following verified oEmbed providers out of the box:
-
-| Category | Providers |
-| :--- | :--- |
-| **Social** | X (Twitter), Facebook, Instagram, Threads, Reddit, TikTok |
-| **Video** | YouTube, Vimeo, Dailymotion |
-| **Audio** | Spotify, SoundCloud |
-
-## Getting started
-
-Add `flutter_oembed` to your `pubspec.yaml`:
+If you are consuming the package before the stable release lands, use the current beta line:
 
 ```yaml
 dependencies:
-  flutter_oembed: ^0.0.1
+  flutter_oembed: ^1.0.0-beta
 ```
 
-## Usage
+Update this version to `^1.0.0` once the stable release is published.
 
-### Basic Usage
+## Features
+
+- Multiple built-in providers: X, TikTok, Instagram, Facebook, Threads, Reddit, YouTube, Vimeo, Dailymotion, Spotify, SoundCloud
+- Automatic height adjustment for embedded content
+- Built-in response caching
+- Direct iframe rendering for selected providers such as YouTube and Spotify
+- Per-provider render configuration and custom provider rules
+- Debug logging hooks for provider resolution, network requests, and WebView lifecycle
+
+## Platform Support
+
+`flutter_oembed` currently targets mobile Flutter apps that can host a platform WebView.
+
+| Platform | Status | Notes |
+| :--- | :--- | :--- |
+| Android | Supported | Verified in the current repo workflow |
+| iOS | Supported | Verified in the current repo workflow |
+| Flutter Web | Not supported | This package relies on `webview_flutter`; there is no iframe-based web fallback yet |
+| macOS | Unverified | Not part of the current release verification matrix |
+| Windows | Unverified | Not part of the current release verification matrix |
+| Linux | Unverified | Not part of the current release verification matrix |
+
+## Provider Notes
+
+- Meta providers such as Facebook, Instagram, and Threads require a Meta App ID and Client Token.
+- Provider behavior is not uniform. Some providers expose less metadata or more restrictive embed behavior than others.
+- Dark mode support varies by provider. `brightness` is not guaranteed to affect every provider embed.
+- The package auto-pauses media when embeds leave the viewport, but there is no stable public media-control API yet.
+
+## Supported Providers
+
+`flutter_oembed` ships with verified support for these provider groups:
+
+| Category | Providers |
+| :--- | :--- |
+| Social | X, Facebook, Instagram, Threads, Reddit, TikTok |
+| Video | YouTube, Vimeo, Dailymotion |
+| Audio | Spotify, SoundCloud |
+
+## Getting Started
 
 Wrap your app in an `EmbedScope` to provide global configuration:
 
@@ -47,29 +71,31 @@ EmbedScope(
 )
 ```
 
-#### Meta (Facebook / Instagram / Threads) Setup
-
-Facebook, Instagram and Threads embeds require a Meta App ID and Client Token. You can obtain these from the [Meta for Developers](https://developers.facebook.com/) portal. For more details on the oEmbed API requirements and setup, see:
-- [Meta oEmbed Documentation](https://developers.facebook.com/docs/graph-api/reference/v22.0/oembed-read/)
-- [Facebook oEmbed API Guide](https://developers.facebook.com/docs/plugins/oembed)
-- [Instagram oEmbed API Guide](https://developers.facebook.com/docs/instagram/oembed)
-- [Threads oEmbed API Guide](https://developers.facebook.com/docs/threads/tools-and-resources/embed-a-threads-post)
-
-Then use the `EmbedCard` widget anywhere in your app:
+Then render content with `EmbedCard`:
 
 ```dart
 EmbedCard(
   url: 'https://twitter.com/X/status/1328842765115920384',
   embedType: EmbedType.x,
   onLinkTap: (url, data) {
-    print('User tapped link: $url');
+    debugPrint('User tapped link: $url');
   },
 )
 ```
 
-### Advanced Configuration
+## Meta Setup
 
-You can customize caching, render modes, and styles:
+Facebook, Instagram, and Threads embeds require credentials from [Meta for Developers](https://developers.facebook.com/).
+
+References:
+- [Meta oEmbed Documentation](https://developers.facebook.com/docs/graph-api/reference/v22.0/oembed-read/)
+- [Facebook oEmbed API Guide](https://developers.facebook.com/docs/plugins/oembed)
+- [Instagram oEmbed API Guide](https://developers.facebook.com/docs/instagram/oembed)
+- [Threads oEmbed API Guide](https://developers.facebook.com/docs/threads/tools-and-resources/embed-a-threads-post)
+
+## Advanced Configuration
+
+You can customize caching, provider render modes, and style:
 
 ```dart
 EmbedConfig(
@@ -89,10 +115,9 @@ EmbedConfig(
 )
 ```
 
-### Debug Logging
+## Debug Logging
 
-Enable debug logging when you want to trace provider resolution, cache hits,
-network requests, and WebView loading events:
+Enable debug logging when you need visibility into provider resolution, cache hits, network requests, and WebView loading events:
 
 ```dart
 EmbedConfig(
@@ -126,110 +151,24 @@ EmbedConfig(
 )
 ```
 
-### Markdown Integration (`markdown_widget`)
+## HTML And Markdown Integration
 
-`markdown_widget` does not parse HTML tags by default, so add a custom block
-syntax for `<oembed>` and a tag generator:
+The repository example app includes working integrations for:
 
-```dart
-class EmbedBlockSyntax extends md.BlockSyntax {
-  const EmbedBlockSyntax();
+- `markdown_widget`
+- `flutter_html`
+- Quill-based editors
 
-  @override
-  RegExp get pattern => RegExp(
-        r'^\s*<oembed\b[^>]*>(?:.*</oembed>\s*)?$|^\s*<oembed\b[^>]*/>\s*$',
-        caseSensitive: false,
-      );
+See the example app in `/example` for concrete integration code.
 
-  @override
-  md.Node? parse(md.BlockParser parser) {
-    final raw = parser.current.content.trim();
-    parser.advance();
-    final url = RegExp(r'\burl\s*=\s*"([^"]+)"', caseSensitive: false)
-            .firstMatch(raw)
-            ?.group(1) ??
-        RegExp(r'<oembed\b[^>]*>([\s\S]*?)</oembed>', caseSensitive: false)
-            .firstMatch(raw)
-            ?.group(1)
-            ?.trim();
-    if (url == null || url.isEmpty) return md.Text(raw);
-    final element = md.Element('oembed', [md.Text(url)]);
-    element.attributes['url'] = url;
-    return element;
-  }
-}
+## Troubleshooting
 
-MarkdownWidget(
-  data: content,
-  markdownGenerator: MarkdownGenerator(
-    blockSyntaxList: const [EmbedBlockSyntax()],
-    generators: [
-      SpanNodeGeneratorWithTag(
-        tag: 'oembed',
-        generator: (e, config, visitor) => EmbedNode(
-          e.attributes['url'] ?? e.textContent,
-        ),
-      ),
-    ],
-  ),
-)
+- If Meta embeds fail, verify your App ID and Client Token first.
+- If a provider resolves but renders an empty frame, enable debug logging and inspect WebView/network events.
+- If a URL is not matched, provide a custom provider rule or enable dynamic discovery where appropriate.
+- If you need Flutter Web support, this package does not provide it yet.
 
-class EmbedNode extends SpanNode {
-  final String url;
-  EmbedNode(this.url);
+## Additional Information
 
-  @override
-  InlineSpan build() {
-    return WidgetSpan(
-      child: EmbedCard(
-        url: url,
-      ),
-    );
-  }
-}
-```
-
-### HTML Integration (`flutter_html`)
-
-Use a `TagExtension` and extract URL from `url`, `href`, `src`, `data-url`, or
-inner text:
-
-```dart
-String? extractEmbedUrl(ExtensionContext context) {
-  final attrs = context.attributes;
-  final candidates = [
-    attrs['url'],
-    attrs['href'],
-    attrs['src'],
-    attrs['data-url'],
-    context.innerHtml.trim(),
-  ];
-  for (final c in candidates) {
-    final uri = Uri.tryParse(c ?? '');
-    if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
-      return c!.trim();
-    }
-  }
-  return null;
-}
-
-Html(
-  data: htmlContent,
-  extensions: [
-    TagExtension(
-      tagsToExtend: {"oembed"},
-      builder: (context) {
-        final url = extractEmbedUrl(context);
-        if (url == null) return const SizedBox.shrink();
-        return EmbedCard(
-          url: url,
-        );
-      },
-    ),
-  ],
-)
-```
-
-## Additional information
-
-For more examples, check the `/example` folder in the repository.
+- Example app: `/example`
+- Release checklist: [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md)

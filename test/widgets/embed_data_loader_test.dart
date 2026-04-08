@@ -109,6 +109,40 @@ void main() {
       await tester.pump(const Duration(seconds: 11));
     });
 
+    testWidgets('exposes loading semantics while fetching embed data',
+        (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+      try {
+        final completer = Completer<http.Response>();
+        when(() => mockClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer((_) => completer.future);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedDataLoader(
+                param: param,
+                loaderParam: loaderParam,
+                controller: controller,
+                config: testConfig,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        expect(
+          find.bySemanticsLabel('Loading embedded content'),
+          findsOneWidget,
+        );
+
+        completer.complete(http.Response('{}', 200));
+      } finally {
+        semanticsHandle.dispose();
+      }
+    });
+
     testWidgets('didUpdateWidget updates data', (tester) async {
       await tester.pumpWidget(
         MaterialApp(

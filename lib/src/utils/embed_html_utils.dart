@@ -25,11 +25,17 @@ String buildGenericHtmlDocument(
       width: 100%;
       $scrollStyles
     }
-    img, iframe, video {
+    img, video {
       width: 100% !important;
       height: auto !important;
       display: block;
       margin: 0 auto;
+    }
+    iframe {
+      width: 100% !important;
+      display: block;
+      margin: 0 auto;
+      border: none;
     }
   </style>
 </head>

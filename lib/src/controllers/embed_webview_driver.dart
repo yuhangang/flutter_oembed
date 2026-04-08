@@ -8,6 +8,7 @@ import 'package:flutter_oembed/src/logging/embed_logger.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/services/embed_service.dart';
+import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter_oembed/src/utils/embed_webview_controller_utils.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -16,6 +17,11 @@ import 'package:webview_flutter/webview_flutter.dart';
 /// This class decouples the WebView lifecycle and platform-specific scripts
 /// from the high-level [EmbedController] state.
 class EmbedWebViewDriver {
+  static const _initialRenderDelay = Duration(milliseconds: 300);
+  static const _deferredSignalWait = Duration(seconds: 2);
+  static const _integrityRetryDelay = Duration(milliseconds: 700);
+  static const _postLoadShiftDelay = Duration(milliseconds: 500);
+
   final EmbedController controller;
   final WebViewController webViewController;
   late final EmbedNavigationHandler _navigationHandler;
@@ -36,9 +42,9 @@ class EmbedWebViewDriver {
   }
 
   void dispose() {
+    if (_isDisposed) return;
     _isDisposed = true;
-    webViewController.loadRequest(Uri.parse('about:blank'));
-    webViewController.setNavigationDelegate(NavigationDelegate());
+    unawaited(_disposeWebView());
   }
 
   /// Initialises and loads the WebView.
@@ -50,6 +56,7 @@ class EmbedWebViewDriver {
     bool scrollable = false,
     bool forceReload = false,
   }) async {
+    if (_isDisposed) return;
     // Resolve strategy first
     final rule = EmbedService.resolveRule(
       controller.param.url,
@@ -74,6 +81,7 @@ class EmbedWebViewDriver {
       embedData: embedData,
       scrollable: scrollable,
     );
+    if (_isDisposed) return;
 
     controller.startLoadTimeout();
 
@@ -93,13 +101,17 @@ class EmbedWebViewDriver {
     final resolvedData = embedData ?? controller.preloadedData;
     _navigationHandler.oembedData = resolvedData;
 
-    webViewController.setBackgroundColor(backgroundColor);
-    webViewController.enableZoom(scrollable);
-    webViewController.setJavaScriptMode(JavaScriptMode.unrestricted);
+    await webViewController.setBackgroundColor(backgroundColor);
+    if (_isDisposed) return;
+    await webViewController.enableZoom(scrollable);
+    if (_isDisposed) return;
+    await webViewController.setJavaScriptMode(JavaScriptMode.unrestricted);
+    if (_isDisposed) return;
 
     final customUserAgent = _strategy.userAgent;
     if (customUserAgent != null) {
-      webViewController.setUserAgent(customUserAgent);
+      await webViewController.setUserAgent(customUserAgent);
+      if (_isDisposed) return;
     }
 
     await _strategy.onWebViewCreated(
@@ -114,6 +126,7 @@ class EmbedWebViewDriver {
         }
       },
     );
+    if (_isDisposed) return;
 
     await webViewController.addJavaScriptChannel(
       'HeightChannel',
@@ -126,6 +139,7 @@ class EmbedWebViewDriver {
         }
       },
     );
+    if (_isDisposed) return;
 
     await webViewController.addJavaScriptChannel(
       'ErrorChannel',
@@ -134,9 +148,13 @@ class EmbedWebViewDriver {
           'url': controller.param.url,
           'message': message.message,
         });
-        controller.setLoadingState(EmbedLoadingState.error);
+        controller.setLoadingState(
+          EmbedLoadingState.error,
+          error: StateError('WebView JavaScript error: ${message.message}'),
+        );
       },
     );
+    if (_isDisposed) return;
 
     final baseUrl = embedData?.providerUrl;
 
@@ -178,9 +196,19 @@ class EmbedWebViewDriver {
                 error.description.toLowerCase().contains('connection') ||
                 error.description.toLowerCase().contains('timeout');
 
-            controller.setLoadingState(isConnectionError
-                ? EmbedLoadingState.noConnection
-                : EmbedLoadingState.error);
+            controller.setLoadingState(
+              isConnectionError
+                  ? EmbedLoadingState.noConnection
+                  : EmbedLoadingState.error,
+              error: isConnectionError
+                  ? EmbedNetworkException(
+                      cause: error,
+                      message: error.description,
+                    )
+                  : StateError(
+                      'WebView load failed (${error.errorCode}): ${error.description}',
+                    ),
+            );
           }
         },
       ),
@@ -193,6 +221,7 @@ class EmbedWebViewDriver {
     String? embedUrl,
     bool scrollable,
   ) async {
+    if (_isDisposed) return;
     final resolvedData = embedData ?? controller.preloadedData;
     if (resolvedData != null) {
       if (resolvedData.html.isNotEmpty) {
@@ -206,9 +235,11 @@ class EmbedWebViewDriver {
           baseUrl: _strategy.resolveBaseUrl(resolvedData),
         );
       } else if (resolvedData.url != null && resolvedData.url!.isNotEmpty) {
+        if (_isDisposed) return;
         await webViewController.loadRequest(Uri.parse(resolvedData.url!));
       }
     } else if (embedUrl != null) {
+      if (_isDisposed) return;
       await webViewController.loadRequest(
         Uri.parse(embedUrl),
         headers: <String, String>{
@@ -222,6 +253,7 @@ class EmbedWebViewDriver {
   Future<void> _handleEmbedPageFinished() async {
     // 1. URL Safety Check: If we end up on an error page or unexpected blank page, trigger error
     final url = await webViewController.currentUrl();
+    if (_isDisposed) return;
     if (url != null &&
         (url.startsWith('chrome-error:') ||
             (url.startsWith('file://') && url.contains('ERROR')))) {
@@ -229,13 +261,15 @@ class EmbedWebViewDriver {
         'url': controller.param.url,
         'currentUrl': url,
       });
-      controller.setLoadingState(EmbedLoadingState.error);
+      controller.setLoadingState(
+        EmbedLoadingState.error,
+        error: StateError('WebView loaded an error page: $url'),
+      );
       return;
     }
 
     // 2. Small delay to allow initial rendering to start
-    await Future.delayed(const Duration(milliseconds: 300));
-    if (_isDisposed) return;
+    if (!await _delayWhileActive(_initialRenderDelay)) return;
 
     if (controller.loadingState != EmbedLoadingState.loaded) {
       if (_strategy.deferLoadingState) {
@@ -243,8 +277,7 @@ class EmbedWebViewDriver {
         // The provider has its own "loaded" signal (e.g. OnTwitterLoaded JS
         // channel). Wait up to 2 seconds for it to fire. If the signal
         // arrives, the callback will have already set state to loaded.
-        await Future.delayed(const Duration(seconds: 2));
-        if (_isDisposed) return;
+        if (!await _delayWhileActive(_deferredSignalWait)) return;
         if (controller.loadingState == EmbedLoadingState.loaded) return;
 
         // Fallback: signal didn't arrive in time – use height-based detection
@@ -258,7 +291,12 @@ class EmbedWebViewDriver {
             'Deferred embed load: signal not received and height is 0',
             data: {'url': controller.param.url},
           );
-          controller.setLoadingState(EmbedLoadingState.error);
+          controller.setLoadingState(
+            EmbedLoadingState.error,
+            error: StateError(
+              'Deferred embed load did not report a valid height for ${controller.param.url}.',
+            ),
+          );
         }
         return;
       } else {
@@ -271,8 +309,9 @@ class EmbedWebViewDriver {
       // 4. Post-Load Integrity Check: If height is still effectively 0 after small delay,
       // it might be a silent failure (e.g. script crashed before rendering anything)
       if (controller.height == null || controller.height! <= 1.0) {
-        await Future.delayed(const Duration(milliseconds: 700));
+        if (!await _delayWhileActive(_integrityRetryDelay)) return;
         await updateEmbedPostHeight();
+        if (_isDisposed) return;
       }
 
       if (controller.height != null && controller.height! > 0) {
@@ -283,12 +322,16 @@ class EmbedWebViewDriver {
             data: {
               'url': controller.param.url,
             });
-        controller.setLoadingState(EmbedLoadingState.error);
+        controller.setLoadingState(
+          EmbedLoadingState.error,
+          error: StateError(
+            'WebView rendered with an invalid height for ${controller.param.url}.',
+          ),
+        );
       }
 
       // Final short delay to catch any immediate post-load shifts
-      await Future.delayed(const Duration(milliseconds: 500));
-      if (_isDisposed) return;
+      if (!await _delayWhileActive(_postLoadShiftDelay)) return;
 
       await updateEmbedPostHeight();
     }
@@ -325,7 +368,38 @@ class EmbedWebViewDriver {
 
   Future<void> refresh() async {
     _logger.debug('Refreshing embed', data: {'url': controller.param.url});
+    if (_isDisposed) return;
     await webViewController.reload();
+    if (_isDisposed) return;
     controller.startLoadTimeout();
+  }
+
+  Future<bool> _delayWhileActive(Duration duration) async {
+    await Future.delayed(duration);
+    return !_isDisposed;
+  }
+
+  Future<void> _disposeWebView() async {
+    try {
+      await webViewController.loadRequest(Uri.parse('about:blank'));
+    } catch (error, stackTrace) {
+      _logger.debug(
+        'Ignoring WebView cleanup load failure during dispose',
+        data: {'url': controller.param.url},
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+
+    try {
+      await webViewController.setNavigationDelegate(NavigationDelegate());
+    } catch (error, stackTrace) {
+      _logger.debug(
+        'Ignoring NavigationDelegate cleanup failure during dispose',
+        data: {'url': controller.param.url},
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 }

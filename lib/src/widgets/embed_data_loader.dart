@@ -40,6 +40,8 @@ class EmbedDataLoader extends StatefulWidget {
 }
 
 class _EmbedDataLoaderState extends State<EmbedDataLoader> {
+  static const _loadingSemanticsLabel = 'Loading embedded content';
+
   Future<EmbedData>? _embedFeature;
   EmbedConfig? _resolvedConfig;
 
@@ -89,6 +91,19 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
     });
   }
 
+  String _errorSemanticsLabel(Object? error) {
+    if (error is EmbedDataNotFoundException) {
+      return 'Embedded content not found';
+    }
+    if (error is EmbedDataRestrictedAccessException) {
+      return 'Embedded content is restricted';
+    }
+    if (error is SocketException) {
+      return 'Embedded content failed to load because of a network error';
+    }
+    return 'Embedded content failed to load';
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_embedFeature == null) return const SizedBox.shrink();
@@ -104,7 +119,12 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
               final loadingWidget =
                   widget.style?.loadingBuilder?.call(context) ??
                       const Center(child: CircularProgressIndicator());
-              return loadingWidget;
+              return Semantics(
+                container: true,
+                liveRegion: true,
+                label: _loadingSemanticsLabel,
+                child: loadingWidget,
+              );
             }
 
             if (snapshot.hasError) {
@@ -115,28 +135,46 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
 
               if (error is EmbedDataNotFoundException ||
                   error is EmbedDataRestrictedAccessException) {
-                return errorWidget;
-              }
-
-              if (!didRetry) {
-                return GestureDetector(
-                  onTap: () {
-                    if (error is! SocketException) {
-                      widget.controller.setDidRetry();
-                    }
-                    setState(() {
-                      _loadData(
-                        config: widget.config ??
-                            _resolvedConfig ??
-                            EmbedScope.configOf(context),
-                      );
-                    });
-                  },
+                return Semantics(
+                  container: true,
+                  liveRegion: true,
+                  label: _errorSemanticsLabel(error),
                   child: errorWidget,
                 );
               }
 
-              return errorWidget;
+              if (!didRetry) {
+                return Semantics(
+                  container: true,
+                  liveRegion: true,
+                  button: true,
+                  enabled: true,
+                  label: _errorSemanticsLabel(error),
+                  hint: 'Double tap to retry',
+                  child: GestureDetector(
+                    onTap: () {
+                      if (error is! SocketException) {
+                        widget.controller.setDidRetry();
+                      }
+                      setState(() {
+                        _loadData(
+                          config: widget.config ??
+                              _resolvedConfig ??
+                              EmbedScope.configOf(context),
+                        );
+                      });
+                    },
+                    child: errorWidget,
+                  ),
+                );
+              }
+
+              return Semantics(
+                container: true,
+                liveRegion: true,
+                label: _errorSemanticsLabel(error),
+                child: errorWidget,
+              );
             }
 
             if (snapshot.hasData && snapshot.data != null) {

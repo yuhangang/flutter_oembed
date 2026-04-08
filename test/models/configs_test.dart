@@ -1,5 +1,7 @@
 import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/embed_constant.dart';
 import 'package:flutter_oembed/src/models/embed_provider_config.dart';
+import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -50,6 +52,17 @@ void main() {
       const config = EmbedConfig();
       final updated = config.copyWith(facebookAppId: 'new');
       expect(updated.facebookAppId, equals('new'));
+    });
+
+    test('defaults use shared embed constants', () {
+      const config = EmbedConfig();
+      const style = EmbedStyle();
+
+      expect(config.loadTimeout, equals(kDefaultEmbedLoadTimeout));
+      expect(
+        style.maxScrollableHeight,
+        equals(kDefaultMaxScrollableEmbedHeight),
+      );
     });
   });
 }

@@ -4,6 +4,7 @@ import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
@@ -132,6 +133,17 @@ void main() {
       expect(listenerCalled, isTrue);
     });
 
+    test('setLoadingState stores and clears lastError correctly', () {
+      final controller = EmbedController(param: testParam);
+      final error = StateError('broken');
+
+      controller.setLoadingState(EmbedLoadingState.error, error: error);
+      expect(controller.lastError, same(error));
+
+      controller.setLoadingState(EmbedLoadingState.loading);
+      expect(controller.lastError, isNull);
+    });
+
     test('updateVisibility updates visibility and calls callback', () {
       final controller = EmbedController(param: testParam);
       bool callbackCalledWith = true;
@@ -173,6 +185,7 @@ void main() {
 
         async.elapse(const Duration(seconds: 6));
         expect(controller.loadingState, EmbedLoadingState.error);
+        expect(controller.lastError, isA<EmbedTimeoutException>());
       });
     });
 
@@ -276,6 +289,7 @@ void main() {
       );
 
       driver.dispose();
+      await Future<void>.delayed(Duration.zero);
 
       verify(() => mockWebViewController.loadRequest(
             Uri.parse('about:blank'),
@@ -543,6 +557,7 @@ void main() {
           embedUrl: 'url',
           maxWidth: 400,
         );
+        async.flushMicrotasks();
 
         // Trigger OnTwitterLoaded
         final capturedOnTwitterLoaded =

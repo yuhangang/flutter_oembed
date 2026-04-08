@@ -46,6 +46,9 @@ class EmbedWebView extends StatefulWidget {
 }
 
 class _EmbedViewState extends State<EmbedWebView> {
+  static const _loadingSemanticsLabel = 'Loading embedded content';
+  static const _contentSemanticsLabel = 'Embedded content';
+
   late EmbedWebViewDriver _driver;
 
   @override
@@ -97,12 +100,30 @@ class _EmbedViewState extends State<EmbedWebView> {
   }
 
   Widget _buildLoadingOverlay(BuildContext context, EmbedStyle? style) {
-    return style?.loadingBuilder?.call(context) ??
+    final loadingChild = style?.loadingBuilder?.call(context) ??
         const Center(child: CircularProgressIndicator());
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: _loadingSemanticsLabel,
+      child: loadingChild,
+    );
   }
 
   Widget _buildWebView(BuildContext context, EmbedStyle? style) {
-    return WebViewWidget(controller: _driver.webViewController);
+    return Semantics(
+      container: true,
+      label: _contentSemanticsLabel,
+      child: WebViewWidget(controller: _driver.webViewController),
+    );
+  }
+
+  String _retrySemanticsLabel(EmbedLoadingState state) {
+    return switch (state) {
+      EmbedLoadingState.noConnection =>
+        'Retry embedded content after connection error',
+      _ => 'Retry embedded content after load error',
+    };
   }
 
   @override
@@ -137,20 +158,31 @@ class _EmbedViewState extends State<EmbedWebView> {
                 _buildLoadingOverlay(context, style)
               else if (loadingState == EmbedLoadingState.error ||
                   loadingState == EmbedLoadingState.noConnection)
-                GestureDetector(
-                  onTap: () {
-                    widget.controller.setLoadingState(
-                      EmbedLoadingState.loading,
-                    );
-                    if (loadingState == EmbedLoadingState.error) {
-                      widget.controller.setDidRetry();
-                      _driver.refresh();
-                    } else {
-                      _driver.webViewController.reload();
-                    }
-                  },
-                  child: style?.errorBuilder?.call(context, null) ??
-                      const Icon(Icons.refresh),
+                Semantics(
+                  container: true,
+                  liveRegion: true,
+                  button: true,
+                  enabled: true,
+                  label: _retrySemanticsLabel(loadingState),
+                  hint: 'Double tap to retry',
+                  child: GestureDetector(
+                    onTap: () {
+                      widget.controller.setLoadingState(
+                        EmbedLoadingState.loading,
+                      );
+                      if (loadingState == EmbedLoadingState.error) {
+                        widget.controller.setDidRetry();
+                        _driver.refresh();
+                      } else {
+                        _driver.webViewController.reload();
+                      }
+                    },
+                    child: style?.errorBuilder?.call(
+                          context,
+                          widget.controller.lastError,
+                        ) ??
+                        const Icon(Icons.refresh),
+                  ),
                 ),
             ],
           ),

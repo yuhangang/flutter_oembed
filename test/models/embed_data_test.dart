@@ -73,6 +73,21 @@ void main() {
       expect(updated.html, equals(data.html));
     });
 
+    test('copyWith should allow nullable fields to be explicitly cleared', () {
+      final data = EmbedData.fromJson(json);
+      final updated = data.copyWith(
+        title: null,
+        providerName: null,
+        width: null,
+      );
+
+      expect(updated.title, isNull);
+      expect(updated.providerName, isNull);
+      expect(updated.width, isNull);
+      expect(updated.html, equals(data.html));
+      expect(updated.url, equals(data.url));
+    });
+
     test('equality should work via Equatable', () {
       final data1 = EmbedData.fromJson(json);
       final data2 = EmbedData.fromJson(json);

@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_oembed/src/models/embed_constant.dart';
 
 /// Per-widget visual customization for OEmbed embeds.
 ///
@@ -51,7 +52,7 @@ class EmbedStyle extends Equatable {
   final BorderRadius? borderRadius;
 
   /// The maximum height of the embed when [scrollable] is true.
-  /// Defaults to 400.0.
+  /// Defaults to [kDefaultMaxScrollableEmbedHeight].
   final double maxScrollableHeight;
 
   const EmbedStyle({
@@ -61,7 +62,7 @@ class EmbedStyle extends Equatable {
     this.footerBuilder,
     this.webViewBuilder,
     this.borderRadius,
-    this.maxScrollableHeight = 400.0,
+    this.maxScrollableHeight = kDefaultMaxScrollableEmbedHeight,
   });
 
   @override

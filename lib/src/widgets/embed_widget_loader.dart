@@ -119,7 +119,8 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
                 _controller.didRetry;
 
         if (showErrorWidget) {
-          final errorWidget = style?.errorBuilder?.call(context, null);
+          final errorWidget =
+              style?.errorBuilder?.call(context, _controller.lastError);
           return errorWidget ?? const Icon(Icons.error_outline);
         }
 

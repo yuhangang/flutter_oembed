@@ -75,11 +75,4 @@ const List<Map<String, dynamic>> samples = [
     'source': 'GIPHY',
     'category': 'verified',
   },
-  {
-    'url':
-        'https://www.flickr.com/photos/56245002@N03/39743612664/in/dateposted/',
-    'type': EmbedType.other,
-    'source': 'Flickr',
-    'category': 'experimental',
-  },
 ];

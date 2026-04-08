@@ -3,16 +3,14 @@
 # Exit on error
 set -e
 
-# Project root
-PROJECT_ROOT=$(pwd)
-
 echo "🚀 Generating test coverage..."
 
 # 1. Run tests with coverage
 flutter test --coverage
 
 # 2. Define exclusions
-# We exclude models (data classes), logging (boilerplate), and generated files.
+# Release coverage is evaluated from the filtered report, not raw lcov.info.
+# We exclude data models, logging helpers, and generated files.
 EXCLUSIONS="lib/src/models/* lib/src/logging/* *.g.dart"
 
 echo "🧹 Filtering coverage report (Excluding: $EXCLUSIONS)..."
@@ -27,6 +25,6 @@ echo "📊 Generating HTML report..."
 
 echo "✅ Coverage report generated at: coverage/html/index.html"
 
-# 5. Print a summary
+# 5. Print a summary for the filtered report that release checks should use
 echo "📈 Coverage Summary:"
 /opt/homebrew/bin/lcov --summary coverage/filtered_lcov.info
