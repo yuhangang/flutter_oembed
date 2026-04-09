@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_strings.dart';
@@ -254,6 +255,125 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 11));
       newController.dispose();
+    });
+
+    testWidgets(
+        'uses 16:9 fallback height for video embeds without aspect ratio',
+        (tester) async {
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 320,
+                controller: controller,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        final sizedBox = tester
+            .widgetList<SizedBox>(find.byType(SizedBox))
+            .firstWhere((widget) => widget.height != null);
+        expect(sizedBox.height, closeTo(180.0, 0.01));
+      } finally {
+        controller.dispose();
+      }
+    });
+
+    testWidgets('caps generic fallback height instead of using a square',
+        (tester) async {
+      final genericParam = SocialEmbedParam(
+        url: 'https://example.com/post/1',
+        embedType: EmbedType.other,
+      );
+      final genericController = EmbedController(
+        param: genericParam,
+        config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
+      );
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: genericParam,
+                data: const EmbedData(html: '<div>Generic</div>'),
+                maxWidth: 500,
+                controller: genericController,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        final sizedBox = tester
+            .widgetList<SizedBox>(find.byType(SizedBox))
+            .firstWhere((widget) => widget.height != null);
+        expect(sizedBox.height, 320.0);
+      } finally {
+        genericController.dispose();
+      }
+    });
+
+    testWidgets('uses preferredHeight from embedConstraints', (tester) async {
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 320,
+                embedConstraints: const EmbedConstraints(preferredHeight: 232),
+                controller: controller,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        final sizedBox = tester
+            .widgetList<SizedBox>(find.byType(SizedBox))
+            .firstWhere((widget) => widget.height != null);
+        expect(sizedBox.height, 232.0);
+      } finally {
+        controller.dispose();
+      }
+    });
+
+    testWidgets('clamps derived height to embedConstraints.maxHeight',
+        (tester) async {
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 640,
+                embedConstraints: const EmbedConstraints(maxHeight: 180),
+                controller: controller,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        final sizedBox = tester
+            .widgetList<SizedBox>(find.byType(SizedBox))
+            .firstWhere((widget) => widget.height != null);
+        expect(sizedBox.height, 180.0);
+      } finally {
+        controller.dispose();
+      }
     });
   });
 }

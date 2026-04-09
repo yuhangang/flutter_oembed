@@ -3,6 +3,7 @@ import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_loader_param.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
@@ -22,6 +23,7 @@ class EmbedWidgetLoader extends StatefulWidget {
     this.config,
     this.style,
     this.cacheConfig,
+    this.embedConstraints,
     this.scrollable = false,
     this.webViewBuilder,
   });
@@ -34,6 +36,7 @@ class EmbedWidgetLoader extends StatefulWidget {
   final EmbedConfig? config;
   final EmbedStyle? style;
   final EmbedCacheConfig? cacheConfig;
+  final EmbedConstraints? embedConstraints;
   final bool scrollable;
   final Widget Function(BuildContext context, Widget child)? webViewBuilder;
 
@@ -134,6 +137,7 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
                 maxWidth: constraints.maxWidth,
                 controller: _controller,
                 style: style,
+                embedConstraints: widget.embedConstraints,
                 scrollable: widget.scrollable,
                 webViewBuilder: widget.webViewBuilder,
               );
@@ -159,6 +163,7 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
                   maxWidth: constraints.maxWidth,
                   controller: _controller,
                   style: style,
+                  embedConstraints: widget.embedConstraints,
                   scrollable: widget.scrollable,
                   webViewBuilder: widget.webViewBuilder,
                 ),
@@ -168,6 +173,7 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
                   config: config,
                   style: style,
                   cacheConfig: widget.cacheConfig,
+                  embedConstraints: widget.embedConstraints,
                   scrollable: widget.scrollable,
                   webViewBuilder: widget.webViewBuilder,
                   loaderParam: EmbedLoaderParam(

@@ -1,5 +1,7 @@
 # flutter_oembed
 
+[![pub package](https://img.shields.io/pub/v/flutter_oembed.svg)](https://pub.dev/packages/flutter_oembed)
+
 A Flutter package for embedding rich social and media content with oEmbed APIs and WebView rendering.
 
 ## Current Package Status
@@ -96,6 +98,29 @@ EmbedCard(
 )
 ```
 
+## Sizing And Height Constraints
+
+`flutter_oembed` derives embed height from provider metadata, measured WebView
+content height, or provider-specific fallbacks. You can override that behavior
+per embed with `EmbedConstraints`.
+
+```dart
+EmbedCard.url(
+  'https://open.spotify.com/track/4JOEMgLkrHp8K1XNmyNffH',
+  embedConstraints: const EmbedConstraints(
+    preferredHeight: 232,
+    minHeight: 180,
+    maxHeight: 320,
+  ),
+)
+```
+
+Use `preferredHeight` when you want a stable initial size. Add `minHeight`
+and `maxHeight` when the embed can resize but should stay within bounds.
+
+`embedHeight` is still accepted as a legacy shorthand, but new code should use
+`embedConstraints: EmbedConstraints(preferredHeight: ...)`.
+
 ## Meta Setup
 
 Facebook, Instagram, and Threads embeds require credentials from [Meta for Developers](https://developers.facebook.com/).
@@ -183,5 +208,6 @@ See the example app in `/example` for concrete integration code.
 
 ## Additional Information
 
+- pub.dev: [https://pub.dev/packages/flutter_oembed](https://pub.dev/packages/flutter_oembed)
 - Example app: `/example`
 - Release checklist: [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md)

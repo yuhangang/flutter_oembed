@@ -3,6 +3,7 @@ import 'package:flutter_oembed/src/core/embed_scope.dart';
 import 'package:flutter_oembed/src/models/base_embed_params.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
@@ -51,6 +52,15 @@ class EmbedCard extends StatelessWidget {
   /// Per-widget cache configuration. Overrides [EmbedConfig.cache].
   final EmbedCacheConfig? cacheConfig;
 
+  /// Overrides how the package derives and clamps the rendered embed height.
+  final EmbedConstraints? embedConstraints;
+
+  /// Deprecated shorthand for `embedConstraints.preferredHeight`.
+  @Deprecated(
+    'Use embedConstraints: EmbedConstraints(preferredHeight: ...) instead.',
+  )
+  final double? embedHeight;
+
   /// Whether the WebView should be scrollable internally.
   /// Overrides [EmbedConfig.scrollable].
   final bool? scrollable;
@@ -68,11 +78,16 @@ class EmbedCard extends StatelessWidget {
     this.preloadedData,
     this.style,
     this.cacheConfig,
+    this.embedConstraints,
+    this.embedHeight,
     this.scrollable,
     this.queryParameters,
     this.embedParams,
     this.webViewBuilder,
-  });
+  }) : assert(
+          embedConstraints == null || embedHeight == null,
+          'Use either embedConstraints or embedHeight, not both.',
+        );
 
   /// A concise factory for creating an [EmbedCard] with a positional [url].
   ///
@@ -87,6 +102,8 @@ class EmbedCard extends StatelessWidget {
     EmbedData? preloadedData,
     EmbedStyle? style,
     EmbedCacheConfig? cacheConfig,
+    EmbedConstraints? embedConstraints,
+    double? embedHeight,
     bool? scrollable,
     Map<String, String>? queryParameters,
     BaseEmbedParams? embedParams,
@@ -100,6 +117,8 @@ class EmbedCard extends StatelessWidget {
       preloadedData: preloadedData,
       style: style,
       cacheConfig: cacheConfig,
+      embedConstraints: embedConstraints,
+      embedHeight: embedHeight,
       scrollable: scrollable,
       queryParameters: queryParameters,
       embedParams: embedParams,
@@ -116,6 +135,12 @@ class EmbedCard extends StatelessWidget {
       embedParams: embedParams,
     );
   }
+
+  EmbedConstraints? get _effectiveEmbedConstraints =>
+      embedConstraints ??
+      (embedHeight != null
+          ? EmbedConstraints(preferredHeight: embedHeight)
+          : null);
 
   @override
   Widget build(BuildContext context) {
@@ -141,6 +166,7 @@ class EmbedCard extends StatelessWidget {
           config: effectiveConfig,
           style: style,
           cacheConfig: cacheConfig,
+          embedConstraints: _effectiveEmbedConstraints,
           scrollable: scrollable,
           webViewBuilder: webViewBuilder,
         );

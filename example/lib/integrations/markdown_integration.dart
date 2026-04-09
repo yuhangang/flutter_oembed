@@ -213,22 +213,22 @@ You can add any OEmbed-supported URL using `url`, `href`, `src`, `data-url`, as 
         key: ValueKey('markdown_${settings.locale}-${settings.brightness}'),
         data: markdownData,
         config: MarkdownConfig(
-            configs: [
-              SmartLinkConfig(
-                style: const TextStyle(
-                  color: Colors.blue,
-                  decoration: TextDecoration.underline,
-                ),
-                onTap: (url) {},
+          configs: [
+            SmartLinkConfig(
+              style: const TextStyle(
+                color: Colors.blue,
+                decoration: TextDecoration.underline,
               ),
-            ],
-          ),
-          markdownGenerator: MarkdownGenerator(
-            generators: [smartLinkGenerator, oembedGenerator],
-            blockSyntaxList: const [EmbedBlockSyntax()],
-            extensionSet: md.ExtensionSet.gitHubFlavored,
-          ),
+              onTap: (url) {},
+            ),
+          ],
         ),
+        markdownGenerator: MarkdownGenerator(
+          generators: [smartLinkGenerator, oembedGenerator],
+          blockSyntaxList: const [EmbedBlockSyntax()],
+          extensionSet: md.ExtensionSet.gitHubFlavored,
+        ),
+      ),
     );
   }
 }
@@ -270,6 +270,7 @@ class _KeepAliveEmbedState extends State<KeepAliveEmbed>
 
     return EmbedCard.url(
       widget.url,
+      embedConstraints: settings.embedConstraints,
       scrollable: settings.scrollable,
       style: EmbedStyle(
         loadingBuilder:

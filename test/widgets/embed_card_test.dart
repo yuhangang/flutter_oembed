@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/utils/embed_matchers.dart';
 import 'package:flutter_oembed/src/widgets/embed_card.dart';
@@ -264,6 +265,34 @@ void main() {
     );
   });
 
+  testWidgets('EmbedRenderer forwards embedConstraints to loader', (
+    tester,
+  ) async {
+    const constraints = EmbedConstraints(
+      preferredHeight: 232,
+      minHeight: 180,
+      maxHeight: 320,
+    );
+    final data = const EmbedData(
+      html: '<div id="renderer-constraints">renderer-html</div>',
+      providerUrl: 'https://www.youtube.com',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: EmbedRenderer(
+          data: data,
+          embedType: EmbedType.youtube,
+          embedConstraints: constraints,
+        ),
+      ),
+    );
+
+    final loader =
+        tester.widget<EmbedWidgetLoader>(find.byType(EmbedWidgetLoader));
+    expect(loader.embedConstraints, equals(constraints));
+  });
+
   testWidgets('EmbedCard preloadedData bypasses fetch path and loads HTML', (
     tester,
   ) async {
@@ -339,6 +368,7 @@ void main() {
   testWidgets('EmbedCard.url factory and overrides', (tester) async {
     const style = EmbedStyle(maxScrollableHeight: 400);
     const cache = EmbedCacheConfig(enabled: false);
+    const embedConstraints = EmbedConstraints(preferredHeight: 232);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -348,6 +378,7 @@ void main() {
             style: style,
             scrollable: true,
             cacheConfig: cache,
+            embedConstraints: embedConstraints,
           ),
         ),
       ),
@@ -358,5 +389,28 @@ void main() {
     expect(loader.style, equals(style));
     expect(loader.scrollable, isTrue);
     expect(loader.cacheConfig, equals(cache));
+    expect(loader.embedConstraints, equals(embedConstraints));
+  });
+
+  testWidgets('legacy embedHeight maps to preferredHeight constraint', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: EmbedCard.url(
+            'https://youtube.com/watch?v=123',
+            embedHeight: 232,
+          ),
+        ),
+      ),
+    );
+
+    final loader =
+        tester.widget<EmbedWidgetLoader>(find.byType(EmbedWidgetLoader));
+    expect(
+      loader.embedConstraints,
+      equals(const EmbedConstraints(preferredHeight: 232)),
+    );
   });
 }

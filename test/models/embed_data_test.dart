@@ -66,6 +66,19 @@ void main() {
       expect(data.html, contains('<img src="https://example.com/image.jpg"'));
     });
 
+    test('photo fallback sanitizes URL with special characters', () {
+      const maliciousJson = {
+        'type': 'photo',
+        'url': 'https://example.com/img.jpg"><script>alert(1)</script>',
+      };
+      final data = EmbedData.fromJson(maliciousJson);
+      // The URL should be HTML-encoded so the " cannot break out of the attribute
+      expect(data.html, isNot(contains('"><script>')));
+      expect(data.html, contains('&quot;'));
+      expect(data.html, contains('&lt;'));
+      expect(data.html, contains('&gt;'));
+    });
+
     test('copyWith should work correctly', () {
       final data = EmbedData.fromJson(json);
       final updated = data.copyWith(title: 'New Title');

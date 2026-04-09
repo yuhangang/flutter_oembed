@@ -62,7 +62,14 @@ class EmbedData extends Equatable {
 
     // Fallback for 'photo' oEmbed type if HTML is missing
     if (html.isEmpty && type == 'photo' && url != null) {
-      html = '<img src="$url" style="max-width: 100%; height: auto;" />';
+      final safeUrl = url
+          .toString()
+          .replaceAll('&', '&amp;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#39;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;');
+      html = '<img src="$safeUrl" style="max-width: 100%; height: auto;" />';
     }
 
     return EmbedData(

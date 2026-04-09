@@ -18,8 +18,8 @@ void main() {
       });
 
       test('should inclusion TikTokEmbedParams in the query parameters', () {
-        final api = TikTokEmbedApi(
-          tiktokParams: const TikTokEmbedParams(
+        const api = TikTokEmbedApi(
+          tiktokParams: TikTokEmbedParams(
             autoplay: true,
             muted: true,
             controls: false,

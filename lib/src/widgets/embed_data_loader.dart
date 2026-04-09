@@ -4,6 +4,7 @@ import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/services/embed_service.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/models/embed_loader_param.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
@@ -21,6 +22,7 @@ class EmbedDataLoader extends StatefulWidget {
   final EmbedConfig? config;
   final EmbedStyle? style;
   final EmbedCacheConfig? cacheConfig;
+  final EmbedConstraints? embedConstraints;
   final bool scrollable;
   final Widget Function(BuildContext context, Widget child)? webViewBuilder;
 
@@ -32,6 +34,7 @@ class EmbedDataLoader extends StatefulWidget {
     this.config,
     this.style,
     this.cacheConfig,
+    this.embedConstraints,
     this.scrollable = false,
     this.webViewBuilder,
   });
@@ -44,10 +47,11 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
   Future<EmbedData>? _embedFeature;
   EmbedConfig? _resolvedConfig;
 
+  bool _isInitialized = false;
+
   @override
   void initState() {
     super.initState();
-    _loadData(config: widget.config);
   }
 
   @override
@@ -55,7 +59,8 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
     super.didChangeDependencies();
     final config = widget.config ?? EmbedScope.configOf(context);
 
-    if (_resolvedConfig != config) {
+    if (!_isInitialized || _resolvedConfig != config) {
+      _isInitialized = true;
       _resolvedConfig = config;
       _loadData(config: config);
     }
@@ -83,11 +88,10 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
       logger: config?.logger,
       cacheConfig: widget.cacheConfig,
       httpClient: config?.httpClient,
-    ).catchError((Object error, StackTrace stackTrace) {
-      // FutureBuilder will handle the error, but we catch it here to
-      // prevent "Uncaught error in zone" in some test environments.
-      throw error;
-    });
+    );
+    // Prevent "Uncaught error in zone" during the microtask gap before
+    // FutureBuilder subscribes to the future, which crashes widget tests.
+    _embedFeature?.ignore();
   }
 
   String _errorSemanticsLabel(Object? error, EmbedStrings strings) {
@@ -173,13 +177,13 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
                 );
               }
 
-                return Semantics(
-                  container: true,
-                  liveRegion: true,
-                  label: _errorSemanticsLabel(error, strings),
-                  child: errorWidget,
-                );
-              }
+              return Semantics(
+                container: true,
+                liveRegion: true,
+                label: _errorSemanticsLabel(error, strings),
+                child: errorWidget,
+              );
+            }
 
             if (snapshot.hasData && snapshot.data != null) {
               return EmbedWebView.data(
@@ -188,6 +192,7 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
                 maxWidth: widget.loaderParam.width,
                 controller: widget.controller,
                 style: widget.style,
+                embedConstraints: widget.embedConstraints,
                 scrollable: widget.scrollable,
                 webViewBuilder: widget.webViewBuilder,
               );

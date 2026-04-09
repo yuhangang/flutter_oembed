@@ -9,6 +9,8 @@ import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 
 class EmbedController extends ChangeNotifier {
+  static const _heightUpdateDeltaThreshold = 2.0;
+
   final SocialEmbedParam param;
   final EmbedConfig? config;
   final EmbedData? preloadedData;
@@ -42,7 +44,11 @@ class EmbedController extends ChangeNotifier {
 
   void setHeight(double newHeight) {
     if (_isDisposed) return;
-    if (height != newHeight) {
+    if (!newHeight.isFinite || newHeight <= 0) return;
+    final currentHeight = height;
+    final shouldUpdate = currentHeight == null ||
+        (currentHeight - newHeight).abs() >= _heightUpdateDeltaThreshold;
+    if (shouldUpdate) {
       height = newHeight;
       notifyListeners();
     }

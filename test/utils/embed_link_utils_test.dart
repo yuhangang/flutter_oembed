@@ -39,8 +39,24 @@ void main() {
     });
 
     test('buildYoutubeEmbedUrl', () {
-      expect(buildYoutubeEmbedUrl('dQw4w9WgXcQ', queryParameters: {'rel': '0'}),
-          equals('https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0'));
+      expect(
+        buildYoutubeEmbedUrl('dQw4w9WgXcQ', queryParameters: {'rel': '0'}),
+        equals(
+          'https://www.youtube.com/embed/dQw4w9WgXcQ?playsinline=1&enablejsapi=1&origin=https%3A%2F%2Fwww.youtube.com&widget_referrer=https%3A%2F%2Fwww.youtube.com&rel=0',
+        ),
+      );
+      expect(
+        buildYoutubeEmbedUrl(
+          'dQw4w9WgXcQ',
+          queryParameters: {
+            'enablejsapi': '0',
+            'origin': 'https://example.com'
+          },
+        ),
+        equals(
+          'https://www.youtube.com/embed/dQw4w9WgXcQ?playsinline=1&enablejsapi=0&origin=https%3A%2F%2Fexample.com&widget_referrer=https%3A%2F%2Fwww.youtube.com',
+        ),
+      );
       expect(buildYoutubeEmbedUrl('invalid'), isNull);
     });
   });

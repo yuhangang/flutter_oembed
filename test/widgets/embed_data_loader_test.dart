@@ -307,5 +307,143 @@ void main() {
       await tester.pumpAndSettle();
       await tester.pump(const Duration(seconds: 1));
     });
+
+    testWidgets('shows error widget on API failure and retries on tap',
+        (tester) async {
+      int callCount = 0;
+      when(() => mockClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer((_) async {
+        callCount++;
+        return http.Response('Server Error', 500);
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedDataLoader(
+              param: param,
+              loaderParam: loaderParam,
+              controller: controller,
+              config: testConfig,
+              style: EmbedStyle(
+                errorBuilder: (context, error) =>
+                    const Icon(Icons.error, key: Key('error_icon')),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Wait for the future to complete
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 1));
+
+      // Should show the error widget with retry behavior (didRetry is still false)
+      expect(find.byKey(const Key('error_icon')), findsOneWidget);
+      expect(controller.didRetry, isFalse);
+      final firstCallCount = callCount;
+
+      // Tap to retry
+      await tester.tap(find.byKey(const Key('error_icon')));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 1));
+
+      // Should have re-called the API
+      expect(callCount, greaterThan(firstCallCount));
+      expect(controller.didRetry, isTrue);
+    });
+
+    testWidgets('404 (EmbedDataNotFoundException) shows error without retry',
+        (tester) async {
+      when(() => mockClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer((_) async => http.Response('Not Found', 404));
+
+      // Pre-set didRetry to true to skip retry path
+      controller.setDidRetry();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedDataLoader(
+              param: param,
+              loaderParam: loaderParam,
+              controller: controller,
+              config: testConfig,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 1));
+
+      // Error widget should be present (default Icon)
+      expect(find.byType(Icon), findsOneWidget);
+    });
+
+    testWidgets(
+        'shows not-found semantics label for EmbedDataNotFoundException',
+        (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+      try {
+        when(() => mockClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer((_) async => http.Response('Not Found', 404));
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedDataLoader(
+                param: param,
+                loaderParam: loaderParam,
+                controller: controller,
+                config: testConfig,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        await tester.pump(const Duration(seconds: 1));
+
+        expect(
+          find.bySemanticsLabel('Embedded content not found'),
+          findsOneWidget,
+        );
+      } finally {
+        semanticsHandle.dispose();
+      }
+    });
+
+    testWidgets('shows generic error semantics on non-404 failure',
+        (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+      try {
+        when(() => mockClient.get(any(), headers: any(named: 'headers')))
+            .thenAnswer((_) async => http.Response('Server Error', 500));
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedDataLoader(
+                param: param,
+                loaderParam: loaderParam,
+                controller: controller,
+                config: testConfig,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        await tester.pump(const Duration(seconds: 1));
+
+        expect(
+          find.bySemanticsLabel('Embedded content failed to load'),
+          findsOneWidget,
+        );
+      } finally {
+        semanticsHandle.dispose();
+      }
+    });
   });
 }

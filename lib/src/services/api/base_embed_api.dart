@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:flutter_oembed/src/core/embed_scope.dart';
 import 'package:flutter_oembed/src/logging/embed_logger.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
 import 'package:flutter_oembed/src/models/embed_constant.dart';
@@ -46,7 +47,7 @@ abstract class BaseEmbedApi {
   // ---------------------------------------------------------------------------
 
   @visibleForTesting
-  BaseCacheManager get cacheManager => DefaultCacheManager();
+  BaseCacheManager get cacheManager => EmbedScope.cacheManager;
 
   Future<EmbedData?> getCachedResult(Uri uri, {EmbedLogger? logger}) async {
     try {

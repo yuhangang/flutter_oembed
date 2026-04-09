@@ -60,7 +60,14 @@ String? buildYoutubeEmbedUrl(
 }) {
   final videoId = getYoutubeVideoId(urlOrId);
   if (videoId == null || videoId.isEmpty) return null;
-  return Uri.parse('$kYouTubeEmbedBaseUrl/$videoId')
-      .replace(queryParameters: queryParameters)
-      .toString();
+  final embedUri = Uri.parse('$kYouTubeEmbedBaseUrl/$videoId');
+  final mergedQueryParameters = <String, String>{
+    'playsinline': '1',
+    'enablejsapi': '1',
+    'origin': embedUri.origin,
+    'widget_referrer': embedUri.origin,
+    if (queryParameters != null) ...queryParameters,
+  };
+
+  return embedUri.replace(queryParameters: mergedQueryParameters).toString();
 }

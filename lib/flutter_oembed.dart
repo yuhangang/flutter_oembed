@@ -24,6 +24,7 @@ export 'src/logging/embed_logger.dart';
 export 'src/models/embed_enums.dart';
 export 'src/models/embed_cache_config.dart';
 export 'src/models/embed_config.dart';
+export 'src/models/embed_constraints.dart';
 export 'src/models/embed_data.dart';
 export 'src/models/embed_provider_config.dart';
 export 'src/models/embed_strings.dart';

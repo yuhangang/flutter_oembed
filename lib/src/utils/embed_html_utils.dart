@@ -295,6 +295,7 @@ String _injectYoutubeSecurityHeaders(String html) {
       const String fallbackOrigin = 'https://www.youtube-nocookie.com';
 
       params.putIfAbsent('playsinline', () => '1');
+      params.putIfAbsent('enablejsapi', () => '1');
       params['widget_referrer'] = fallbackOrigin;
       params['origin'] = fallbackOrigin;
 

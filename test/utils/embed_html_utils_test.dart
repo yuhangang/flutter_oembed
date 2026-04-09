@@ -70,7 +70,10 @@ void main() {
         maxWidth: 640,
       );
       expect(doc, contains('iframe {'));
-      expect(doc, isNot(contains('iframe {\n      width: 100% !important;\n      height: auto !important;')));
+      expect(
+          doc,
+          isNot(contains(
+              'iframe {\n      width: 100% !important;\n      height: auto !important;')));
       expect(doc, contains('border: none;'));
       expect(doc, contains('width: 100% !important;'));
     });
@@ -107,6 +110,25 @@ void main() {
       expect(document, contains('enablejsapi=1'));
       expect(
           document, contains('origin=https%3A%2F%2Fwww.youtube-nocookie.com'));
+    });
+
+    test('YouTubeProviderStrategy injects enablejsapi when missing', () {
+      const html = '''
+<iframe
+  src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+  allowfullscreen>
+</iframe>
+''';
+
+      const strategy = YouTubeProviderStrategy();
+      final document = strategy.buildHtmlDocument(
+        html,
+        type: EmbedType.youtube,
+        maxWidth: 640,
+      );
+
+      expect(document, contains('enablejsapi=1'));
+      expect(document, contains('playsinline=1'));
     });
   });
 }

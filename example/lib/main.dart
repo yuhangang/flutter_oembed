@@ -48,6 +48,8 @@ class _MyAppState extends State<MyApp> {
                 defaultCacheDuration: Duration(hours: 12),
                 respectApiCacheAge: true,
               ),
+              // Meta (Facebook, Instagram, Threads) API Keys
+              // Required for these providers to load correctly via oEmbed
               // facebookAppId: 'YOUR_APP_ID',
               // facebookClientToken: 'YOUR_CLIENT_TOKEN',
               onLinkTap: (url, data) {

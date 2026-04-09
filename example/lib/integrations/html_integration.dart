@@ -64,6 +64,7 @@ class EmbedExtension extends HtmlExtension {
         padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: EmbedCard.url(
           url,
+          embedConstraints: settings.embedConstraints,
           scrollable: settings.scrollable,
           style: EmbedStyle(
             loadingBuilder:
