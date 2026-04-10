@@ -183,12 +183,6 @@ const List<EmbedProviderRule> kDefaultEmbedProviders = [
     isVerified: true,
   ),
   EmbedProviderRule(
-    pattern: r'https?:\/\/pca\.st\/.*',
-    endpoint: 'https://pca.st/oembed.json',
-    providerName: 'Pocket Casts',
-    isVerified: true,
-  ),
-  EmbedProviderRule(
     pattern: r'https?:\/\/(www\.)?(twitter|x)\.com\/.*',
     endpoint: 'https://publish.twitter.com/oembed',
     providerName: 'X',

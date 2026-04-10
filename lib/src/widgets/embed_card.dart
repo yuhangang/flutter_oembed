@@ -10,6 +10,7 @@ import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_surface.dart';
 import 'package:flutter_oembed/src/widgets/embed_widget_loader.dart';
+import 'package:flutter_oembed/src/widgets/lazy_embed_node.dart';
 
 /// The primary widget for embedding social media content.
 ///
@@ -65,6 +66,10 @@ class EmbedCard extends StatelessWidget {
   /// Overrides [EmbedConfig.scrollable].
   final bool? scrollable;
 
+  /// Whether the widget should delay loading the WebView until it enters the viewport.
+  /// Overrides [EmbedConfig.lazyLoad].
+  final bool? lazyLoad;
+
   /// Custom query parameters to pass to the OEmbed API (for supported providers).
   final Map<String, String>? queryParameters;
   final BaseEmbedParams? embedParams;
@@ -81,6 +86,7 @@ class EmbedCard extends StatelessWidget {
     this.embedConstraints,
     this.embedHeight,
     this.scrollable,
+    this.lazyLoad,
     this.queryParameters,
     this.embedParams,
     this.webViewBuilder,
@@ -105,6 +111,7 @@ class EmbedCard extends StatelessWidget {
     EmbedConstraints? embedConstraints,
     double? embedHeight,
     bool? scrollable,
+    bool? lazyLoad,
     Map<String, String>? queryParameters,
     BaseEmbedParams? embedParams,
     Widget Function(BuildContext context, Widget child)? webViewBuilder,
@@ -120,6 +127,7 @@ class EmbedCard extends StatelessWidget {
       embedConstraints: embedConstraints,
       embedHeight: embedHeight,
       scrollable: scrollable,
+      lazyLoad: lazyLoad,
       queryParameters: queryParameters,
       embedParams: embedParams,
       webViewBuilder: webViewBuilder,
@@ -155,8 +163,9 @@ class EmbedCard extends StatelessWidget {
 
     final style = this.style ?? effectiveConfig?.style;
     final scrollable = this.scrollable ?? effectiveConfig?.scrollable ?? false;
+    final lazyLoad = this.lazyLoad ?? effectiveConfig?.lazyLoad ?? false;
 
-    return EmbedSurface(
+    Widget content = EmbedSurface(
       style: style,
       footerUrl: url,
       childBuilder: (context) {
@@ -172,5 +181,16 @@ class EmbedCard extends StatelessWidget {
         );
       },
     );
+
+    if (lazyLoad) {
+      content = LazyEmbedNode(
+        url: url,
+        style: style,
+        embedConstraints: _effectiveEmbedConstraints,
+        child: content,
+      );
+    }
+
+    return content;
   }
 }

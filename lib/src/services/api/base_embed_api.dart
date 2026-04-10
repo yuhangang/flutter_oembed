@@ -46,7 +46,7 @@ abstract class BaseEmbedApi {
   // Caching helpers — override to inject a custom cache manager in tests.
   // ---------------------------------------------------------------------------
 
-  @visibleForTesting
+  @internal
   BaseCacheManager get cacheManager => EmbedScope.cacheManager;
 
   Future<EmbedData?> getCachedResult(Uri uri, {EmbedLogger? logger}) async {

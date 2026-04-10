@@ -68,9 +68,10 @@ dependencies:
 
 | Category | Providers |
 | :--- | :--- |
-| Social | X, Facebook, Instagram, Threads, Reddit, TikTok |
+| Social | X, Facebook, Instagram, Threads, Reddit, TikTok, Tumblr |
 | Video | YouTube, Vimeo, Dailymotion |
 | Audio | Spotify, SoundCloud |
+| Media / News | Flickr, Giphy, The New York Times |
 
 ## Getting Started
 
@@ -121,6 +122,29 @@ and `maxHeight` when the embed can resize but should stay within bounds.
 `embedHeight` is still accepted as a legacy shorthand, but new code should use
 `embedConstraints: EmbedConstraints(preferredHeight: ...)`.
 
+## Provider Specific Parameters
+
+You can fine-tune the native player or embed behavior for supported providers using `embedParams`. This is useful for customizing controls, autoplay behavior, or themes directly at the provider level.
+
+```dart
+EmbedCard.url(
+  'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+  embedParams: const YoutubeEmbedParams(
+    controls: true,
+    autoplay: false,
+    theme: 'dark',
+  ),
+)
+```
+
+The package provides strongly-typed param classes including:
+- `YoutubeEmbedParams`
+- `TiktokEmbedParams`
+- `XEmbedParams`
+- `SoundcloudEmbedParams`
+- `MetaEmbedParams`
+- `VimeoEmbedParams`
+
 ## Meta Setup
 
 Facebook, Instagram, and Threads embeds require credentials from [Meta for Developers](https://developers.facebook.com/).
@@ -137,6 +161,7 @@ You can customize caching, provider render modes, and style:
 
 ```dart
 EmbedConfig(
+  useDynamicDiscovery: true, // Enables searching the official oEmbed registry if no local provider matches
   providers: EmbedProviderConfig(
     providerRenderModes: {
       'YouTube': EmbedRenderMode.iframe,

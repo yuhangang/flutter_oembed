@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-
-import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/base_embed_params.dart';
+import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/services/embed_service.dart';
+import 'package:meta/meta.dart';
 
 /// Provides [EmbedConfig] to the widget subtree.
 ///
@@ -21,7 +21,7 @@ import 'package:flutter_oembed/src/services/embed_service.dart';
 /// )
 /// ```
 class EmbedScope extends InheritedWidget {
-  @visibleForTesting
+  @internal
   static BaseCacheManager cacheManager = DefaultCacheManager();
 
   final EmbedConfig config;

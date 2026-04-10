@@ -27,6 +27,10 @@ class EmbedStyle extends Equatable {
   /// Shown while the OEmbed data is being fetched or the WebView is loading.
   final WidgetBuilder? loadingBuilder;
 
+  /// Shown while the widget is waiting to enter the viewport when [lazyLoad] is true.
+  /// If null, it falls back to [loadingBuilder], then to an empty [SizedBox].
+  final WidgetBuilder? lazyLoadPlaceholderBuilder;
+
   /// Shown when an error occurs (network error, 404, etc.).
   ///
   /// Receives the error object so the caller can display specific messages.
@@ -58,6 +62,7 @@ class EmbedStyle extends Equatable {
   const EmbedStyle({
     this.wrapperBuilder,
     this.loadingBuilder,
+    this.lazyLoadPlaceholderBuilder,
     this.errorBuilder,
     this.footerBuilder,
     this.webViewBuilder,
@@ -75,6 +80,7 @@ class EmbedStyle extends Equatable {
   EmbedStyle copyWith({
     Widget Function(BuildContext context, Widget child)? wrapperBuilder,
     WidgetBuilder? loadingBuilder,
+    WidgetBuilder? lazyLoadPlaceholderBuilder,
     Widget Function(BuildContext context, Object? error)? errorBuilder,
     Widget Function(BuildContext context, String url)? footerBuilder,
     Widget Function(BuildContext context, Widget child)? webViewBuilder,
@@ -84,6 +90,7 @@ class EmbedStyle extends Equatable {
     return EmbedStyle(
       wrapperBuilder: wrapperBuilder ?? this.wrapperBuilder,
       loadingBuilder: loadingBuilder ?? this.loadingBuilder,
+      lazyLoadPlaceholderBuilder: lazyLoadPlaceholderBuilder ?? this.lazyLoadPlaceholderBuilder,
       errorBuilder: errorBuilder ?? this.errorBuilder,
       footerBuilder: footerBuilder ?? this.footerBuilder,
       webViewBuilder: webViewBuilder ?? this.webViewBuilder,

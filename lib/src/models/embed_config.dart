@@ -97,6 +97,10 @@ class EmbedConfig extends Equatable {
   /// Defaults to `false`.
   final bool scrollable;
 
+  /// Whether the widget should delay loading the WebView until it enters the viewport.
+  /// Defaults to `false`.
+  final bool lazyLoad;
+
   /// Optional logger used by the library to emit provider resolution, cache,
   /// navigation, and loading diagnostics.
   ///
@@ -124,6 +128,7 @@ class EmbedConfig extends Equatable {
     this.useDynamicDiscovery = false,
     this.loadTimeout = kDefaultEmbedLoadTimeout,
     this.scrollable = false,
+    this.lazyLoad = false,
     this.logger = const EmbedLogger.disabled(),
     this.httpClient,
   });
@@ -151,6 +156,7 @@ class EmbedConfig extends Equatable {
         useDynamicDiscovery,
         loadTimeout,
         scrollable,
+        lazyLoad,
         logger,
       ];
 
@@ -177,6 +183,7 @@ class EmbedConfig extends Equatable {
     bool? useDynamicDiscovery,
     Duration? loadTimeout,
     bool? scrollable,
+    bool? lazyLoad,
     EmbedLogger? logger,
     http.Client? httpClient,
   }) {
@@ -195,6 +202,7 @@ class EmbedConfig extends Equatable {
       useDynamicDiscovery: useDynamicDiscovery ?? this.useDynamicDiscovery,
       loadTimeout: loadTimeout ?? this.loadTimeout,
       scrollable: scrollable ?? this.scrollable,
+      lazyLoad: lazyLoad ?? this.lazyLoad,
       logger: logger ?? this.logger,
       httpClient: httpClient ?? this.httpClient,
     );
