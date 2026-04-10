@@ -3,8 +3,8 @@ import 'package:embed_example/utils/settings_controller.dart';
 import 'package:embed_example/widgets/config_menu_action.dart';
 import 'package:embed_example/widgets/embed_placeholder.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_oembed/flutter_oembed.dart';
 import 'package:flutter_html/flutter_html.dart';
+import 'package:flutter_oembed/flutter_oembed.dart';
 
 String? _extractEmbedUrlFromHtml(ExtensionContext context) {
   final attributes = context.attributes;
@@ -65,6 +65,7 @@ class EmbedExtension extends HtmlExtension {
         child: EmbedCard.url(
           url,
           scrollable: settings.scrollable,
+          lazyLoad: true,
           style: EmbedStyle(
             loadingBuilder:
                 (context) => SocialEmbedPlaceholder(
@@ -93,20 +94,24 @@ class _HtmlIntegrationPageState extends State<HtmlIntegrationPage> {
 <p>This example demonstrates how to use the <code>oembed</code> package within <code>flutter_html</code>.</p>
 
 <h3>Twitter Embed</h3>
-<oembed url="https://twitter.com/X/status/1328842765115920384"></oembed>
+<div class="embed-card">
+  <oembed url="https://twitter.com/X/status/1328842765115920384"></oembed>
+</div>
 
 <h3>YouTube Embed</h3>
-<oembed>https://www.youtube.com/watch?v=dQw4w9WgXcQ</oembed>
-
-<h3>Spotify Embed (via Link Title)</h3>
-<p>You can also use a regular link with <code>title="embed"</code>:</p>
-<a href="https://open.spotify.com/track/4cOdK2wGvV9m9X7S7O0WhS" title="embed">Spotify Track</a>
+<div class="embed-card">
+  <oembed>https://www.youtube.com/watch?v=dQw4w9WgXcQ</oembed>
+</div>
 
 <h3>TikTok Embed</h3>
-<oembed data-url="https://www.tiktok.com/@scout2015/video/6718335390845095173" />
+<div class="embed-card">
+  <oembed data-url="https://www.tiktok.com/@scout2015/video/6718335390845095173" />
+</div>
 
 <h3>GIPHY Embed</h3>
-<oembed url="https://giphy.com/gifs/moodman-monkey-side-eye-sideeye-H5C8CevNMbpBqNqFjl"></oembed>
+<div class="embed-card">
+  <oembed url="https://giphy.com/gifs/moodman-monkey-side-eye-sideeye-H5C8CevNMbpBqNqFjl"></oembed>
+</div>
 
 <p>The <code>&lt;oembed&gt;</code> tag and <code>title="embed"</code> attribute are mapped to <code>EmbedCard</code> using a custom <code>HtmlExtension</code>. URL can come from <code>url</code>, <code>href</code>, <code>src</code>, <code>data-url</code>, or inner text.</p>
 ''';
@@ -117,10 +122,22 @@ class _HtmlIntegrationPageState extends State<HtmlIntegrationPage> {
         actions: const [ConfigMenuAction()],
       ),
       body: SingleChildScrollView(
+        padding: EdgeInsets.only(
+          bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
+        ),
         child: Html(
           key: ValueKey('html_${settings.locale}-${settings.brightness}'),
           data: htmlData,
           extensions: [EmbedExtension()],
+          style: {
+            ".embed-card": Style(
+              margin: Margins.only(top: 8, bottom: 24),
+              padding: HtmlPaddings.all(12),
+              backgroundColor: Theme.of(context).canvasColor,
+
+              border: Border.all(color: Theme.of(context).dividerColor),
+            ),
+          },
         ),
       ),
     );

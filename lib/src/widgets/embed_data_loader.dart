@@ -4,9 +4,11 @@ import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/services/embed_service.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/models/embed_loader_param.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/embed_strings.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +22,7 @@ class EmbedDataLoader extends StatefulWidget {
   final EmbedConfig? config;
   final EmbedStyle? style;
   final EmbedCacheConfig? cacheConfig;
+  final EmbedConstraints? embedConstraints;
   final bool scrollable;
   final Widget Function(BuildContext context, Widget child)? webViewBuilder;
 
@@ -31,6 +34,7 @@ class EmbedDataLoader extends StatefulWidget {
     this.config,
     this.style,
     this.cacheConfig,
+    this.embedConstraints,
     this.scrollable = false,
     this.webViewBuilder,
   });
@@ -43,10 +47,11 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
   Future<EmbedData>? _embedFeature;
   EmbedConfig? _resolvedConfig;
 
+  bool _isInitialized = false;
+
   @override
   void initState() {
     super.initState();
-    _loadData(config: widget.config);
   }
 
   @override
@@ -54,7 +59,8 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
     super.didChangeDependencies();
     final config = widget.config ?? EmbedScope.configOf(context);
 
-    if (_resolvedConfig != config) {
+    if (!_isInitialized || _resolvedConfig != config) {
+      _isInitialized = true;
       _resolvedConfig = config;
       _loadData(config: config);
     }
@@ -82,11 +88,23 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
       logger: config?.logger,
       cacheConfig: widget.cacheConfig,
       httpClient: config?.httpClient,
-    ).catchError((Object error, StackTrace stackTrace) {
-      // FutureBuilder will handle the error, but we catch it here to
-      // prevent "Uncaught error in zone" in some test environments.
-      throw error;
-    });
+    );
+    // Prevent "Uncaught error in zone" during the microtask gap before
+    // FutureBuilder subscribes to the future, which crashes widget tests.
+    _embedFeature?.ignore();
+  }
+
+  String _errorSemanticsLabel(Object? error, EmbedStrings strings) {
+    if (error is EmbedDataNotFoundException) {
+      return strings.notFoundSemanticsLabel;
+    }
+    if (error is EmbedDataRestrictedAccessException) {
+      return strings.restrictedSemanticsLabel;
+    }
+    if (error is SocketException) {
+      return strings.networkErrorSemanticsLabel;
+    }
+    return strings.genericLoadErrorSemanticsLabel;
   }
 
   @override
@@ -99,12 +117,22 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
         return AnimatedBuilder(
           animation: widget.controller,
           builder: (context, child) {
+            final strings = (widget.config ??
+                        _resolvedConfig ??
+                        EmbedScope.configOf(context))
+                    ?.strings ??
+                const EmbedStrings();
             final didRetry = widget.controller.didRetry;
             if (snapshot.connectionState == ConnectionState.waiting) {
               final loadingWidget =
                   widget.style?.loadingBuilder?.call(context) ??
                       const Center(child: CircularProgressIndicator());
-              return loadingWidget;
+              return Semantics(
+                container: true,
+                liveRegion: true,
+                label: strings.loadingSemanticsLabel,
+                child: loadingWidget,
+              );
             }
 
             if (snapshot.hasError) {
@@ -115,28 +143,46 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
 
               if (error is EmbedDataNotFoundException ||
                   error is EmbedDataRestrictedAccessException) {
-                return errorWidget;
-              }
-
-              if (!didRetry) {
-                return GestureDetector(
-                  onTap: () {
-                    if (error is! SocketException) {
-                      widget.controller.setDidRetry();
-                    }
-                    setState(() {
-                      _loadData(
-                        config: widget.config ??
-                            _resolvedConfig ??
-                            EmbedScope.configOf(context),
-                      );
-                    });
-                  },
+                return Semantics(
+                  container: true,
+                  liveRegion: true,
+                  label: _errorSemanticsLabel(error, strings),
                   child: errorWidget,
                 );
               }
 
-              return errorWidget;
+              if (!didRetry) {
+                return Semantics(
+                  container: true,
+                  liveRegion: true,
+                  button: true,
+                  enabled: true,
+                  label: _errorSemanticsLabel(error, strings),
+                  hint: strings.retryHint,
+                  child: GestureDetector(
+                    onTap: () {
+                      if (error is! SocketException) {
+                        widget.controller.setDidRetry();
+                      }
+                      setState(() {
+                        _loadData(
+                          config: widget.config ??
+                              _resolvedConfig ??
+                              EmbedScope.configOf(context),
+                        );
+                      });
+                    },
+                    child: errorWidget,
+                  ),
+                );
+              }
+
+              return Semantics(
+                container: true,
+                liveRegion: true,
+                label: _errorSemanticsLabel(error, strings),
+                child: errorWidget,
+              );
             }
 
             if (snapshot.hasData && snapshot.data != null) {
@@ -146,6 +192,7 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
                 maxWidth: widget.loaderParam.width,
                 controller: widget.controller,
                 style: widget.style,
+                embedConstraints: widget.embedConstraints,
                 scrollable: widget.scrollable,
                 webViewBuilder: widget.webViewBuilder,
               );

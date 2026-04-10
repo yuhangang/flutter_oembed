@@ -25,11 +25,17 @@ String buildGenericHtmlDocument(
       width: 100%;
       $scrollStyles
     }
-    img, iframe, video {
+    img, video {
       width: 100% !important;
       height: auto !important;
       display: block;
       margin: 0 auto;
+    }
+    iframe {
+      width: 100% !important;
+      display: block;
+      margin: 0 auto;
+      border: none;
     }
   </style>
 </head>
@@ -289,6 +295,7 @@ String _injectYoutubeSecurityHeaders(String html) {
       const String fallbackOrigin = 'https://www.youtube-nocookie.com';
 
       params.putIfAbsent('playsinline', () => '1');
+      params.putIfAbsent('enablejsapi', () => '1');
       params['widget_referrer'] = fallbackOrigin;
       params['origin'] = fallbackOrigin;
 

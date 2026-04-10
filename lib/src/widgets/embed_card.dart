@@ -3,12 +3,14 @@ import 'package:flutter_oembed/src/core/embed_scope.dart';
 import 'package:flutter_oembed/src/models/base_embed_params.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_surface.dart';
 import 'package:flutter_oembed/src/widgets/embed_widget_loader.dart';
+import 'package:flutter_oembed/src/widgets/lazy_embed_node.dart';
 
 /// The primary widget for embedding social media content.
 ///
@@ -51,9 +53,22 @@ class EmbedCard extends StatelessWidget {
   /// Per-widget cache configuration. Overrides [EmbedConfig.cache].
   final EmbedCacheConfig? cacheConfig;
 
+  /// Overrides how the package derives and clamps the rendered embed height.
+  final EmbedConstraints? embedConstraints;
+
+  /// Deprecated shorthand for `embedConstraints.preferredHeight`.
+  @Deprecated(
+    'Use embedConstraints: EmbedConstraints(preferredHeight: ...) instead.',
+  )
+  final double? embedHeight;
+
   /// Whether the WebView should be scrollable internally.
   /// Overrides [EmbedConfig.scrollable].
   final bool? scrollable;
+
+  /// Whether the widget should delay loading the WebView until it enters the viewport.
+  /// Overrides [EmbedConfig.lazyLoad].
+  final bool? lazyLoad;
 
   /// Custom query parameters to pass to the OEmbed API (for supported providers).
   final Map<String, String>? queryParameters;
@@ -68,11 +83,17 @@ class EmbedCard extends StatelessWidget {
     this.preloadedData,
     this.style,
     this.cacheConfig,
+    this.embedConstraints,
+    this.embedHeight,
     this.scrollable,
+    this.lazyLoad,
     this.queryParameters,
     this.embedParams,
     this.webViewBuilder,
-  });
+  }) : assert(
+          embedConstraints == null || embedHeight == null,
+          'Use either embedConstraints or embedHeight, not both.',
+        );
 
   /// A concise factory for creating an [EmbedCard] with a positional [url].
   ///
@@ -87,7 +108,10 @@ class EmbedCard extends StatelessWidget {
     EmbedData? preloadedData,
     EmbedStyle? style,
     EmbedCacheConfig? cacheConfig,
+    EmbedConstraints? embedConstraints,
+    double? embedHeight,
     bool? scrollable,
+    bool? lazyLoad,
     Map<String, String>? queryParameters,
     BaseEmbedParams? embedParams,
     Widget Function(BuildContext context, Widget child)? webViewBuilder,
@@ -100,7 +124,10 @@ class EmbedCard extends StatelessWidget {
       preloadedData: preloadedData,
       style: style,
       cacheConfig: cacheConfig,
+      embedConstraints: embedConstraints,
+      embedHeight: embedHeight,
       scrollable: scrollable,
+      lazyLoad: lazyLoad,
       queryParameters: queryParameters,
       embedParams: embedParams,
       webViewBuilder: webViewBuilder,
@@ -117,6 +144,12 @@ class EmbedCard extends StatelessWidget {
     );
   }
 
+  EmbedConstraints? get _effectiveEmbedConstraints =>
+      embedConstraints ??
+      (embedHeight != null
+          ? EmbedConstraints(preferredHeight: embedHeight)
+          : null);
+
   @override
   Widget build(BuildContext context) {
     final param = _buildParam();
@@ -130,8 +163,9 @@ class EmbedCard extends StatelessWidget {
 
     final style = this.style ?? effectiveConfig?.style;
     final scrollable = this.scrollable ?? effectiveConfig?.scrollable ?? false;
+    final lazyLoad = this.lazyLoad ?? effectiveConfig?.lazyLoad ?? false;
 
-    return EmbedSurface(
+    Widget content = EmbedSurface(
       style: style,
       footerUrl: url,
       childBuilder: (context) {
@@ -141,10 +175,22 @@ class EmbedCard extends StatelessWidget {
           config: effectiveConfig,
           style: style,
           cacheConfig: cacheConfig,
+          embedConstraints: _effectiveEmbedConstraints,
           scrollable: scrollable,
           webViewBuilder: webViewBuilder,
         );
       },
     );
+
+    if (lazyLoad) {
+      content = LazyEmbedNode(
+        url: url,
+        style: style,
+        embedConstraints: _effectiveEmbedConstraints,
+        child: content,
+      );
+    }
+
+    return content;
   }
 }

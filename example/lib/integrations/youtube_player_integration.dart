@@ -17,6 +17,8 @@ class _YoutubePlayerIntegrationState
   final _testUrl = 'https://www.youtube.com/watch?v=00BHXAzYRTA';
   // A YouTube Shorts url
   final _shortsUrl = 'https://www.youtube.com/shorts/nSDgHBxUbVQ';
+  double _videoHeight = 220;
+  double _shortsHeight = 520;
 
   @override
   Widget build(BuildContext context) {
@@ -119,19 +121,39 @@ class _YoutubePlayerIntegrationState
                     ),
                   ),
                   const SizedBox(height: 16),
-                  YoutubeEmbedPlayer(
-                    // You must change the key so the WebView reloads the URL
-                    // when options change
-                    key: ValueKey(
-                      '${youtubeParams.controls}-${youtubeParams.autoplay}-${youtubeParams.loop}-${youtubeParams.rel}-${youtubeParams.theme}-${youtubeParams.color}-${settings.locale}-${settings.brightness}',
-                    ),
-                    videoIdOrUrl: _testUrl,
-                    controls: youtubeParams.controls ?? true,
-                    autoplay: youtubeParams.autoplay ?? false,
-                    loop: youtubeParams.loop ?? false,
-                    rel: youtubeParams.rel ?? false,
-                    theme: youtubeParams.theme,
-                    color: youtubeParams.color,
+                  _buildHeightControls(
+                    context,
+                    title: 'Landscape Player Height',
+                    value: _videoHeight,
+                    presets: const [180.0, 220.0, 280.0, 360.0],
+                    min: 160,
+                    max: 420,
+                    onChanged: (value) {
+                      setState(() => _videoHeight = value);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final width = constraints.maxWidth;
+                      final effectiveWidth = width.isFinite ? width : 640.0;
+                      return YoutubeEmbedPlayer(
+                        // You must change the key so the WebView reloads the URL
+                        // when options change
+                        key: ValueKey(
+                          '${youtubeParams.controls}-${youtubeParams.autoplay}-${youtubeParams.loop}-${youtubeParams.rel}-${youtubeParams.theme}-${youtubeParams.color}-${settings.locale}-${settings.brightness}-${_videoHeight.round()}',
+                        ),
+                        videoIdOrUrl: _testUrl,
+                        controls: youtubeParams.controls ?? true,
+                        autoplay: youtubeParams.autoplay ?? false,
+                        loop: youtubeParams.loop ?? false,
+                        rel: youtubeParams.rel ?? false,
+                        theme: youtubeParams.theme,
+                        color: youtubeParams.color,
+                        maxWidth: effectiveWidth,
+                        aspectRatio: effectiveWidth / _videoHeight,
+                      );
+                    },
                   ),
                   const SizedBox(height: 32),
                   Text(
@@ -139,22 +161,103 @@ class _YoutubePlayerIntegrationState
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 16),
-                  YoutubeEmbedPlayer(
-                    key: ValueKey(
-                      'shorts-${youtubeParams.controls}-${youtubeParams.autoplay}-${youtubeParams.loop}-${youtubeParams.rel}-${youtubeParams.theme}-${youtubeParams.color}-${settings.locale}-${settings.brightness}',
-                    ),
-                    videoIdOrUrl: _shortsUrl,
-                    aspectRatio: 9 / 16, // Shorts are vertical
-                    controls: youtubeParams.controls ?? true,
-                    autoplay: youtubeParams.autoplay ?? false,
-                    loop: youtubeParams.loop ?? false,
-                    rel: youtubeParams.rel ?? false,
-                    theme: youtubeParams.theme,
-                    color: youtubeParams.color,
+                  _buildHeightControls(
+                    context,
+                    title: 'Shorts Player Height',
+                    value: _shortsHeight,
+                    presets: const [420.0, 520.0, 640.0],
+                    min: 320,
+                    max: 760,
+                    onChanged: (value) {
+                      setState(() => _shortsHeight = value);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final width = constraints.maxWidth;
+                      final effectiveWidth = width.isFinite ? width : 320.0;
+                      return YoutubeEmbedPlayer(
+                        key: ValueKey(
+                          'shorts-${youtubeParams.controls}-${youtubeParams.autoplay}-${youtubeParams.loop}-${youtubeParams.rel}-${youtubeParams.theme}-${youtubeParams.color}-${settings.locale}-${settings.brightness}-${_shortsHeight.round()}',
+                        ),
+                        videoIdOrUrl: _shortsUrl,
+                        maxWidth: effectiveWidth,
+                        aspectRatio: effectiveWidth / _shortsHeight,
+                        controls: youtubeParams.controls ?? true,
+                        autoplay: youtubeParams.autoplay ?? false,
+                        loop: youtubeParams.loop ?? false,
+                        rel: youtubeParams.rel ?? false,
+                        theme: youtubeParams.theme,
+                        color: youtubeParams.color,
+                      );
+                    },
                   ),
                 ],
               ),
             ),
+          ),
+          SliverPadding(
+            padding: EdgeInsets.only(
+              bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeightControls(
+    BuildContext context, {
+    required String title,
+    required double value,
+    required List<double> presets,
+    required double min,
+    required double max,
+    required ValueChanged<double> onChanged,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${value.round()} px',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Slider(
+            value: value,
+            min: min,
+            max: max,
+            divisions: ((max - min) ~/ 20).clamp(1, 100),
+            label: '${value.round()} px',
+            onChanged: onChanged,
+          ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final preset in presets)
+                ChoiceChip(
+                  label: Text('${preset.round()} px'),
+                  selected: value.round() == preset.round(),
+                  onSelected: (_) => onChanged(preset),
+                ),
+            ],
           ),
         ],
       ),

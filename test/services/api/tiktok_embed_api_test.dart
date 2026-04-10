@@ -1,3 +1,4 @@
+import 'package:flutter_oembed/src/models/tiktok_embed_params.dart';
 import 'package:flutter_oembed/src/services/api/tiktok_embed_api.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -14,6 +15,21 @@ void main() {
                 'url=${Uri.encodeComponent('https://www.tiktok.com/@user/video/123')}'));
         expect(uri.host, equals('www.tiktok.com'));
         expect(uri.path, equals('/oembed'));
+      });
+
+      test('should inclusion TikTokEmbedParams in the query parameters', () {
+        const api = TikTokEmbedApi(
+          tiktokParams: TikTokEmbedParams(
+            autoplay: true,
+            muted: true,
+            controls: false,
+          ),
+        );
+        final uri = api.constructUrl('https://www.tiktok.com/@user/video/123');
+
+        expect(uri.queryParameters['autoplay'], equals('1'));
+        expect(uri.queryParameters['muted'], equals('1'));
+        expect(uri.queryParameters['controls'], equals('0'));
       });
     });
 

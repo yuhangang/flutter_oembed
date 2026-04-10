@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:flutter_oembed/src/core/embed_scope.dart';
 import 'package:flutter_oembed/src/logging/embed_logger.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
 import 'package:flutter_oembed/src/models/embed_constant.dart';
@@ -45,8 +46,8 @@ abstract class BaseEmbedApi {
   // Caching helpers — override to inject a custom cache manager in tests.
   // ---------------------------------------------------------------------------
 
-  @visibleForTesting
-  BaseCacheManager get cacheManager => DefaultCacheManager();
+  @internal
+  BaseCacheManager get cacheManager => EmbedScope.cacheManager;
 
   Future<EmbedData?> getCachedResult(Uri uri, {EmbedLogger? logger}) async {
     try {
@@ -235,7 +236,7 @@ class GenericEmbedApi extends BaseEmbedApi {
 
   @override
   Exception handleErrorResponse(http.Response response) {
-    if (response.statusCode == 404) return EmbedDataNotFoundException();
+    if (response.statusCode == 404) return const EmbedDataNotFoundException();
     return const EmbedApisException();
   }
 }

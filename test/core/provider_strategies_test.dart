@@ -36,6 +36,7 @@ void main() {
       brightness: Brightness.light,
       facebookAppId: '',
       facebookClientToken: '',
+      providerName: 'YouTube',
     );
 
     test('YouTubeProviderStrategy', () async {

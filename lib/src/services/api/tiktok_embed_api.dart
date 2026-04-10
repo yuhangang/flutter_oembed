@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_oembed/src/models/tiktok_embed_params.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 
 /// OEmbed API client for TikTok.
 class TikTokEmbedApi extends BaseEmbedApi {
-  const TikTokEmbedApi();
+  final TikTokEmbedParams? tiktokParams;
+
+  const TikTokEmbedApi({this.tiktokParams});
 
   @override
   String get baseUrl => 'https://www.tiktok.com/oembed';
@@ -18,9 +21,15 @@ class TikTokEmbedApi extends BaseEmbedApi {
     Map<String, String>? queryParameters,
   }) {
     final params = {'url': url};
+
+    if (tiktokParams != null) {
+      params.addAll(tiktokParams!.toMap());
+    }
+
     if (queryParameters != null) {
       params.addAll(queryParameters);
     }
+
     return Uri.parse(baseUrl).replace(queryParameters: params);
   }
 

@@ -15,6 +15,7 @@ class _TikTokPlayerIntegrationState extends State<TikTokPlayerIntegrationPage> {
   // A test video from the tiktok dev documentation
   final _testUrl =
       'https://www.tiktok.com/@scout2015/video/6718335390845095173';
+  double _playerHeight = 520;
 
   @override
   Widget build(BuildContext context) {
@@ -103,24 +104,100 @@ class _TikTokPlayerIntegrationState extends State<TikTokPlayerIntegrationPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  TikTokEmbedPlayer(
-                    // You must change the key so the WebView reloads the URL
-                    // when options like `controls` change
-                    key: ValueKey(
-                      '${tiktokParams.controls}-${tiktokParams.autoplay}-${tiktokParams.loop}-${tiktokParams.musicInfo}-${tiktokParams.description}-${settings.locale}-${settings.brightness}',
-                    ),
-                    videoIdOrUrl: _testUrl,
-                    controls: tiktokParams.controls,
-                    autoplay: tiktokParams.autoplay,
-                    loop: tiktokParams.loop,
-                    musicInfo: tiktokParams.musicInfo,
-                    description: tiktokParams.description,
-                    // Typically TikTok fills a 9:16 aspect ratio bounds natively
-                    aspectRatio: 9 / 16,
+                  _buildHeightControls(
+                    context,
+                    title: 'Player Frame Height',
+                    value: _playerHeight,
+                    presets: const [420.0, 520.0, 640.0],
+                    onChanged: (value) {
+                      setState(() => _playerHeight = value);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final width = constraints.maxWidth;
+                      final effectiveWidth = width.isFinite ? width : 320.0;
+                      return TikTokEmbedPlayer(
+                        // You must change the key so the WebView reloads the URL
+                        // when options like `controls` change
+                        key: ValueKey(
+                          '${tiktokParams.controls}-${tiktokParams.autoplay}-${tiktokParams.loop}-${tiktokParams.musicInfo}-${tiktokParams.description}-${settings.locale}-${settings.brightness}-${_playerHeight.round()}',
+                        ),
+                        videoIdOrUrl: _testUrl,
+                        controls: tiktokParams.controls,
+                        autoplay: tiktokParams.autoplay,
+                        loop: tiktokParams.loop,
+                        musicInfo: tiktokParams.musicInfo,
+                        description: tiktokParams.description,
+                        maxWidth: effectiveWidth,
+                        aspectRatio: effectiveWidth / _playerHeight,
+                      );
+                    },
                   ),
                 ],
               ),
             ),
+          ),
+          SliverPadding(
+            padding: EdgeInsets.only(
+              bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeightControls(
+    BuildContext context, {
+    required String title,
+    required double value,
+    required List<double> presets,
+    required ValueChanged<double> onChanged,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${value.round()} px',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Slider(
+            value: value,
+            min: 320,
+            max: 760,
+            divisions: 22,
+            label: '${value.round()} px',
+            onChanged: onChanged,
+          ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final preset in presets)
+                ChoiceChip(
+                  label: Text('${preset.round()} px'),
+                  selected: value.round() == preset.round(),
+                  onSelected: (_) => onChanged(preset),
+                ),
+            ],
           ),
         ],
       ),

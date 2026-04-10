@@ -3,16 +3,16 @@ import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_loader_param.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/embed_renderer.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/services/embed_service.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_data_loader.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
-import 'package:flutter_oembed/src/widgets/tiktok_embed_player.dart';
-import 'package:flutter_oembed/src/models/tiktok_embed_params.dart';
 
 class EmbedWidgetLoader extends StatefulWidget {
   const EmbedWidgetLoader({
@@ -22,6 +22,7 @@ class EmbedWidgetLoader extends StatefulWidget {
     this.config,
     this.style,
     this.cacheConfig,
+    this.embedConstraints,
     this.scrollable = false,
     this.webViewBuilder,
   });
@@ -34,6 +35,7 @@ class EmbedWidgetLoader extends StatefulWidget {
   final EmbedConfig? config;
   final EmbedStyle? style;
   final EmbedCacheConfig? cacheConfig;
+  final EmbedConstraints? embedConstraints;
   final bool scrollable;
   final Widget Function(BuildContext context, Widget child)? webViewBuilder;
 
@@ -119,7 +121,8 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
                 _controller.didRetry;
 
         if (showErrorWidget) {
-          final errorWidget = style?.errorBuilder?.call(context, null);
+          final errorWidget =
+              style?.errorBuilder?.call(context, _controller.lastError);
           return errorWidget ?? const Icon(Icons.error_outline);
         }
 
@@ -133,40 +136,45 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
                 maxWidth: constraints.maxWidth,
                 controller: _controller,
                 style: style,
+                embedConstraints: widget.embedConstraints,
                 scrollable: widget.scrollable,
                 webViewBuilder: widget.webViewBuilder,
               );
             }
 
-            final render = EmbedService.resolveRender(
+            final renderer = EmbedService.resolveRender(
               widget.param.url,
               config: config,
               embedType: widget.param.embedType,
               logger: logger,
               queryParameters: widget.param.queryParameters,
+              embedParams: widget.param.embedParams,
             );
 
-            return switch (render) {
-              EmbedRenderNativePlayer() => TikTokEmbedPlayer(
-                  videoIdOrUrl: widget.param.url,
-                  maxWidth: constraints.maxWidth,
-                  embedParams: widget.param.embedParams as TikTokEmbedParams?,
+            return switch (renderer) {
+              NativeWidgetRenderer(:final builder) => builder(
+                  context,
+                  constraints.maxWidth,
+                  _controller,
+                  widget.embedConstraints,
                 ),
-              EmbedRenderIframe(:final iframeUrl) => EmbedWebView.url(
+              IframeRenderer(:final iframeUrl) => EmbedWebView.url(
                   param: widget.param,
                   url: iframeUrl,
                   maxWidth: constraints.maxWidth,
                   controller: _controller,
                   style: style,
+                  embedConstraints: widget.embedConstraints,
                   scrollable: widget.scrollable,
                   webViewBuilder: widget.webViewBuilder,
                 ),
-              EmbedRenderOEmbed() || EmbedRenderPreloaded() => EmbedDataLoader(
+              OEmbedRenderer() => EmbedDataLoader(
                   param: widget.param,
                   controller: _controller,
                   config: config,
                   style: style,
                   cacheConfig: widget.cacheConfig,
+                  embedConstraints: widget.embedConstraints,
                   scrollable: widget.scrollable,
                   webViewBuilder: widget.webViewBuilder,
                   loaderParam: EmbedLoaderParam(

@@ -73,6 +73,8 @@ class ExampleSettings {
       useDynamicDiscovery: useDynamicDiscovery,
     );
   }
+
+  EmbedConstraints? get embedConstraints => null;
 }
 
 class ExampleSettingsController extends ChangeNotifier {

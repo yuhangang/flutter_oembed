@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_oembed/src/widgets/embed_surface.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
@@ -21,6 +22,21 @@ class TikTokEmbedPlayer extends StatefulWidget {
   /// Display the progress bar and all control buttons. Defaults to true.
   final bool controls;
 
+  /// Display the progress bar. Defaults to true.
+  final bool progressBar;
+
+  /// Display the play button. Defaults to true.
+  final bool playButton;
+
+  /// Display the volume control button. Defaults to true.
+  final bool volumeControl;
+
+  /// Display the fullscreen button. Defaults to true.
+  final bool fullscreenButton;
+
+  /// Display the video's current playback time and duration. Defaults to true.
+  final bool timestamp;
+
   /// Automatically play the video when loaded. Defaults to false.
   final bool autoplay;
 
@@ -33,11 +49,26 @@ class TikTokEmbedPlayer extends StatefulWidget {
   /// Display the video description. Defaults to false.
   final bool description;
 
+  /// Show recommended videos (true) or author's videos (false). Defaults to true.
+  final bool rel;
+
+  /// Display the browser's native context menu. Defaults to true.
+  final bool nativeContextMenu;
+
+  /// Display the closed caption icon. Defaults to true.
+  final bool closedCaption;
+
+  /// Set the default volume to 0 and prevent volume changes. Defaults to false.
+  final bool muted;
+
   /// The maximum width of the embed surface.
   final double? maxWidth;
 
   /// Aspect ratio for the embed. TikTok videos are usually 9:16.
   final double aspectRatio;
+
+  /// Optional constraints for the player height.
+  final EmbedConstraints? embedConstraints;
 
   /// Parameters for the native player. If provided, they override the
   /// individual parameters below.
@@ -47,12 +78,22 @@ class TikTokEmbedPlayer extends StatefulWidget {
     super.key,
     required this.videoIdOrUrl,
     this.controls = true,
+    this.progressBar = true,
+    this.playButton = true,
+    this.volumeControl = true,
+    this.fullscreenButton = true,
+    this.timestamp = true,
     this.autoplay = false,
     this.loop = false,
     this.musicInfo = false,
     this.description = false,
+    this.rel = true,
+    this.nativeContextMenu = true,
+    this.closedCaption = true,
+    this.muted = false,
     this.maxWidth,
     this.aspectRatio = 9 / 16,
+    this.embedConstraints,
     this.embedParams,
   });
 
@@ -121,21 +162,26 @@ class _TikTokEmbedPlayerState extends State<TikTokEmbedPlayer> {
     final queryParams = <String, String>{
       if (config != null) 'lang': config.locale,
     };
-    final params = widget.embedParams;
 
-    if (params != null) {
-      if (!params.controls) queryParams['controls'] = '0';
-      if (params.autoplay) queryParams['autoplay'] = '1';
-      if (params.loop) queryParams['loop'] = '1';
-      if (params.musicInfo) queryParams['music_info'] = '1';
-      if (params.description) queryParams['description'] = '1';
-    } else {
-      if (!widget.controls) queryParams['controls'] = '0';
-      if (widget.autoplay) queryParams['autoplay'] = '1';
-      if (widget.loop) queryParams['loop'] = '1';
-      if (widget.musicInfo) queryParams['music_info'] = '1';
-      if (widget.description) queryParams['description'] = '1';
-    }
+    final params = widget.embedParams ??
+        TikTokEmbedParams(
+          controls: widget.controls,
+          progressBar: widget.progressBar,
+          playButton: widget.playButton,
+          volumeControl: widget.volumeControl,
+          fullscreenButton: widget.fullscreenButton,
+          timestamp: widget.timestamp,
+          autoplay: widget.autoplay,
+          loop: widget.loop,
+          musicInfo: widget.musicInfo,
+          description: widget.description,
+          rel: widget.rel,
+          nativeContextMenu: widget.nativeContextMenu,
+          closedCaption: widget.closedCaption,
+          muted: widget.muted,
+        );
+
+    queryParams.addAll(params.toMap());
 
     if (queryParams.isNotEmpty) {
       uri = uri.replace(queryParameters: queryParams);
@@ -157,15 +203,23 @@ class _TikTokEmbedPlayerState extends State<TikTokEmbedPlayer> {
       footerUrl: _param.url,
       childBuilder: (context) {
         if (_controller == null) return const SizedBox.shrink();
+
+        final player = EmbedWebView.url(
+          param: _param,
+          url: playerUrl,
+          maxWidth: widget.maxWidth ?? double.infinity,
+          controller: _controller!,
+          style: style,
+          embedConstraints: widget.embedConstraints,
+        );
+
+        if (widget.embedConstraints?.preferredHeight != null) {
+          return player;
+        }
+
         return AspectRatio(
           aspectRatio: widget.aspectRatio,
-          child: EmbedWebView.url(
-            param: _param,
-            url: playerUrl,
-            maxWidth: widget.maxWidth ?? double.infinity,
-            controller: _controller!,
-            style: style,
-          ),
+          child: player,
         );
       },
     );

@@ -17,7 +17,10 @@ class SpotifyEmbedApi extends BaseEmbedApi {
     Brightness brightness = Brightness.light,
     Map<String, String>? queryParameters,
   }) {
-    final params = {'url': url};
+    final params = {
+      'url': url,
+      'format': 'json',
+    };
     if (queryParameters != null) {
       params.addAll(queryParameters);
     }
@@ -26,7 +29,7 @@ class SpotifyEmbedApi extends BaseEmbedApi {
 
   @override
   Exception handleErrorResponse(http.Response response) {
-    if (response.statusCode == 404) return EmbedDataNotFoundException();
+    if (response.statusCode == 404) return const EmbedDataNotFoundException();
     return const EmbedApisException();
   }
 }

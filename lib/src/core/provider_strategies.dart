@@ -1,14 +1,21 @@
-import 'package:flutter/material.dart';
+import 'dart:ui';
+
 import 'package:flutter_oembed/src/core/provider_strategy.dart';
+import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/embed_renderer.dart';
 import 'package:flutter_oembed/src/models/meta_embed_params.dart';
 import 'package:flutter_oembed/src/models/soundcloud_embed_params.dart';
+import 'package:flutter_oembed/src/models/tiktok_embed_params.dart';
 import 'package:flutter_oembed/src/models/vimeo_embed_params.dart';
 import 'package:flutter_oembed/src/models/x_embed_params.dart';
+import 'package:flutter_oembed/src/models/youtube_embed_params.dart';
 import 'package:flutter_oembed/src/services/embed_apis.dart';
 import 'package:flutter_oembed/src/utils/embed_html_utils.dart';
 import 'package:flutter_oembed/src/utils/embed_webview_controller_utils.dart';
+import 'package:flutter_oembed/src/widgets/tiktok_embed_player.dart';
+import 'package:flutter_oembed/src/widgets/youtube_embed_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class YouTubeProviderStrategy extends GenericEmbedProviderStrategy {
@@ -48,6 +55,32 @@ class YouTubeProviderStrategy extends GenericEmbedProviderStrategy {
   Future<void> pauseMedia(WebViewController controller) async {
     await controller.pauseVideos();
   }
+
+  @override
+  EmbedRenderer resolveRenderer(EmbedProviderContext context,
+      {EmbedConfig? config}) {
+    if (context.iframeUrl != null) {
+      return IframeRenderer(context.iframeUrl!);
+    }
+
+    // Otherwise fallback to YouTube native player
+    return NativeWidgetRenderer(
+        (widgetContext, maxWidth, controller, embedConstraints) {
+      return YoutubeEmbedPlayer(
+        videoIdOrUrl: context.url,
+        maxWidth: maxWidth,
+        embedConstraints: embedConstraints,
+        controls:
+            (context.embedParams as YoutubeEmbedParams?)?.controls ?? true,
+        autoplay:
+            (context.embedParams as YoutubeEmbedParams?)?.autoplay ?? false,
+        loop: (context.embedParams as YoutubeEmbedParams?)?.loop ?? false,
+        rel: (context.embedParams as YoutubeEmbedParams?)?.rel ?? false,
+        theme: (context.embedParams as YoutubeEmbedParams?)?.theme,
+        color: (context.embedParams as YoutubeEmbedParams?)?.color,
+      );
+    });
+  }
 }
 
 class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
@@ -75,7 +108,9 @@ class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
 
   @override
   BaseEmbedApi createApi(EmbedProviderContext context) {
-    return const TikTokEmbedApi();
+    return TikTokEmbedApi(
+      tiktokParams: context.embedParams as TikTokEmbedParams?,
+    );
   }
 
   @override
@@ -95,6 +130,24 @@ class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
     // TikTok handles its own pausing via IntersectionObserver in their script,
     // but we can try to mute it if it's a photo post.
     await controller.muteAudioWidget();
+  }
+
+  @override
+  EmbedRenderer resolveRenderer(EmbedProviderContext context,
+      {EmbedConfig? config}) {
+    if (context.iframeUrl != null) {
+      return IframeRenderer(context.iframeUrl!);
+    }
+
+    return NativeWidgetRenderer(
+        (widgetContext, maxWidth, controller, embedConstraints) {
+      return TikTokEmbedPlayer(
+        videoIdOrUrl: context.url,
+        maxWidth: maxWidth,
+        embedConstraints: embedConstraints,
+        embedParams: context.embedParams as TikTokEmbedParams?,
+      );
+    });
   }
 }
 
@@ -221,6 +274,11 @@ class SoundCloudProviderStrategy extends GenericEmbedProviderStrategy {
 
 class SpotifyProviderStrategy extends GenericEmbedProviderStrategy {
   const SpotifyProviderStrategy();
+
+  @override
+  String get userAgent => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+      'AppleWebKit/537.36 (KHTML, like Gecko) '
+      'Chrome/122.0.0.0 Safari/537.36';
 
   @override
   BaseEmbedApi createApi(EmbedProviderContext context) {

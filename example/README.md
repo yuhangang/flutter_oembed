@@ -1,6 +1,6 @@
-# embed_example
+# flutter_oembed example
 
-Example app for the `oembed` package.
+Example app for the `flutter_oembed` package.
 
 ## Run
 

@@ -4,6 +4,7 @@ import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
@@ -122,6 +123,18 @@ void main() {
       expect(listenerCalled, isTrue);
     });
 
+    test('setHeight ignores tiny height deltas', () {
+      final controller = EmbedController(param: testParam);
+      int notifications = 0;
+      controller.addListener(() => notifications++);
+
+      controller.setHeight(100.0);
+      controller.setHeight(101.0);
+
+      expect(controller.height, 100.0);
+      expect(notifications, 1);
+    });
+
     test('setLoadingState updates state and notifies listeners', () {
       final controller = EmbedController(param: testParam);
       bool listenerCalled = false;
@@ -130,6 +143,17 @@ void main() {
       controller.setLoadingState(EmbedLoadingState.loaded);
       expect(controller.loadingState, EmbedLoadingState.loaded);
       expect(listenerCalled, isTrue);
+    });
+
+    test('setLoadingState stores and clears lastError correctly', () {
+      final controller = EmbedController(param: testParam);
+      final error = StateError('broken');
+
+      controller.setLoadingState(EmbedLoadingState.error, error: error);
+      expect(controller.lastError, same(error));
+
+      controller.setLoadingState(EmbedLoadingState.loading);
+      expect(controller.lastError, isNull);
     });
 
     test('updateVisibility updates visibility and calls callback', () {
@@ -173,6 +197,7 @@ void main() {
 
         async.elapse(const Duration(seconds: 6));
         expect(controller.loadingState, EmbedLoadingState.error);
+        expect(controller.lastError, isA<EmbedTimeoutException>());
       });
     });
 
@@ -207,6 +232,115 @@ void main() {
 
       expect(callbackCalled, isTrue);
       expect(controller.isVisible, isFalse);
+    });
+
+    test('setHeight ignores non-finite values', () {
+      final controller = EmbedController(param: testParam);
+      controller.setHeight(double.infinity);
+      expect(controller.height, isNull);
+      controller.setHeight(double.nan);
+      expect(controller.height, isNull);
+    });
+
+    test('setHeight ignores zero and negative values', () {
+      final controller = EmbedController(param: testParam);
+      controller.setHeight(0);
+      expect(controller.height, isNull);
+      controller.setHeight(-10);
+      expect(controller.height, isNull);
+    });
+
+    test('setDidRetry only notifies once', () {
+      final controller = EmbedController(param: testParam);
+      int notifications = 0;
+      controller.addListener(() => notifications++);
+
+      controller.setDidRetry();
+      controller.setDidRetry();
+
+      expect(controller.didRetry, isTrue);
+      expect(notifications, 1);
+    });
+
+    test('cancelLoadTimeout prevents timeout from firing', () {
+      fakeAsync((async) {
+        final controller = EmbedController(
+          param: testParam,
+          config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
+        );
+
+        controller.startLoadTimeout();
+        async.elapse(const Duration(seconds: 3));
+        controller.cancelLoadTimeout();
+        async.elapse(const Duration(seconds: 5));
+
+        expect(controller.loadingState, EmbedLoadingState.loading);
+      });
+    });
+
+    test('timeout does not fire when already loaded', () {
+      fakeAsync((async) {
+        final controller = EmbedController(
+          param: testParam,
+          config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
+        );
+
+        controller.startLoadTimeout();
+        controller.setLoadingState(EmbedLoadingState.loaded);
+
+        async.elapse(const Duration(seconds: 10));
+        expect(controller.loadingState, EmbedLoadingState.loaded);
+      });
+    });
+
+    test('uses default 20-second timeout when no config provided', () {
+      fakeAsync((async) {
+        final controller = EmbedController(param: testParam);
+        controller.startLoadTimeout();
+
+        async.elapse(const Duration(seconds: 19));
+        expect(controller.loadingState, EmbedLoadingState.loading);
+
+        async.elapse(const Duration(seconds: 1));
+        expect(controller.loadingState, EmbedLoadingState.error);
+      });
+    });
+
+    test('setLoadingState preserves existing error on noConnection', () {
+      final controller = EmbedController(param: testParam);
+      final error = StateError('original');
+
+      controller.setLoadingState(EmbedLoadingState.error, error: error);
+      controller.setLoadingState(EmbedLoadingState.noConnection);
+
+      expect(controller.lastError, same(error));
+    });
+
+    test('double dispose does not throw', () {
+      final controller = EmbedController(param: testParam);
+      controller.dispose();
+      expect(() => controller.dispose(), returnsNormally);
+    });
+
+    test('setLoadingState does not notify when state and error are unchanged',
+        () {
+      final controller = EmbedController(param: testParam);
+      controller.setLoadingState(EmbedLoadingState.loaded);
+
+      int notifications = 0;
+      controller.addListener(() => notifications++);
+
+      controller.setLoadingState(EmbedLoadingState.loaded);
+      expect(notifications, 0);
+    });
+
+    test('updateVisibility does not notify when value unchanged', () {
+      final controller = EmbedController(param: testParam);
+      int notifications = 0;
+      controller.addListener(() => notifications++);
+
+      controller.updateVisibility(true, onVisibilityChange: (_) {});
+      expect(notifications, 0); // already true
     });
   });
 
@@ -276,6 +410,7 @@ void main() {
       );
 
       driver.dispose();
+      await Future<void>.delayed(Duration.zero);
 
       verify(() => mockWebViewController.loadRequest(
             Uri.parse('about:blank'),
@@ -543,6 +678,7 @@ void main() {
           embedUrl: 'url',
           maxWidth: 400,
         );
+        async.flushMicrotasks();
 
         // Trigger OnTwitterLoaded
         final capturedOnTwitterLoaded =

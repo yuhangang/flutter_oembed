@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_oembed/src/models/embed_constant.dart';
 
 /// Per-widget visual customization for OEmbed embeds.
 ///
@@ -26,6 +27,10 @@ class EmbedStyle extends Equatable {
   /// Shown while the OEmbed data is being fetched or the WebView is loading.
   final WidgetBuilder? loadingBuilder;
 
+  /// Shown while the widget is waiting to enter the viewport when [lazyLoad] is true.
+  /// If null, it falls back to [loadingBuilder], then to an empty [SizedBox].
+  final WidgetBuilder? lazyLoadPlaceholderBuilder;
+
   /// Shown when an error occurs (network error, 404, etc.).
   ///
   /// Receives the error object so the caller can display specific messages.
@@ -51,29 +56,28 @@ class EmbedStyle extends Equatable {
   final BorderRadius? borderRadius;
 
   /// The maximum height of the embed when [scrollable] is true.
-  /// Defaults to 400.0.
+  /// Defaults to [kDefaultMaxScrollableEmbedHeight].
   final double maxScrollableHeight;
 
   const EmbedStyle({
     this.wrapperBuilder,
     this.loadingBuilder,
+    this.lazyLoadPlaceholderBuilder,
     this.errorBuilder,
     this.footerBuilder,
     this.webViewBuilder,
     this.borderRadius,
-    this.maxScrollableHeight = 400.0,
+    this.maxScrollableHeight = kDefaultMaxScrollableEmbedHeight,
   });
 
   @override
-  List<Object?> get props => [
-        borderRadius,
-        maxScrollableHeight,
-      ];
+  List<Object?> get props => [borderRadius, maxScrollableHeight];
 
   /// Returns a copy of this style with the given fields replaced.
   EmbedStyle copyWith({
     Widget Function(BuildContext context, Widget child)? wrapperBuilder,
     WidgetBuilder? loadingBuilder,
+    WidgetBuilder? lazyLoadPlaceholderBuilder,
     Widget Function(BuildContext context, Object? error)? errorBuilder,
     Widget Function(BuildContext context, String url)? footerBuilder,
     Widget Function(BuildContext context, Widget child)? webViewBuilder,
@@ -83,6 +87,8 @@ class EmbedStyle extends Equatable {
     return EmbedStyle(
       wrapperBuilder: wrapperBuilder ?? this.wrapperBuilder,
       loadingBuilder: loadingBuilder ?? this.loadingBuilder,
+      lazyLoadPlaceholderBuilder:
+          lazyLoadPlaceholderBuilder ?? this.lazyLoadPlaceholderBuilder,
       errorBuilder: errorBuilder ?? this.errorBuilder,
       footerBuilder: footerBuilder ?? this.footerBuilder,
       webViewBuilder: webViewBuilder ?? this.webViewBuilder,

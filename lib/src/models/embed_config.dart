@@ -1,7 +1,9 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/embed_constant.dart';
 import 'package:flutter_oembed/src/models/embed_provider_config.dart';
+import 'package:flutter_oembed/src/models/embed_strings.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/logging/embed_logger.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
@@ -59,8 +61,15 @@ class EmbedConfig extends Equatable {
   /// BCP-47 locale code passed to provider APIs that support localisation.
   final String locale;
 
-  /// App brightness, forwarded to providers that support theme switching (e.g. X/Twitter).
+  /// App brightness, forwarded to providers that support theme switching.
+  ///
+  /// Currently this is honored by X, Reddit, and [YoutubeEmbedPlayer].
+  /// Other built-in providers may ignore it because their upstream embed APIs
+  /// do not expose a stable theme parameter.
   final Brightness brightness;
+
+  /// User-facing copy used by package-provided loading, retry, and semantics.
+  final EmbedStrings strings;
 
   /// Custom navigation request handler.
   /// If provided, this is called before the default navigation logic.
@@ -81,12 +90,16 @@ class EmbedConfig extends Equatable {
   final bool useDynamicDiscovery;
 
   /// Timeout duration for the WebView to finish loading before showing an error.
-  /// Defaults to 10 seconds.
+  /// Defaults to [kDefaultEmbedLoadTimeout].
   final Duration loadTimeout;
 
   /// Whether the WebView should be scrollable internally.
   /// Defaults to `false`.
   final bool scrollable;
+
+  /// Whether the widget should delay loading the WebView until it enters the viewport.
+  /// Defaults to `false`.
+  final bool lazyLoad;
 
   /// Optional logger used by the library to emit provider resolution, cache,
   /// navigation, and loading diagnostics.
@@ -109,11 +122,13 @@ class EmbedConfig extends Equatable {
     this.proxyUrl,
     this.locale = 'en',
     this.brightness = Brightness.light,
+    this.strings = const EmbedStrings(),
     this.onNavigationRequest,
     this.onLinkTap,
     this.useDynamicDiscovery = false,
-    this.loadTimeout = const Duration(seconds: 20),
+    this.loadTimeout = kDefaultEmbedLoadTimeout,
     this.scrollable = false,
+    this.lazyLoad = false,
     this.logger = const EmbedLogger.disabled(),
     this.httpClient,
   });
@@ -137,9 +152,11 @@ class EmbedConfig extends Equatable {
         proxyUrl,
         locale,
         brightness,
+        strings,
         useDynamicDiscovery,
         loadTimeout,
         scrollable,
+        lazyLoad,
         logger,
       ];
 
@@ -159,12 +176,14 @@ class EmbedConfig extends Equatable {
     String? proxyUrl,
     String? locale,
     Brightness? brightness,
+    EmbedStrings? strings,
     FutureOr<NavigationDecision>? Function(NavigationRequest)?
         onNavigationRequest,
     void Function(String url, EmbedData? data)? onLinkTap,
     bool? useDynamicDiscovery,
     Duration? loadTimeout,
     bool? scrollable,
+    bool? lazyLoad,
     EmbedLogger? logger,
     http.Client? httpClient,
   }) {
@@ -177,11 +196,13 @@ class EmbedConfig extends Equatable {
       proxyUrl: proxyUrl ?? this.proxyUrl,
       locale: locale ?? this.locale,
       brightness: brightness ?? this.brightness,
+      strings: strings ?? this.strings,
       onNavigationRequest: onNavigationRequest ?? this.onNavigationRequest,
       onLinkTap: onLinkTap ?? this.onLinkTap,
       useDynamicDiscovery: useDynamicDiscovery ?? this.useDynamicDiscovery,
       loadTimeout: loadTimeout ?? this.loadTimeout,
       scrollable: scrollable ?? this.scrollable,
+      lazyLoad: lazyLoad ?? this.lazyLoad,
       logger: logger ?? this.logger,
       httpClient: httpClient ?? this.httpClient,
     );

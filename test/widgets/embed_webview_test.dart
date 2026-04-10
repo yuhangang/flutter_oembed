@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/embed_strings.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -56,6 +58,74 @@ void main() {
       await tester.pump();
       expect(find.byType(WebViewWidget), findsOneWidget);
       await tester.pump(const Duration(seconds: 11));
+    });
+
+    testWidgets('exposes loading semantics while the embed is loading',
+        (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 640,
+                controller: controller,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        expect(
+          find.bySemanticsLabel('Loading embedded content'),
+          findsOneWidget,
+        );
+      } finally {
+        controller.dispose();
+        semanticsHandle.dispose();
+      }
+    });
+
+    testWidgets('uses configured strings for retry semantics', (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+      final customController = EmbedController(
+        param: param,
+        config: const EmbedConfig(
+          strings: EmbedStrings(
+            retryAfterLoadErrorSemanticsLabel: 'Cuba semula kandungan benam',
+            retryHint: 'Ketik dua kali untuk cuba lagi',
+          ),
+        ),
+      );
+
+      try {
+        customController.setLoadingState(EmbedLoadingState.error);
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 640,
+                controller: customController,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        expect(
+          find.bySemanticsLabel('Cuba semula kandungan benam'),
+          findsOneWidget,
+        );
+      } finally {
+        customController.dispose();
+        semanticsHandle.dispose();
+      }
     });
 
     testWidgets(
@@ -118,28 +188,37 @@ void main() {
     testWidgets(
         'should allow retry logic when the controller is in an error state',
         (tester) async {
-      controller.setLoadingState(EmbedLoadingState.error);
+      final semanticsHandle = tester.ensureSemantics();
+      try {
+        controller.setLoadingState(EmbedLoadingState.error);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: EmbedWebView.data(
-              param: param,
-              data: data,
-              maxWidth: 640,
-              controller: controller,
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 640,
+                controller: controller,
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.pump();
-      final refreshIcon = find.byIcon(Icons.refresh);
-      expect(refreshIcon, findsOneWidget);
+        await tester.pump();
+        final refreshIcon = find.byIcon(Icons.refresh);
+        expect(refreshIcon, findsOneWidget);
+        expect(
+          find.bySemanticsLabel('Retry embedded content after load error'),
+          findsOneWidget,
+        );
 
-      await tester.tap(refreshIcon);
-      expect(controller.loadingState, EmbedLoadingState.loading);
-      await tester.pump(const Duration(seconds: 11));
+        await tester.tap(refreshIcon);
+        expect(controller.loadingState, EmbedLoadingState.loading);
+        await tester.pump(const Duration(seconds: 11));
+      } finally {
+        semanticsHandle.dispose();
+      }
     });
 
     testWidgets(
@@ -176,6 +255,125 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(seconds: 11));
       newController.dispose();
+    });
+
+    testWidgets(
+        'uses 16:9 fallback height for video embeds without aspect ratio',
+        (tester) async {
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 320,
+                controller: controller,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        final sizedBox = tester
+            .widgetList<SizedBox>(find.byType(SizedBox))
+            .firstWhere((widget) => widget.height != null);
+        expect(sizedBox.height, closeTo(180.0, 0.01));
+      } finally {
+        controller.dispose();
+      }
+    });
+
+    testWidgets('caps generic fallback height instead of using a square',
+        (tester) async {
+      final genericParam = SocialEmbedParam(
+        url: 'https://example.com/post/1',
+        embedType: EmbedType.other,
+      );
+      final genericController = EmbedController(
+        param: genericParam,
+        config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
+      );
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: genericParam,
+                data: const EmbedData(html: '<div>Generic</div>'),
+                maxWidth: 500,
+                controller: genericController,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        final sizedBox = tester
+            .widgetList<SizedBox>(find.byType(SizedBox))
+            .firstWhere((widget) => widget.height != null);
+        expect(sizedBox.height, 320.0);
+      } finally {
+        genericController.dispose();
+      }
+    });
+
+    testWidgets('uses preferredHeight from embedConstraints', (tester) async {
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 320,
+                embedConstraints: const EmbedConstraints(preferredHeight: 232),
+                controller: controller,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        final sizedBox = tester
+            .widgetList<SizedBox>(find.byType(SizedBox))
+            .firstWhere((widget) => widget.height != null);
+        expect(sizedBox.height, 232.0);
+      } finally {
+        controller.dispose();
+      }
+    });
+
+    testWidgets('clamps derived height to embedConstraints.maxHeight',
+        (tester) async {
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 640,
+                embedConstraints: const EmbedConstraints(maxHeight: 180),
+                controller: controller,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        final sizedBox = tester
+            .widgetList<SizedBox>(find.byType(SizedBox))
+            .firstWhere((widget) => widget.height != null);
+        expect(sizedBox.height, 180.0);
+      } finally {
+        controller.dispose();
+      }
     });
   });
 }

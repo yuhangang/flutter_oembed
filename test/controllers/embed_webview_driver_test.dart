@@ -5,6 +5,7 @@ import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -143,6 +144,7 @@ void main() {
 
         capturedDelegate!.onWebResourceError!(error);
         expect(controller.loadingState, EmbedLoadingState.noConnection);
+        expect(controller.lastError, isA<EmbedNetworkException>());
       });
 
       test('should set the state to noConnection for host lookup errors',
@@ -169,6 +171,7 @@ void main() {
 
         capturedDelegate!.onWebResourceError!(error);
         expect(controller.loadingState, EmbedLoadingState.noConnection);
+        expect(controller.lastError, isA<EmbedNetworkException>());
       });
 
       test('should ignore resource errors that are not for the main frame',
@@ -280,6 +283,23 @@ void main() {
 
         // Should not crash
       });
+    });
+
+    test('dispose ignores cleanup failures', () async {
+      when(() => mockWebViewController.loadRequest(any(),
+          headers: any(named: 'headers'))).thenThrow(Exception('disposed'));
+      when(() => mockWebViewController.setNavigationDelegate(any()))
+          .thenThrow(Exception('delegate failed'));
+
+      final driver = EmbedWebViewDriver(
+        controller: controller,
+        webViewController: mockWebViewController,
+      );
+
+      driver.dispose();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.loadingState, EmbedLoadingState.loading);
     });
   });
 }

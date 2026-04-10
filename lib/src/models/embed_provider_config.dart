@@ -90,10 +90,17 @@ class EmbedProviderConfig extends Equatable {
   /// Returns the full merged provider list (built-in + custom) filtered by
   /// [enabledProviders].
   ///
+  /// The result is memoized per instance via [_effectiveProvidersCache] to
+  /// avoid re-allocating and re-filtering on every access. Since
+  /// [EmbedProviderConfig] is immutable, the cached value never goes stale.
+  ///
   /// Note: Dynamically discovered rules from [kEmbedProvidersSnapshot] are NOT
   /// included here for performance reasons. [EmbedService] handles efficient
   /// lookup in the snapshot separately.
   List<EmbedProviderRule> get effectiveProviders {
+    final cached = _effectiveProvidersCache[this];
+    if (cached != null) return cached;
+
     final all = <EmbedProviderRule>[
       ...customProviders,
       ...kDefaultEmbedProviders,
@@ -107,12 +114,22 @@ class EmbedProviderConfig extends Equatable {
       return r.isVerified;
     }).toList();
 
-    if (enabledProviders == null) return filtered;
-    return filtered
-        .where((r) => enabledProviders!.contains(r.providerName))
-        .toList();
+    final result = enabledProviders == null
+        ? filtered
+        : filtered
+            .where((r) => enabledProviders!.contains(r.providerName))
+            .toList();
+
+    _effectiveProvidersCache[this] = result;
+    return result;
   }
 }
+
+/// Instance-level cache for [EmbedProviderConfig.effectiveProviders].
+///
+/// Uses [Expando] so the cached list is garbage-collected together with the
+/// [EmbedProviderConfig] instance, and `const` constructability is preserved.
+final Expando<List<EmbedProviderRule>> _effectiveProvidersCache = Expando();
 
 /// Determines how embed content is rendered.
 enum EmbedRenderMode {

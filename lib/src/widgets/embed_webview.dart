@@ -1,8 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
+import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/embed_strings.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
@@ -14,6 +18,11 @@ class EmbedWebView extends StatefulWidget {
   final EmbedData? data;
   final String? url;
   final double maxWidth;
+  final EmbedConstraints? embedConstraints;
+  @Deprecated(
+    'Use embedConstraints: EmbedConstraints(preferredHeight: ...) instead.',
+  )
+  final double? embedHeight;
   final EmbedController controller;
   final EmbedStyle? style;
   final bool scrollable;
@@ -24,28 +33,45 @@ class EmbedWebView extends StatefulWidget {
     required this.param,
     required EmbedData this.data,
     required this.maxWidth,
+    this.embedConstraints,
+    this.embedHeight,
     required this.controller,
     this.style,
     this.scrollable = false,
     this.webViewBuilder,
-  }) : url = null;
+  })  : assert(
+          embedConstraints == null || embedHeight == null,
+          'Use either embedConstraints or embedHeight, not both.',
+        ),
+        url = null;
 
   const EmbedWebView.url({
     super.key,
     required this.param,
     required String this.url,
     required this.maxWidth,
+    this.embedConstraints,
+    this.embedHeight,
     required this.controller,
     this.style,
     this.scrollable = false,
     this.webViewBuilder,
-  }) : data = null;
+  })  : assert(
+          embedConstraints == null || embedHeight == null,
+          'Use either embedConstraints or embedHeight, not both.',
+        ),
+        data = null;
 
   @override
   State<EmbedWebView> createState() => _EmbedViewState();
 }
 
 class _EmbedViewState extends State<EmbedWebView> {
+  static const _defaultVideoAspectRatio = 16 / 9;
+  static const _defaultSpotifyHeight = 152.0;
+  static const _defaultSoundCloudHeight = 166.0;
+  static const _defaultContentFallbackHeight = 320.0;
+
   late EmbedWebViewDriver _driver;
 
   @override
@@ -96,14 +122,60 @@ class _EmbedViewState extends State<EmbedWebView> {
     super.dispose();
   }
 
-  Widget _buildLoadingOverlay(BuildContext context, EmbedStyle? style) {
-    return style?.loadingBuilder?.call(context) ??
+  Widget _buildLoadingOverlay(
+    BuildContext context,
+    EmbedStyle? style,
+    EmbedStrings strings,
+  ) {
+    final loadingChild = style?.loadingBuilder?.call(context) ??
         const Center(child: CircularProgressIndicator());
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: strings.loadingSemanticsLabel,
+      child: loadingChild,
+    );
   }
 
-  Widget _buildWebView(BuildContext context, EmbedStyle? style) {
-    return WebViewWidget(controller: _driver.webViewController);
+  Widget _buildWebView(
+    BuildContext context,
+    EmbedStyle? style,
+    EmbedStrings strings,
+  ) {
+    return Semantics(
+      container: true,
+      label: strings.contentSemanticsLabel,
+      child: WebViewWidget(controller: _driver.webViewController),
+    );
   }
+
+  String _retrySemanticsLabel(EmbedLoadingState state, EmbedStrings strings) {
+    return switch (state) {
+      EmbedLoadingState.noConnection =>
+        strings.retryAfterConnectionErrorSemanticsLabel,
+      _ => strings.retryAfterLoadErrorSemanticsLabel,
+    };
+  }
+
+  double _fallbackHeight() {
+    switch (widget.param.embedType) {
+      case EmbedType.spotify:
+        return _defaultSpotifyHeight;
+      case EmbedType.soundcloud:
+        return _defaultSoundCloudHeight;
+      default:
+        if (widget.param.embedType.isVideo) {
+          return widget.maxWidth / _defaultVideoAspectRatio;
+        }
+        return math.min(widget.maxWidth, _defaultContentFallbackHeight);
+    }
+  }
+
+  EmbedConstraints? get _effectiveEmbedConstraints =>
+      widget.embedConstraints ??
+      (widget.embedHeight != null
+          ? EmbedConstraints(preferredHeight: widget.embedHeight)
+          : null);
 
   @override
   Widget build(BuildContext context) {
@@ -112,16 +184,21 @@ class _EmbedViewState extends State<EmbedWebView> {
       builder: (context, child) {
         final config = widget.controller.config ?? EmbedScope.configOf(context);
         final style = widget.style ?? config?.style;
+        final strings = config?.strings ?? const EmbedStrings();
         final loadingState = widget.controller.loadingState;
+        final embedConstraints = _effectiveEmbedConstraints;
         final double? aspectRatio = widget.data?.aspectRatio ??
             widget.controller.preloadedData?.aspectRatio;
 
-        double height = (aspectRatio != null
-            ? widget.maxWidth / aspectRatio
-            : (widget.controller.height ?? widget.maxWidth));
+        double height = embedConstraints?.preferredHeight ??
+            (aspectRatio != null
+                ? widget.maxWidth / aspectRatio
+                : (widget.controller.height ?? _fallbackHeight()));
 
-        if (widget.scrollable && style != null) {
-          height = height.clamp(0.0, style.maxScrollableHeight);
+        if (embedConstraints != null) {
+          height = embedConstraints.clampHeight(height);
+        } else if (widget.scrollable && style != null) {
+          height = height.clamp(0.0, style.maxScrollableHeight).toDouble();
         }
 
         final effectiveWebViewBuilder =
@@ -132,25 +209,36 @@ class _EmbedViewState extends State<EmbedWebView> {
           child: Stack(
             fit: StackFit.expand,
             children: [
-              _buildWebView(context, style),
+              _buildWebView(context, style, strings),
               if (loadingState == EmbedLoadingState.loading)
-                _buildLoadingOverlay(context, style)
+                _buildLoadingOverlay(context, style, strings)
               else if (loadingState == EmbedLoadingState.error ||
                   loadingState == EmbedLoadingState.noConnection)
-                GestureDetector(
-                  onTap: () {
-                    widget.controller.setLoadingState(
-                      EmbedLoadingState.loading,
-                    );
-                    if (loadingState == EmbedLoadingState.error) {
-                      widget.controller.setDidRetry();
-                      _driver.refresh();
-                    } else {
-                      _driver.webViewController.reload();
-                    }
-                  },
-                  child: style?.errorBuilder?.call(context, null) ??
-                      const Icon(Icons.refresh),
+                Semantics(
+                  container: true,
+                  liveRegion: true,
+                  button: true,
+                  enabled: true,
+                  label: _retrySemanticsLabel(loadingState, strings),
+                  hint: strings.retryHint,
+                  child: GestureDetector(
+                    onTap: () {
+                      widget.controller.setLoadingState(
+                        EmbedLoadingState.loading,
+                      );
+                      if (loadingState == EmbedLoadingState.error) {
+                        widget.controller.setDidRetry();
+                        _driver.refresh();
+                      } else {
+                        _driver.webViewController.reload();
+                      }
+                    },
+                    child: style?.errorBuilder?.call(
+                          context,
+                          widget.controller.lastError,
+                        ) ??
+                        const Icon(Icons.refresh),
+                  ),
                 ),
             ],
           ),

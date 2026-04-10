@@ -174,6 +174,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                       ),
                     ),
                     const SizedBox(height: 24),
+                    const SizedBox(height: 24),
                     _buildSection(
                       context,
                       title: 'Cache Management',

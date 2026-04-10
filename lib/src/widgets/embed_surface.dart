@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_oembed/src/core/embed_scope.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 
 /// Shared presentation shell for embed widgets.
@@ -22,6 +23,7 @@ class EmbedSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = EmbedScope.configOf(context)?.strings;
     Widget child = childBuilder(context);
 
     if (style?.wrapperBuilder != null) {
@@ -40,6 +42,10 @@ class EmbedSurface extends StatelessWidget {
       );
     }
 
-    return child;
+    return Semantics(
+      container: true,
+      label: strings?.contentSemanticsLabel ?? 'Embedded content',
+      child: child,
+    );
   }
 }

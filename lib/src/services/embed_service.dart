@@ -5,6 +5,7 @@ import 'package:flutter_oembed/src/logging/embed_logger.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/base_embed_params.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_loader_param.dart';
 import 'package:flutter_oembed/src/models/embed_provider_config.dart';
@@ -13,32 +14,7 @@ import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 import 'package:flutter_oembed/src/services/provider_registry.dart';
 import 'package:flutter_oembed/src/services/providers_snapshot.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
-
-/// Result of resolving how to render an embed.
-sealed class EmbedResolvedRender {
-  const EmbedResolvedRender();
-}
-
-/// The OEmbed API should be called to fetch the embed HTML.
-final class EmbedRenderOEmbed extends EmbedResolvedRender {
-  const EmbedRenderOEmbed();
-}
-
-/// The embed should be loaded directly via an iframe URL.
-final class EmbedRenderIframe extends EmbedResolvedRender {
-  final String iframeUrl;
-  const EmbedRenderIframe(this.iframeUrl);
-}
-
-/// Pre-fetched [EmbedData] is already available — skip the API call.
-final class EmbedRenderPreloaded extends EmbedResolvedRender {
-  const EmbedRenderPreloaded();
-}
-
-/// Use the provider's native player widget (e.g. TikTok v1).
-final class EmbedRenderNativePlayer extends EmbedResolvedRender {
-  const EmbedRenderNativePlayer();
-}
+import 'package:flutter_oembed/src/models/embed_renderer.dart';
 
 class EmbedService {
   /// Fetches OEmbed data using [EmbedConfig].
@@ -88,40 +64,79 @@ class EmbedService {
     return _resolveApi(param, logger: logger);
   }
 
-  /// Resolves how to render [url] given [config], returning a [EmbedResolvedRender]
-  /// sealed type that callers can exhaustively pattern-match on.
+  /// Resolves the cache request URI used for a given content [url].
   ///
-  /// Order of precedence:
-  /// 1. Preloaded data (caller responsibility — widget checks widget.preloadedData)
-  /// 2. Native player (e.g. TikTok v1)
-  /// 3. Iframe mode (config overrides provider render mode)
-  /// 4. OEmbed API fetch
-  static EmbedResolvedRender resolveRender(
+  /// Returns `null` when no matching provider can be resolved.
+  static Uri? resolveCacheUri(
+    String url, {
+    EmbedConfig? config,
+    EmbedType? embedType,
+    double? width,
+    Map<String, String>? queryParameters,
+    BaseEmbedParams? embedParams,
+    EmbedLogger? logger,
+  }) {
+    try {
+      final param = EmbedLoaderParam(
+        url: url,
+        embedType: embedType ?? EmbedType.other,
+        width: width ?? 0,
+        queryParameters: queryParameters,
+        embedParams: embedParams,
+      );
+      final api = _resolveApi(param, config: config, logger: logger);
+      return api.constructUrl(
+        url,
+        locale: config?.locale ?? 'en',
+        brightness: config?.brightness ?? Brightness.light,
+        queryParameters: queryParameters,
+      );
+    } on EmbedProviderNotFoundException {
+      return null;
+    }
+  }
+
+  /// Resolves how to render [url] given [config], returning a [EmbedRenderer]
+  /// sealed type that callers can exhaustively pattern-match on.
+  static EmbedRenderer resolveRender(
     String url, {
     EmbedConfig? config,
     EmbedType? embedType,
     EmbedLogger? logger,
     Map<String, String>? queryParameters,
+    BaseEmbedParams? embedParams,
   }) {
-    // Native player (e.g. EmbedType.tiktok_v1)
-    if (embedType == EmbedType.tiktok_v1) {
-      return const EmbedRenderNativePlayer();
-    }
+    final rule = resolveRule(url, config: config);
+    if (rule != null) {
+      final endpoint = rule.resolveEndpoint(url);
 
-    // Iframe mode
-    final iframeUrl = resolveIframeUrl(
-      url,
-      config: config,
-      embedType: embedType,
-      logger: logger,
-      queryParameters: queryParameters,
-    );
-    if (iframeUrl != null) {
-      return EmbedRenderIframe(iframeUrl);
+      // Resolve iframe URL if requested in config
+      final iframeUrl = resolveIframeUrl(
+        url,
+        config: config,
+        queryParameters: queryParameters,
+        logger: logger,
+      );
+
+      final ctx = EmbedProviderContext(
+        url: url,
+        resolvedEndpoint: endpoint,
+        width: 0,
+        locale: config?.locale ?? 'en',
+        brightness: config?.brightness ?? Brightness.light,
+        facebookAppId: config?.facebookAppId ?? '',
+        facebookClientToken: config?.facebookClientToken ?? '',
+        strategy: rule.strategy,
+        providerName: rule.providerName,
+        proxyUrl: config?.proxyUrl,
+        embedParams: embedParams,
+        iframeUrl: iframeUrl,
+      );
+      return rule.strategy.resolveRenderer(ctx, config: config);
     }
 
     // Default: OEmbed API fetch
-    return const EmbedRenderOEmbed();
+    return const OEmbedRenderer();
   }
 
   /// Resolves the [EmbedProviderRule] for a given [url] and [config].
@@ -187,6 +202,7 @@ class EmbedService {
         facebookAppId: facebookAppId,
         facebookClientToken: facebookClientToken,
         strategy: rule.strategy,
+        providerName: rule.providerName,
         proxyUrl: config?.proxyUrl,
         embedParams: param.embedParams,
       );
@@ -224,10 +240,7 @@ class EmbedService {
       'No oEmbed provider matched and URL does not look like an oEmbed endpoint',
       data: {'url': param.url},
     );
-    throw EmbedApisException(
-      message: 'No oEmbed provider found for ${param.url}. '
-          'Try enabling dynamic discovery or providing a manual rule.',
-    );
+    throw EmbedProviderNotFoundException(url: param.url);
   }
 
   /// Resolves the iframe URL for a given content URL if iframe mode is active.
@@ -235,7 +248,6 @@ class EmbedService {
   static String? resolveIframeUrl(
     String url, {
     EmbedConfig? config,
-    EmbedType? embedType,
     EmbedLogger? logger,
     Map<String, String>? queryParameters,
   }) {
@@ -295,13 +307,8 @@ class EmbedService {
       rules ??= kEmbedProvidersSnapshot['*.$domain'];
 
       if (rules != null && rules.isNotEmpty) {
-        // First try strict regex match
         final match = rules.firstWhereOrNull((r) => r.matches(url));
         if (match != null) return match;
-
-        // Fallback: If domain matched perfectly but regex was too strict
-        // (common in generated snapshot rules), return the first rule for that domain.
-        return rules.first;
       }
     }
     return null;

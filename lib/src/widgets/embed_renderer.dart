@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
@@ -19,6 +20,11 @@ class EmbedRenderer extends StatelessWidget {
   final EmbedData data;
   final EmbedType embedType;
   final double? maxWidth;
+  final EmbedConstraints? embedConstraints;
+  @Deprecated(
+    'Use embedConstraints: EmbedConstraints(preferredHeight: ...) instead.',
+  )
+  final double? embedHeight;
   final EmbedStyle? style;
   final bool? scrollable;
 
@@ -27,9 +33,20 @@ class EmbedRenderer extends StatelessWidget {
     required this.data,
     required this.embedType,
     this.maxWidth,
+    this.embedConstraints,
+    this.embedHeight,
     this.style,
     this.scrollable,
-  });
+  }) : assert(
+          embedConstraints == null || embedHeight == null,
+          'Use either embedConstraints or embedHeight, not both.',
+        );
+
+  EmbedConstraints? get _effectiveEmbedConstraints =>
+      embedConstraints ??
+      (embedHeight != null
+          ? EmbedConstraints(preferredHeight: embedHeight)
+          : null);
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +65,7 @@ class EmbedRenderer extends StatelessWidget {
       childBuilder: (context) => EmbedWidgetLoader(
         param: param,
         preloadedData: data,
+        embedConstraints: _effectiveEmbedConstraints,
         style: style,
         scrollable: scrollable,
       ),
