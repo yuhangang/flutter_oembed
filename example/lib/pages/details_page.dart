@@ -20,7 +20,7 @@ class EmbedDetailsPage extends StatefulWidget {
   State<EmbedDetailsPage> createState() => _EmbedDetailsPageState();
 }
 
-enum _ConstraintPreset { shared, auto, compact, spotifyLike, bounded }
+enum _ConstraintPreset { shared, auto, compact, bounded }
 
 class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
   _ConstraintPreset _constraintPreset = _ConstraintPreset.shared;
@@ -250,9 +250,7 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
       case _ConstraintPreset.auto:
         return null;
       case _ConstraintPreset.compact:
-        return const EmbedConstraints(preferredHeight: 180);
-      case _ConstraintPreset.spotifyLike:
-        return const EmbedConstraints(preferredHeight: 152);
+        return const EmbedConstraints(preferredHeight: 96);
       case _ConstraintPreset.bounded:
         return const EmbedConstraints(
           preferredHeight: 260,
@@ -396,7 +394,6 @@ class _ConstraintPresetSheet extends StatelessWidget {
       _ConstraintPreset.shared => 'Shared',
       _ConstraintPreset.auto => 'Auto',
       _ConstraintPreset.compact => 'Compact',
-      _ConstraintPreset.spotifyLike => 'Spotify-like',
       _ConstraintPreset.bounded => 'Bounded',
     };
   }
@@ -408,7 +405,6 @@ class _ConstraintPresetSheet extends StatelessWidget {
       _ConstraintPreset.auto =>
         'No override. Let the embed size itself naturally.',
       _ConstraintPreset.compact => 'EmbedConstraints(preferredHeight: 180)',
-      _ConstraintPreset.spotifyLike => 'EmbedConstraints(preferredHeight: 152)',
       _ConstraintPreset.bounded =>
         'EmbedConstraints(preferredHeight: 260, minHeight: 200, maxHeight: 320)',
     };

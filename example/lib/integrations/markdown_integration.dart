@@ -183,12 +183,6 @@ This example demonstrates how to use the `oembed` package within a `markdown_wid
 ## TikTok Embed
 <oembed data-url="https://www.tiktok.com/@scout2015/video/6718335390845095173" />
 
-## Spotify Embed (via Link Title)
-[Spotify Track](https://open.spotify.com/track/4cOdK2wGvV9m9X7S7O0WhS "embed")
-
-## Vimeo Embed (via Link Text)
-[embed](https://vimeo.com/76979871)
-
 ## X (Twitter) Embed
 <oembed>https://x.com/X/status/1328842765115920384</oembed>
 

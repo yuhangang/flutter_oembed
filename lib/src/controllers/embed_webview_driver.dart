@@ -243,7 +243,8 @@ class EmbedWebViewDriver {
       await webViewController.loadRequest(
         Uri.parse(embedUrl),
         headers: <String, String>{
-          if (controller.param.embedType == EmbedType.youtube)
+          if (controller.param.embedType == EmbedType.youtube ||
+              controller.param.embedType == EmbedType.spotify)
             'Referer': controller.param.url,
         },
       );

@@ -17,7 +17,10 @@ class SpotifyEmbedApi extends BaseEmbedApi {
     Brightness brightness = Brightness.light,
     Map<String, String>? queryParameters,
   }) {
-    final params = {'url': url};
+    final params = {
+      'url': url,
+      'format': 'json',
+    };
     if (queryParameters != null) {
       params.addAll(queryParameters);
     }

@@ -29,6 +29,7 @@ class OEmbedEmbedBuilder extends EmbedBuilder {
         url,
         embedConstraints: settings.embedConstraints,
         scrollable: settings.scrollable,
+        lazyLoad: true,
         style: EmbedStyle(
           loadingBuilder:
               (context) => SocialEmbedPlaceholder(
@@ -110,12 +111,6 @@ class _QuillIntegrationPageState extends State<QuillIntegrationPage> {
         'url': 'https://www.tiktok.com/@scout2015/video/6718335390845095173',
         'icon': Icons.music_note,
         'color': Colors.black,
-      },
-      {
-        'name': 'Spotify Track',
-        'url': 'https://open.spotify.com/track/4JOEMgLkrHp8K1XNmyNffH',
-        'icon': Icons.library_music,
-        'color': Colors.green,
       },
       {
         'name': 'X (Twitter) Post',

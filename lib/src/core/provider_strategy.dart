@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/embed_renderer.dart';
 import 'package:flutter_oembed/src/models/provider_rule.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 import 'package:flutter_oembed/src/utils/embed_html_utils.dart';
@@ -66,6 +68,15 @@ abstract class EmbedProviderStrategy {
 
   /// Factory for creating the [BaseEmbedApi] for this provider.
   BaseEmbedApi createApi(EmbedProviderContext context);
+
+  /// Determines how this embed should be rendered based on the provided context.
+  EmbedRenderer resolveRenderer(EmbedProviderContext context,
+      {EmbedConfig? config}) {
+    if (context.iframeUrl != null) {
+      return IframeRenderer(context.iframeUrl!);
+    }
+    return const OEmbedRenderer();
+  }
 }
 
 /// A generic strategy that applies standard oEmbed behaviors.

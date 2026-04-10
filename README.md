@@ -5,7 +5,7 @@
 > [!WARNING]
 > **This library is still in development. The API might change in future updates.**
 >
-> We welcome contributions! Please feel free to raise issues for any bugs you encounter, or submit pull requests with ideas, suggestions, and code improvements.
+> Contributions are welcome! Please feel free to raise issues for any bugs you encounter, or submit pull requests with ideas, suggestions, and code improvements.
 
 A Flutter package for embedding rich social and media content with oEmbed APIs and WebView rendering.
 

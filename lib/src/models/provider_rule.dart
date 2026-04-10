@@ -18,6 +18,8 @@ class EmbedProviderContext {
   final String? proxyUrl;
   final BaseEmbedParams? embedParams;
   final EmbedProviderStrategy strategy;
+  final String providerName;
+  final String? iframeUrl;
 
   const EmbedProviderContext({
     required this.url,
@@ -28,8 +30,10 @@ class EmbedProviderContext {
     required this.facebookAppId,
     required this.facebookClientToken,
     required this.strategy,
+    required this.providerName,
     this.proxyUrl,
     this.embedParams,
+    this.iframeUrl,
   });
 }
 
@@ -68,6 +72,12 @@ class EmbedProviderRule {
   /// [EmbedProviderConfig.providerRenderModes].
   final String providerName;
 
+  /// Optional builder that constructs a direct iframe src URL from the provider.
+  ///
+  /// When present and enabled via [EmbedProviderConfig.providerRenderModes],
+  /// the library will skip the OEmbed API call and load this iframe URL directly.
+  final String? Function(String url)? iframeUrlBuilder;
+
   /// Optional sub-rules that override [endpoint] for specific URL shapes.
   final List<EmbedSubRule>? subRules;
 
@@ -81,13 +91,6 @@ class EmbedProviderRule {
   ///
   /// When `null`, falls back to [strategy.createApi].
   final BaseEmbedApi Function(EmbedProviderContext ctx)? apiFactory;
-
-  /// Converts a content URL into an iframe `src` URL.
-  ///
-  /// When non-null and the provider's render mode is [EmbedRenderMode.iframe],
-  /// the library loads this URL directly in a `WebView`, bypassing the OEmbed
-  /// API entirely.
-  final String? Function(String url)? iframeUrlBuilder;
 
   /// Returns `true` if the given in-WebView navigation URL should be allowed.
   ///

@@ -7,13 +7,12 @@ import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_loader_param.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/embed_renderer.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/services/embed_service.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_data_loader.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
-import 'package:flutter_oembed/src/widgets/tiktok_embed_player.dart';
-import 'package:flutter_oembed/src/models/tiktok_embed_params.dart';
 
 class EmbedWidgetLoader extends StatefulWidget {
   const EmbedWidgetLoader({
@@ -143,21 +142,22 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
               );
             }
 
-            final render = EmbedService.resolveRender(
+            final renderer = EmbedService.resolveRender(
               widget.param.url,
               config: config,
               embedType: widget.param.embedType,
               logger: logger,
               queryParameters: widget.param.queryParameters,
+              embedParams: widget.param.embedParams,
             );
 
-            return switch (render) {
-              EmbedRenderNativePlayer() => TikTokEmbedPlayer(
-                  videoIdOrUrl: widget.param.url,
-                  maxWidth: constraints.maxWidth,
-                  embedParams: widget.param.embedParams as TikTokEmbedParams?,
+            return switch (renderer) {
+              NativeWidgetRenderer(:final builder) => builder(
+                  context,
+                  constraints.maxWidth,
+                  _controller,
                 ),
-              EmbedRenderIframe(:final iframeUrl) => EmbedWebView.url(
+              IframeRenderer(:final iframeUrl) => EmbedWebView.url(
                   param: widget.param,
                   url: iframeUrl,
                   maxWidth: constraints.maxWidth,
@@ -167,7 +167,7 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
                   scrollable: widget.scrollable,
                   webViewBuilder: widget.webViewBuilder,
                 ),
-              EmbedRenderOEmbed() || EmbedRenderPreloaded() => EmbedDataLoader(
+              OEmbedRenderer() => EmbedDataLoader(
                   param: widget.param,
                   controller: _controller,
                   config: config,

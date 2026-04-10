@@ -4,41 +4,6 @@ import 'package:flutter_oembed/src/models/provider_rule.dart';
 import 'package:flutter_oembed/src/utils/embed_link_utils.dart';
 
 // ---------------------------------------------------------------------------
-// Iframe URL builders
-// ---------------------------------------------------------------------------
-
-String? _buildYoutubeIframeUrl(String url) {
-  return buildYoutubeEmbedUrl(url);
-}
-
-String? _buildVimeoIframeUrl(String url) {
-  final m = RegExp(r'vimeo\.com/(?:video/)?(\d+)').firstMatch(url);
-  if (m != null) return 'https://player.vimeo.com/video/${m.group(1)}';
-  return null;
-}
-
-String? _buildSpotifyIframeUrl(String url) {
-  final uri = Uri.tryParse(url);
-  if (uri == null) return null;
-  final segments = uri.pathSegments;
-  if (segments.length >= 2) {
-    return 'https://open.spotify.com/embed/${segments.join('/')}';
-  }
-  return null;
-}
-
-String? _buildTikTokIframeUrl(String url) {
-  final uri = Uri.tryParse(url);
-  if (uri == null) return null;
-  final id = uri.pathSegments.lastWhere(
-    (s) => int.tryParse(s) != null,
-    orElse: () => '',
-  );
-  if (id.isEmpty) return null;
-  return 'https://www.tiktok.com/embed/v3/$id';
-}
-
-// ---------------------------------------------------------------------------
 // Navigation check helpers
 // ---------------------------------------------------------------------------
 
@@ -67,7 +32,7 @@ const List<EmbedProviderRule> kDefaultEmbedProviders = [
     endpoint: 'https://www.youtube.com/oembed',
     providerName: 'YouTube',
     strategy: YouTubeProviderStrategy(),
-    iframeUrlBuilder: _buildYoutubeIframeUrl,
+    iframeUrlBuilder: buildYoutubeEmbedUrl,
     isVerified: true,
   ),
   EmbedProviderRule(
@@ -75,7 +40,7 @@ const List<EmbedProviderRule> kDefaultEmbedProviders = [
     endpoint: 'https://www.youtube.com/oembed',
     providerName: 'YouTube',
     strategy: YouTubeProviderStrategy(),
-    iframeUrlBuilder: _buildYoutubeIframeUrl,
+    iframeUrlBuilder: buildYoutubeEmbedUrl,
     isVerified: true,
   ),
   EmbedProviderRule(
@@ -83,7 +48,7 @@ const List<EmbedProviderRule> kDefaultEmbedProviders = [
     endpoint: 'https://vimeo.com/api/oembed.json',
     providerName: 'Vimeo',
     strategy: VimeoProviderStrategy(),
-    iframeUrlBuilder: _buildVimeoIframeUrl,
+    iframeUrlBuilder: buildVimeoEmbedUrl,
     isVerified: true,
   ),
   EmbedProviderRule(
@@ -91,7 +56,7 @@ const List<EmbedProviderRule> kDefaultEmbedProviders = [
     endpoint: 'https://open.spotify.com/oembed',
     providerName: 'Spotify',
     strategy: SpotifyProviderStrategy(),
-    iframeUrlBuilder: _buildSpotifyIframeUrl,
+    iframeUrlBuilder: buildSpotifyEmbedUrl,
     isVerified: true,
   ),
   EmbedProviderRule(
@@ -99,7 +64,7 @@ const List<EmbedProviderRule> kDefaultEmbedProviders = [
     endpoint: 'https://www.tiktok.com/oembed',
     providerName: 'TikTok',
     strategy: TikTokProviderStrategy(),
-    iframeUrlBuilder: _buildTikTokIframeUrl,
+    iframeUrlBuilder: getTikTokEmbedUrl,
     shouldAllowNavigation: _tiktokNavigationCheck,
     isVerified: true,
   ),

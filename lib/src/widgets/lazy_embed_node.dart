@@ -33,9 +33,17 @@ class _LazyEmbedNodeState extends State<LazyEmbedNode> {
   @override
   void initState() {
     super.initState();
+    // Schedule a visibility check after the first frame.
+    // We call it twice (immediately and after a short delay) to ensure
+    // that it catches the visible state even if the first one is too early.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         VisibilityDetectorController.instance.notifyNow();
+        Future.delayed(const Duration(milliseconds: 50), () {
+          if (mounted && !_isVisible) {
+            VisibilityDetectorController.instance.notifyNow();
+          }
+        });
       }
     });
   }
@@ -59,7 +67,7 @@ class _LazyEmbedNodeState extends State<LazyEmbedNode> {
             );
 
     return VisibilityDetector(
-      key: const Key('lazy_embed_node_visibility_\${widget.url}'),
+      key: ValueKey('lazy_embed_node_visibility_${widget.url}'),
       onVisibilityChanged: (info) {
         if (info.visibleFraction > 0 && !_isVisible) {
           if (mounted) {
