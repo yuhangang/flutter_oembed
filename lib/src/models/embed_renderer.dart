@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 
 /// Represents how an embed should be loaded and rendered by the standard pipeline.
@@ -23,6 +24,7 @@ class NativeWidgetRenderer extends EmbedRenderer {
     BuildContext context,
     double maxWidth,
     EmbedController controller,
+    EmbedConstraints? embedConstraints,
   ) builder;
 
   const NativeWidgetRenderer(this.builder);

@@ -264,7 +264,6 @@ class _KeepAliveEmbedState extends State<KeepAliveEmbed>
 
     return EmbedCard.url(
       widget.url,
-      embedConstraints: settings.embedConstraints,
       scrollable: settings.scrollable,
       style: EmbedStyle(
         loadingBuilder:

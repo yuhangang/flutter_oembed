@@ -156,6 +156,7 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
                   context,
                   constraints.maxWidth,
                   _controller,
+                  widget.embedConstraints,
                 ),
               IframeRenderer(:final iframeUrl) => EmbedWebView.url(
                   param: widget.param,

@@ -20,10 +20,21 @@ class EmbedDetailsPage extends StatefulWidget {
   State<EmbedDetailsPage> createState() => _EmbedDetailsPageState();
 }
 
-enum _ConstraintPreset { shared, auto, compact, bounded }
+enum _ConstraintPreset {
+  auto,
+  // Spotify specific
+  spotifySquare,
+  spotifyRectangle,
+  spotifyCustom,
+  // Video specific
+  video16v9,
+  video9v16,
+  video4v3,
+}
 
 class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
-  _ConstraintPreset _constraintPreset = _ConstraintPreset.shared;
+  _ConstraintPreset _constraintPreset = _ConstraintPreset.auto;
+  double _customHeight = 232.0; // Default for custom slider
 
   void _showSettingsSheet() {
     showModalBottomSheet(
@@ -36,16 +47,25 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
   }
 
   Future<void> _showConstraintsSheet() async {
-    final result = await showModalBottomSheet<_ConstraintPreset>(
+    final result = await showModalBottomSheet<(_ConstraintPreset, double?)>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder:
-          (context) => _ConstraintPresetSheet(initialPreset: _constraintPreset),
+          (context) => _ConstraintPresetSheet(
+            initialPreset: _constraintPreset,
+            initialCustomHeight: _customHeight,
+            embedType: widget.sample['type'],
+          ),
     );
 
     if (result == null || !mounted) return;
-    setState(() => _constraintPreset = result);
+    setState(() {
+      _constraintPreset = result.$1;
+      if (result.$2 != null) {
+        _customHeight = result.$2!;
+      }
+    });
   }
 
   @override
@@ -63,6 +83,11 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
         embedType == EmbedType.soundcloud ||
         embedType == EmbedType.tiktok_v1;
 
+    final supportsConstraints =
+        embedType == EmbedType.spotify ||
+        embedType == EmbedType.youtube ||
+        embedType == EmbedType.tiktok_v1;
+
     return Scaffold(
       appBar: AppBar(
         title: Text('${widget.sample['source']} Embed'),
@@ -75,16 +100,18 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           child: Row(
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+              if (supportsConstraints)
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor:
+                          Theme.of(context).scaffoldBackgroundColor,
+                    ),
+                    onPressed: _showConstraintsSheet,
+                    icon: const Icon(Icons.fit_screen_outlined),
+                    label: const Text('Constraints'),
                   ),
-                  onPressed: _showConstraintsSheet,
-                  icon: const Icon(Icons.fit_screen_outlined),
-                  label: const Text('Constraints'),
                 ),
-              ),
               if (supportsParameterSheet) ...[
                 const SizedBox(width: 12),
                 Expanded(
@@ -102,7 +129,8 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
       extendBody: true,
       body: SingleChildScrollView(
         padding: EdgeInsets.only(
-          bottom: 24.0 + MediaQuery.viewPaddingOf(context).bottom,
+          bottom:
+              24.0 + MediaQuery.viewPaddingOf(context).bottom + kToolbarHeight,
           left: 16.0,
           right: 16.0,
         ),
@@ -165,7 +193,7 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
                 ),
               ),
             Text(
-              _constraintsStatusLabel(settings),
+              _constraintsStatusLabel(),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontFamily: 'monospace',
@@ -244,32 +272,32 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
   }
 
   EmbedConstraints? _resolvedConstraints(ExampleSettings settings) {
+    final width = MediaQuery.sizeOf(context).width - 32;
+
     switch (_constraintPreset) {
-      case _ConstraintPreset.shared:
-        return settings.embedConstraints;
       case _ConstraintPreset.auto:
         return null;
-      case _ConstraintPreset.compact:
-        return const EmbedConstraints(preferredHeight: 96);
-      case _ConstraintPreset.bounded:
-        return const EmbedConstraints(
-          preferredHeight: 260,
-          minHeight: 200,
-          maxHeight: 320,
-        );
+      case _ConstraintPreset.spotifySquare:
+        return const EmbedConstraints(preferredHeight: 352);
+      case _ConstraintPreset.spotifyRectangle:
+        return const EmbedConstraints(preferredHeight: 152);
+      case _ConstraintPreset.spotifyCustom:
+        return EmbedConstraints(preferredHeight: _customHeight);
+      case _ConstraintPreset.video16v9:
+        return EmbedConstraints(preferredHeight: width / (16 / 9));
+      case _ConstraintPreset.video9v16:
+        return EmbedConstraints(preferredHeight: width / (9 / 16));
+      case _ConstraintPreset.video4v3:
+        return EmbedConstraints(preferredHeight: width / (4 / 3));
     }
   }
 
-  String _constraintsStatusLabel(ExampleSettings settings) {
+  String _constraintsStatusLabel() {
+    final settings = ExampleSettingsProvider.of(context).settings;
     final constraints = _resolvedConstraints(settings);
-    if (_constraintPreset == _ConstraintPreset.shared) {
-      return constraints == null
-          ? 'Shared constraints: auto'
-          : 'Shared constraints: ${_formatConstraints(constraints)}';
-    }
     return constraints == null
-        ? 'Preset constraints: auto'
-        : 'Preset constraints: ${_formatConstraints(constraints)}';
+        ? 'Constraints: auto'
+        : 'Constraints: ${_formatConstraints(constraints)}';
   }
 
   String _formatConstraints(EmbedConstraints constraints) {
@@ -303,18 +331,59 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
   }
 }
 
-class _ConstraintPresetSheet extends StatelessWidget {
+class _ConstraintPresetSheet extends StatefulWidget {
   final _ConstraintPreset initialPreset;
+  final double initialCustomHeight;
+  final EmbedType? embedType;
 
-  const _ConstraintPresetSheet({required this.initialPreset});
+  const _ConstraintPresetSheet({
+    required this.initialPreset,
+    required this.initialCustomHeight,
+    this.embedType,
+  });
+
+  @override
+  State<_ConstraintPresetSheet> createState() => _ConstraintPresetSheetState();
+}
+
+class _ConstraintPresetSheetState extends State<_ConstraintPresetSheet> {
+  late _ConstraintPreset _selectedPreset;
+  late double _customHeight;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPreset = widget.initialPreset;
+    _customHeight = widget.initialCustomHeight;
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isSpotify = widget.embedType == EmbedType.spotify;
+    final isVideo =
+        widget.embedType == EmbedType.youtube ||
+        widget.embedType == EmbedType.tiktok_v1;
+
+    final options = <_ConstraintPreset>[_ConstraintPreset.auto];
+    if (isSpotify) {
+      options.addAll([
+        _ConstraintPreset.spotifySquare,
+        _ConstraintPreset.spotifyRectangle,
+        _ConstraintPreset.spotifyCustom,
+      ]);
+    } else if (isVideo) {
+      options.addAll([
+        _ConstraintPreset.video16v9,
+        _ConstraintPreset.video9v16,
+        _ConstraintPreset.video4v3,
+      ]);
+    }
+
     return DraggableScrollableSheet(
-      initialChildSize: 0.55,
-      minChildSize: 0.35,
-      maxChildSize: 0.8,
+      initialChildSize: 0.6,
+      minChildSize: 0.4,
+      maxChildSize: 0.9,
       expand: false,
       builder: (context, scrollController) {
         return Container(
@@ -365,20 +434,73 @@ class _ConstraintPresetSheet extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    for (final preset in _ConstraintPreset.values)
+                    for (final preset in options) ...[
                       Card(
                         margin: const EdgeInsets.only(bottom: 8),
-                        child: ListTile(
-                          leading: Icon(
-                            preset == initialPreset
-                                ? Icons.radio_button_checked
-                                : Icons.radio_button_off,
-                          ),
-                          title: Text(_presetLabel(preset)),
-                          subtitle: Text(_presetDescription(preset)),
-                          onTap: () => Navigator.pop(context, preset),
+                        child: Column(
+                          children: [
+                            ListTile(
+                              leading: Icon(
+                                preset == _selectedPreset
+                                    ? Icons.radio_button_checked
+                                    : Icons.radio_button_off,
+                              ),
+                              title: Text(_presetLabel(preset)),
+                              subtitle: Text(_presetDescription(preset)),
+                              onTap: () {
+                                setState(() => _selectedPreset = preset);
+                                if (preset != _ConstraintPreset.spotifyCustom) {
+                                  Navigator.pop(context, (
+                                    _selectedPreset,
+                                    _customHeight,
+                                  ));
+                                }
+                              },
+                            ),
+                            if (preset == _ConstraintPreset.spotifyCustom &&
+                                _selectedPreset ==
+                                    _ConstraintPreset.spotifyCustom)
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  0,
+                                  16,
+                                  16,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Height: ${_customHeight.round()}px',
+                                      style: theme.textTheme.bodySmall,
+                                    ),
+                                    Slider(
+                                      value: _customHeight,
+                                      min: 80,
+                                      max: 600,
+                                      divisions: 52,
+                                      onChanged: (val) {
+                                        setState(() => _customHeight = val);
+                                      },
+                                    ),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: FilledButton(
+                                        onPressed:
+                                            () => Navigator.pop(context, (
+                                              _selectedPreset,
+                                              _customHeight,
+                                            )),
+                                        child: const Text('Apply Height'),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
                         ),
                       ),
+                    ],
                   ],
                 ),
               ),
@@ -391,22 +513,26 @@ class _ConstraintPresetSheet extends StatelessWidget {
 
   String _presetLabel(_ConstraintPreset preset) {
     return switch (preset) {
-      _ConstraintPreset.shared => 'Shared',
       _ConstraintPreset.auto => 'Auto',
-      _ConstraintPreset.compact => 'Compact',
-      _ConstraintPreset.bounded => 'Bounded',
+      _ConstraintPreset.spotifySquare => 'Square',
+      _ConstraintPreset.spotifyRectangle => 'Rectangle',
+      _ConstraintPreset.spotifyCustom => 'Custom Height',
+      _ConstraintPreset.video16v9 => '16:9',
+      _ConstraintPreset.video9v16 => '9:16',
+      _ConstraintPreset.video4v3 => '4:3',
     };
   }
 
   String _presetDescription(_ConstraintPreset preset) {
     return switch (preset) {
-      _ConstraintPreset.shared =>
-        'Use the global example setting from the main config sheet.',
       _ConstraintPreset.auto =>
         'No override. Let the embed size itself naturally.',
-      _ConstraintPreset.compact => 'EmbedConstraints(preferredHeight: 180)',
-      _ConstraintPreset.bounded =>
-        'EmbedConstraints(preferredHeight: 260, minHeight: 200, maxHeight: 320)',
+      _ConstraintPreset.spotifySquare => 'Large Square (352px)',
+      _ConstraintPreset.spotifyRectangle => 'Compact Rectangle (152px)',
+      _ConstraintPreset.spotifyCustom => 'Slide to choose a custom height',
+      _ConstraintPreset.video16v9 => 'Standard Widescreen',
+      _ConstraintPreset.video9v16 => 'Portrait (Mobile)',
+      _ConstraintPreset.video4v3 => 'Standard / Old School',
     };
   }
 }

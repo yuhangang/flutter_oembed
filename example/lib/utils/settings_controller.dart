@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/flutter_oembed.dart';
 
-const _unsetDouble = Object();
-
 class ExampleSettings {
   final String locale;
   final Brightness brightness;
   final bool scrollable;
   final bool showFooter;
   final bool useDynamicDiscovery;
-  final double? preferredEmbedHeight;
 
   // Provider-specific params
   final VimeoEmbedParams vimeoParams;
@@ -25,7 +22,6 @@ class ExampleSettings {
     this.scrollable = false,
     this.showFooter = false,
     this.useDynamicDiscovery = false,
-    this.preferredEmbedHeight,
     this.vimeoParams = const VimeoEmbedParams(),
     this.xParams = const XEmbedParams(
       dnt: true,
@@ -47,7 +43,6 @@ class ExampleSettings {
     bool? scrollable,
     bool? showFooter,
     bool? useDynamicDiscovery,
-    Object? preferredEmbedHeight = _unsetDouble,
     VimeoEmbedParams? vimeoParams,
     XEmbedParams? xParams,
     MetaEmbedParams? metaParams,
@@ -61,10 +56,6 @@ class ExampleSettings {
       scrollable: scrollable ?? this.scrollable,
       showFooter: showFooter ?? this.showFooter,
       useDynamicDiscovery: useDynamicDiscovery ?? this.useDynamicDiscovery,
-      preferredEmbedHeight:
-          preferredEmbedHeight == _unsetDouble
-              ? this.preferredEmbedHeight
-              : preferredEmbedHeight as double?,
       vimeoParams: vimeoParams ?? this.vimeoParams,
       xParams: xParams ?? this.xParams,
       metaParams: metaParams ?? this.metaParams,
@@ -83,10 +74,7 @@ class ExampleSettings {
     );
   }
 
-  EmbedConstraints? get embedConstraints =>
-      preferredEmbedHeight == null
-          ? null
-          : EmbedConstraints(preferredHeight: preferredEmbedHeight);
+  EmbedConstraints? get embedConstraints => null;
 }
 
 class ExampleSettingsController extends ChangeNotifier {
@@ -113,11 +101,6 @@ class ExampleSettingsController extends ChangeNotifier {
       showFooter: showFooter,
       useDynamicDiscovery: useDynamicDiscovery,
     );
-    notifyListeners();
-  }
-
-  void updatePreferredEmbedHeight(double? preferredEmbedHeight) {
-    _settings = _settings.copyWith(preferredEmbedHeight: preferredEmbedHeight);
     notifyListeners();
   }
 

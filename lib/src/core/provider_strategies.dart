@@ -64,10 +64,12 @@ class YouTubeProviderStrategy extends GenericEmbedProviderStrategy {
     }
 
     // Otherwise fallback to YouTube native player
-    return NativeWidgetRenderer((widgetContext, maxWidth, controller) {
+    return NativeWidgetRenderer(
+        (widgetContext, maxWidth, controller, embedConstraints) {
       return YoutubeEmbedPlayer(
         videoIdOrUrl: context.url,
         maxWidth: maxWidth,
+        embedConstraints: embedConstraints,
         controls:
             (context.embedParams as YoutubeEmbedParams?)?.controls ?? true,
         autoplay:
@@ -137,10 +139,12 @@ class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
       return IframeRenderer(context.iframeUrl!);
     }
 
-    return NativeWidgetRenderer((widgetContext, maxWidth, controller) {
+    return NativeWidgetRenderer(
+        (widgetContext, maxWidth, controller, embedConstraints) {
       return TikTokEmbedPlayer(
         videoIdOrUrl: context.url,
         maxWidth: maxWidth,
+        embedConstraints: embedConstraints,
         embedParams: context.embedParams as TikTokEmbedParams?,
       );
     });

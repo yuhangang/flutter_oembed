@@ -27,7 +27,6 @@ class OEmbedEmbedBuilder extends EmbedBuilder {
       padding: const EdgeInsets.symmetric(vertical: 12.0),
       child: EmbedCard.url(
         url,
-        embedConstraints: settings.embedConstraints,
         scrollable: settings.scrollable,
         lazyLoad: true,
         style: EmbedStyle(

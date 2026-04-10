@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_oembed/src/widgets/embed_surface.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
@@ -66,6 +67,9 @@ class TikTokEmbedPlayer extends StatefulWidget {
   /// Aspect ratio for the embed. TikTok videos are usually 9:16.
   final double aspectRatio;
 
+  /// Optional constraints for the player height.
+  final EmbedConstraints? embedConstraints;
+
   /// Parameters for the native player. If provided, they override the
   /// individual parameters below.
   final TikTokEmbedParams? embedParams;
@@ -89,6 +93,7 @@ class TikTokEmbedPlayer extends StatefulWidget {
     this.muted = false,
     this.maxWidth,
     this.aspectRatio = 9 / 16,
+    this.embedConstraints,
     this.embedParams,
   });
 
@@ -198,15 +203,23 @@ class _TikTokEmbedPlayerState extends State<TikTokEmbedPlayer> {
       footerUrl: _param.url,
       childBuilder: (context) {
         if (_controller == null) return const SizedBox.shrink();
+
+        final player = EmbedWebView.url(
+          param: _param,
+          url: playerUrl,
+          maxWidth: widget.maxWidth ?? double.infinity,
+          controller: _controller!,
+          style: style,
+          embedConstraints: widget.embedConstraints,
+        );
+
+        if (widget.embedConstraints?.preferredHeight != null) {
+          return player;
+        }
+
         return AspectRatio(
           aspectRatio: widget.aspectRatio,
-          child: EmbedWebView.url(
-            param: _param,
-            url: playerUrl,
-            maxWidth: widget.maxWidth ?? double.infinity,
-            controller: _controller!,
-            style: style,
-          ),
+          child: player,
         );
       },
     );

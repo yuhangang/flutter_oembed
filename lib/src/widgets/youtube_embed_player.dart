@@ -8,6 +8,7 @@ import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_oembed/src/utils/embed_link_utils.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_oembed/src/widgets/embed_surface.dart';
+import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
 
 /// A standalone player widget for YouTube's native iframe player.
@@ -139,6 +140,9 @@ class YoutubeEmbedPlayer extends StatefulWidget {
   /// Aspect ratio for the embed. YouTube videos are generally 16:9.
   final double aspectRatio;
 
+  /// Optional constraints for the player height.
+  final EmbedConstraints? embedConstraints;
+
   /// IFrame host passed to the YouTube player API.
   final String host;
 
@@ -160,6 +164,7 @@ class YoutubeEmbedPlayer extends StatefulWidget {
     this.rel = false,
     this.maxWidth,
     this.aspectRatio = 16 / 9,
+    this.embedConstraints,
     this.host = kDefaultYoutubePlayerHost,
     this.useOriginExperiment = false,
     this.experimentalOrigin = kYoutubeNoCookiePlayerHost,
@@ -273,15 +278,23 @@ class _YoutubeEmbedPlayerState extends State<YoutubeEmbedPlayer> {
       footerUrl: _param.url,
       childBuilder: (context) {
         if (_controller == null) return const SizedBox.shrink();
+
+        final player = EmbedWebView.data(
+          param: _param,
+          data: mockData,
+          maxWidth: widget.maxWidth ?? double.infinity,
+          controller: _controller!,
+          style: style,
+          embedConstraints: widget.embedConstraints,
+        );
+
+        if (widget.embedConstraints?.preferredHeight != null) {
+          return player;
+        }
+
         return AspectRatio(
           aspectRatio: widget.aspectRatio,
-          child: EmbedWebView.data(
-            param: _param,
-            data: mockData,
-            maxWidth: widget.maxWidth ?? double.infinity,
-            controller: _controller!,
-            style: style,
-          ),
+          child: player,
         );
       },
     );

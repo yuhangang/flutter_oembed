@@ -116,7 +116,6 @@ class _DiscoveryIntegrationPageState extends State<DiscoveryIntegrationPage> {
                 child: EmbedCard.url(
                   _currentUrl,
                   key: ValueKey(_currentUrl),
-                  embedConstraints: settings.embedConstraints,
                   style: EmbedStyle(
                     loadingBuilder:
                         (context) => SocialEmbedPlaceholder(

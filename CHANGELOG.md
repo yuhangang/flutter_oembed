@@ -1,4 +1,6 @@
-## 1.0.1-beta.2
+## 1.0.1-alpha
+
+* Add alpha tag to the version as the library need more testing and refinement, apologies for my vibe coding slop.
 
 ### Features
 * **Lazy Loading**: Implemented `LazyEmbedNode` for `EmbedCard`, enabling embeds to load only when they enter the viewport for better performance.
