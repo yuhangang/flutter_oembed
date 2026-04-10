@@ -76,7 +76,9 @@ class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
 
   @override
   BaseEmbedApi createApi(EmbedProviderContext context) {
-    return TikTokEmbedApi(tiktokParams: context.embedParams as TikTokEmbedParams?);
+    return TikTokEmbedApi(
+      tiktokParams: context.embedParams as TikTokEmbedParams?,
+    );
   }
 
   @override

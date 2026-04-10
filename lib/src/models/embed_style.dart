@@ -71,10 +71,7 @@ class EmbedStyle extends Equatable {
   });
 
   @override
-  List<Object?> get props => [
-        borderRadius,
-        maxScrollableHeight,
-      ];
+  List<Object?> get props => [borderRadius, maxScrollableHeight];
 
   /// Returns a copy of this style with the given fields replaced.
   EmbedStyle copyWith({
@@ -90,7 +87,8 @@ class EmbedStyle extends Equatable {
     return EmbedStyle(
       wrapperBuilder: wrapperBuilder ?? this.wrapperBuilder,
       loadingBuilder: loadingBuilder ?? this.loadingBuilder,
-      lazyLoadPlaceholderBuilder: lazyLoadPlaceholderBuilder ?? this.lazyLoadPlaceholderBuilder,
+      lazyLoadPlaceholderBuilder:
+          lazyLoadPlaceholderBuilder ?? this.lazyLoadPlaceholderBuilder,
       errorBuilder: errorBuilder ?? this.errorBuilder,
       footerBuilder: footerBuilder ?? this.footerBuilder,
       webViewBuilder: webViewBuilder ?? this.webViewBuilder,

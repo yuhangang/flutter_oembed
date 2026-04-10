@@ -45,8 +45,7 @@ Future<String> _readProvidersJson(_GeneratorConfig config) async {
 
 _GeneratorConfig _parseArgs(List<String> args) {
   String? inputPath;
-  String? outputPath =
-      'lib/src/services/providers_snapshot.dart';
+  String? outputPath = 'lib/src/services/providers_snapshot.dart';
   var sourceUrl = kProvidersSnapshotSourceUrl;
 
   for (var i = 0; i < args.length; i++) {

@@ -20,8 +20,6 @@ import 'package:flutter_oembed/src/core/embed_scope.dart';
 ///
 /// See: https://developers.google.com/youtube/iframe_api_reference
 
-
-
 const String kDefaultYoutubePlayerHost = 'https://www.youtube-nocookie.com';
 const String kYoutubeNoCookiePlayerHost = 'https://www.youtube-nocookie.com';
 
@@ -191,10 +189,7 @@ class _YoutubeEmbedPlayerState extends State<YoutubeEmbedPlayer> {
     // We construct a mock URL for the param, even if we are fetching by ID.
     final mockUrl = 'https://www.youtube.com/watch?v=$videoId';
 
-    _param = SocialEmbedParam(
-      url: mockUrl,
-      embedType: EmbedType.youtube,
-    );
+    _param = SocialEmbedParam(url: mockUrl, embedType: EmbedType.youtube);
   }
 
   @override
@@ -221,7 +216,10 @@ class _YoutubeEmbedPlayerState extends State<YoutubeEmbedPlayer> {
   }
 
   Map<String, Object> _buildPlayerVars(
-      String videoId, String locale, Brightness brightness) {
+    String videoId,
+    String locale,
+    Brightness brightness,
+  ) {
     // We force origin to match the host we are using, which is now
     // https://www.youtube-nocookie.com. This is consistent with EmbedWebViewDriver.
     final effectiveOrigin = widget.host;

@@ -62,9 +62,8 @@ class EmbedStrings extends Equatable {
       retryAfterConnectionErrorSemanticsLabel:
           retryAfterConnectionErrorSemanticsLabel ??
               this.retryAfterConnectionErrorSemanticsLabel,
-      retryAfterLoadErrorSemanticsLabel:
-          retryAfterLoadErrorSemanticsLabel ??
-              this.retryAfterLoadErrorSemanticsLabel,
+      retryAfterLoadErrorSemanticsLabel: retryAfterLoadErrorSemanticsLabel ??
+          this.retryAfterLoadErrorSemanticsLabel,
       retryHint: retryHint ?? this.retryHint,
       notFoundSemanticsLabel:
           notFoundSemanticsLabel ?? this.notFoundSemanticsLabel,

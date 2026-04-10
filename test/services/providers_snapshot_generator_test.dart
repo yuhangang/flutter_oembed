@@ -66,19 +66,20 @@ void main() {
         sourceUrl: 'https://fixture.test/providers.json',
       );
 
-      expect(output, contains('// Source: https://fixture.test/providers.json'));
-      expect(output,
-          contains('const Map<String, List<EmbedProviderRule>> kEmbedProvidersSnapshot = {'));
+      expect(
+        output,
+        contains('// Source: https://fixture.test/providers.json'),
+      );
+      expect(
+        output,
+        contains(
+          'const Map<String, List<EmbedProviderRule>> kEmbedProvidersSnapshot = {',
+        ),
+      );
       expect(output, contains('"*.example.com": ['));
       expect(output, contains('"example.com": ['));
-      expect(
-        RegExp(r'"providerName":').hasMatch(output),
-        isFalse,
-      );
-      expect(
-        'providerName: "Example"'.allMatches(output).length,
-        2,
-      );
+      expect(RegExp(r'"providerName":').hasMatch(output), isFalse);
+      expect('providerName: "Example"'.allMatches(output).length, 2);
       expect(
         'pattern: "^https?:\\\\/\\\\/example\\\\.com\\\\/posts\\\\/.*"'
             .allMatches(output)

@@ -88,11 +88,11 @@ String generateProvidersSnapshotSource(
     ..writeln('// Source: $sourceUrl (snapshot)')
     ..writeln('// Regenerate by running: dart tool/generate_providers.dart')
     ..writeln('// ignore_for_file: lines_longer_than_80_chars')
-    ..writeln(
-      "import 'package:flutter_oembed/src/models/provider_rule.dart';",
-    )
+    ..writeln("import 'package:flutter_oembed/src/models/provider_rule.dart';")
     ..writeln()
-    ..writeln('/// A bundled snapshot of OEmbed providers marked for discovery.')
+    ..writeln(
+      '/// A bundled snapshot of OEmbed providers marked for discovery.',
+    )
     ..writeln('/// Indexed by domain for O(1) lookup performance.')
     ..writeln(
       'const Map<String, List<EmbedProviderRule>> kEmbedProvidersSnapshot = {',
@@ -102,9 +102,7 @@ String generateProvidersSnapshotSource(
     buffer.writeln('  ${jsonEncode(entry.key)}: [');
     for (final rule in entry.value) {
       buffer.writeln('    EmbedProviderRule(');
-      buffer.writeln(
-        '      providerName: ${jsonEncode(rule.providerName)},',
-      );
+      buffer.writeln('      providerName: ${jsonEncode(rule.providerName)},');
       buffer.writeln('      pattern: ${jsonEncode(rule.pattern)},');
       buffer.writeln('      endpoint: ${jsonEncode(rule.endpoint)},');
       buffer.writeln('    ),');
