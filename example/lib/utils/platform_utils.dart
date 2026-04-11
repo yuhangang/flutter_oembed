@@ -30,6 +30,8 @@ String? getPlatformAsset(EmbedType type) {
       return 'assets/logos/reddit.svg';
     case EmbedType.giphy:
       return 'assets/logos/giphy.png';
+    case EmbedType.codepen:
+      return 'assets/logos/codepen.svg';
     default:
       return null;
   }
@@ -57,6 +59,9 @@ EmbedType? getEmbedTypeFromUrl(String url) {
   if (host.contains('threads.net')) return EmbedType.threads;
   if (host.contains('reddit.com')) return EmbedType.reddit;
   if (host.contains('giphy.com')) return EmbedType.giphy;
+  if (host.contains('codepen.io') || host.contains('cdpn.io')) {
+    return EmbedType.codepen;
+  }
 
   return null;
 }

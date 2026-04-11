@@ -123,6 +123,9 @@ EmbedCard.url(
 
 Use `preferredHeight` when you want a stable initial size. Add `minHeight`
 and `maxHeight` when the embed can resize but should stay within bounds.
+When no explicit height is supplied, the widget starts from provider metadata
+if available and then promotes measured WebView content height once the embed
+finishes rendering.
 
 `embedHeight` is still accepted as a legacy shorthand, but new code should use
 `embedConstraints: EmbedConstraints(preferredHeight: ...)`.
@@ -182,6 +185,76 @@ EmbedConfig(
   ),
 )
 ```
+
+### Disabling Cache
+
+There are two ways to disable caching:
+
+1. **Via Config**: Set `enabled: false` in `EmbedCacheConfig`. This prevents individual requests from checking or saving to the cache.
+2. **Via Cache Backend**: Set `cacheProvider: EmbedCacheProvider.never()` in `EmbedConfig`. This replaces the storage layer for that scope with a no-op provider.
+
+```dart
+void main() {
+  runApp(
+    EmbedScope(
+      config: EmbedConfig(
+        cacheProvider: EmbedCacheProvider.never(),
+      ),
+      child: const MyApp(),
+    ),
+  );
+}
+```
+
+You can also provide your own `EmbedCacheProvider` implementation in
+`EmbedConfig` when you need a custom cache backend per scope or test.
+
+## Custom Provider Rules
+
+If you need to support a provider that is not part of the verified built-in
+set, register your own `EmbedProviderRule` through
+`EmbedProviderConfig.customProviders`.
+
+The example app includes a few practical recipes:
+
+- CodePen as a provider that is not bundled in this package registry
+- Pinterest with `pin.it` short-link support
+- Bluesky Social for modern social protocol support
+- Flickr with explicit `flickr.com` and `flic.kr` matching
+- Tumblr for allowlist-driven integrations
+- TED as a scoped trial of a provider you may not want to enable globally
+- audio.com for audio-focused oEmbed examples
+
+Pinterest is a practical starting point. The bundled discovery snapshot already
+knows about `www.pinterest.com`, but a custom rule lets you support Pinterest
+explicitly and extend matching to short links like `pin.it` even when dynamic
+discovery is disabled.
+
+```dart
+EmbedScope(
+  config: EmbedConfig(
+    providers: EmbedProviderConfig(
+      customProviders: const [
+        EmbedProviderRule(
+          providerName: 'Pinterest',
+          pattern: r'^(https?:\/\/(?:www\.)?pinterest\.com\/.*|https?:\/\/pin\.it\/.*)$',
+          endpoint: 'https://www.pinterest.com/oembed.json',
+        ),
+      ],
+    ),
+  ),
+  child: EmbedCard.url('https://www.pinterest.com/pin/36739528211842807/'),
+)
+```
+
+You can use the same pattern for any other oEmbed-compatible provider, and add
+multiple entries to `customProviders` when your app needs a small curated
+provider set. If a provider needs more than a simple endpoint match, add
+`iframeUrlBuilder`, `subRules`, or a custom `apiFactory`.
+
+If you also use `enabledProviders`, add the custom rule's `providerName` to
+that allowlist. Otherwise the custom rule is registered but still filtered out
+before matching.
 
 ## Debug Logging
 

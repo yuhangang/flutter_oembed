@@ -20,7 +20,7 @@ void main() {
       final url = EmbedService.resolveIframeUrl(
           'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
           config: config);
-      expect(url, contains('youtube.com/embed/dQw4w9WgXcQ'));
+      expect(url, contains('youtube-nocookie.com/embed/dQw4w9WgXcQ'));
     });
 
     test('should return the correct iframe URL for Vimeo', () {

@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_oembed/src/core/embed_cache_provider.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
 import 'package:flutter_oembed/src/models/embed_constant.dart';
 import 'package:flutter_oembed/src/models/embed_provider_config.dart';
@@ -44,6 +45,11 @@ class EmbedConfig extends Equatable {
 
   /// Cache settings.
   final EmbedCacheConfig cache;
+
+  /// Optional cache backend used for OEmbed response storage.
+  ///
+  /// Leave this null to use the package default cache provider.
+  final EmbedCacheProvider? cacheProvider;
 
   /// Global visual customization. Can be overridden per-widget via [EmbedCard.style].
   final EmbedStyle? style;
@@ -116,6 +122,7 @@ class EmbedConfig extends Equatable {
   const EmbedConfig({
     this.providers = const EmbedProviderConfig(),
     this.cache = const EmbedCacheConfig(),
+    this.cacheProvider,
     this.style,
     this.facebookAppId = '',
     this.facebookClientToken = '',
@@ -146,6 +153,7 @@ class EmbedConfig extends Equatable {
   List<Object?> get props => [
         providers,
         cache,
+        cacheProvider,
         style,
         facebookAppId,
         facebookClientToken,
@@ -170,6 +178,7 @@ class EmbedConfig extends Equatable {
   EmbedConfig copyWith({
     EmbedProviderConfig? providers,
     EmbedCacheConfig? cache,
+    EmbedCacheProvider? cacheProvider,
     EmbedStyle? style,
     String? facebookAppId,
     String? facebookClientToken,
@@ -190,6 +199,7 @@ class EmbedConfig extends Equatable {
     return EmbedConfig(
       providers: providers ?? this.providers,
       cache: cache ?? this.cache,
+      cacheProvider: cacheProvider ?? this.cacheProvider,
       style: style ?? this.style,
       facebookAppId: facebookAppId ?? this.facebookAppId,
       facebookClientToken: facebookClientToken ?? this.facebookClientToken,

@@ -123,7 +123,19 @@ void main() {
       expect(listenerCalled, isTrue);
     });
 
-    test('setHeight ignores tiny height deltas', () {
+    test('setHeight ignores tiny downward height deltas', () {
+      final controller = EmbedController(param: testParam);
+      int notifications = 0;
+      controller.addListener(() => notifications++);
+
+      controller.setHeight(101.0);
+      controller.setHeight(100.0);
+
+      expect(controller.height, 101.0);
+      expect(notifications, 1);
+    });
+
+    test('setHeight accepts tiny upward adjustments to avoid clipping', () {
       final controller = EmbedController(param: testParam);
       int notifications = 0;
       controller.addListener(() => notifications++);
@@ -131,8 +143,8 @@ void main() {
       controller.setHeight(100.0);
       controller.setHeight(101.0);
 
-      expect(controller.height, 100.0);
-      expect(notifications, 1);
+      expect(controller.height, 101.0);
+      expect(notifications, 2);
     });
 
     test('setLoadingState updates state and notifies listeners', () {
@@ -386,16 +398,17 @@ void main() {
       await driver.initEmbedWebview(
         backgroundColor: Colors.white,
         embedData: null,
-        embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ?playsinline=1',
+        embedUrl:
+            'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?playsinline=1',
         maxWidth: 400,
       );
 
       verify(() => mockWebViewController.loadRequest(
             Uri.parse(
-              'https://www.youtube.com/embed/dQw4w9WgXcQ?playsinline=1',
+              'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?playsinline=1',
             ),
             headers: const <String, String>{
-              'Referer': 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+              'Referer': 'https://www.youtube-nocookie.com',
             },
             method: LoadRequestMethod.get,
             body: null,

@@ -75,4 +75,10 @@ const List<Map<String, dynamic>> samples = [
     'source': 'GIPHY',
     'category': 'verified',
   },
+  {
+    'url': 'https://codepen.io/Alansdead/pen/azmaGjx',
+    'type': EmbedType.codepen,
+    'source': 'CodePen',
+    'category': 'verified',
+  },
 ];

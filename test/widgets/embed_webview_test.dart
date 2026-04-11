@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/embed_constant.dart';
 import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
@@ -371,6 +373,132 @@ void main() {
             .widgetList<SizedBox>(find.byType(SizedBox))
             .firstWhere((widget) => widget.height != null);
         expect(sizedBox.height, 180.0);
+      } finally {
+        controller.dispose();
+      }
+    });
+
+    testWidgets('prefers measured WebView height over oEmbed aspect ratio',
+        (tester) async {
+      final measuredController = EmbedController(
+        param: param,
+        config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
+      )..setHeight(260);
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: const EmbedData(
+                  html: '<div>Test</div>',
+                  width: 640,
+                  height: 360,
+                ),
+                maxWidth: 320,
+                controller: measuredController,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        final sizedBox = tester
+            .widgetList<SizedBox>(find.byType(SizedBox))
+            .firstWhere((widget) => widget.height != null);
+        expect(sizedBox.height, 260.0);
+      } finally {
+        measuredController.dispose();
+      }
+    });
+
+    testWidgets('clamps scrollable embeds to the default max height',
+        (tester) async {
+      final scrollableController = EmbedController(
+        param: param,
+        config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
+      )..setHeight(900);
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 640,
+                controller: scrollableController,
+                scrollable: true,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        final sizedBox = tester
+            .widgetList<SizedBox>(find.byType(SizedBox))
+            .firstWhere((widget) => widget.height != null);
+        expect(sizedBox.height, kDefaultMaxScrollableEmbedHeight);
+      } finally {
+        scrollableController.dispose();
+      }
+    });
+
+    testWidgets('adds eager gesture recognizer when scrollable is enabled',
+        (tester) async {
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 640,
+                controller: controller,
+                scrollable: true,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        final webViewWidget =
+            tester.widget<WebViewWidget>(find.byType(WebViewWidget));
+        expect(webViewWidget.gestureRecognizers, hasLength(1));
+        final recognizer =
+            webViewWidget.gestureRecognizers.single.constructor();
+        expect(recognizer, isA<EagerGestureRecognizer>());
+      } finally {
+        controller.dispose();
+      }
+    });
+
+    testWidgets('keeps gesture recognizers empty when scrollable is disabled',
+        (tester) async {
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 640,
+                controller: controller,
+                scrollable: false,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        final webViewWidget =
+            tester.widget<WebViewWidget>(find.byType(WebViewWidget));
+        expect(webViewWidget.gestureRecognizers, isEmpty);
       } finally {
         controller.dispose();
       }

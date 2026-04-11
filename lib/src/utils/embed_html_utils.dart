@@ -336,13 +336,13 @@ $_errorBridgeScript
   (function() {
     const reportHeight = () => {
        if (window.HeightChannel) {
-         const height = Math.max(
+         const height = Math.ceil(Math.max(
            document.body.scrollHeight, 
            document.body.offsetHeight, 
            document.documentElement.clientHeight, 
            document.documentElement.scrollHeight, 
            document.documentElement.offsetHeight
-         );
+         ));
          window.HeightChannel.postMessage(height.toString());
        }
     };

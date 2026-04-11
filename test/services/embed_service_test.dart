@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/core/embed_cache_provider.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_loader_param.dart';
@@ -13,15 +15,20 @@ import 'package:mocktail/mocktail.dart';
 
 class MockHttpClient extends Mock implements http.Client {}
 
+class MockCacheProvider extends Mock implements EmbedCacheProvider {}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('EmbedService', () {
     late MockHttpClient mockClient;
+    late MockCacheProvider mockCacheProvider;
 
     setUp(() {
       mockClient = MockHttpClient();
+      mockCacheProvider = MockCacheProvider();
       registerFallbackValue(Uri.parse('https://example.com'));
+      registerFallbackValue(Uint8List(0));
     });
 
     group('resolveRule()', () {
@@ -137,7 +144,7 @@ void main() {
 
         final iframeUrl = EmbedService.resolveIframeUrl(url, config: config);
 
-        expect(iframeUrl, contains('youtube.com/embed/dQw4w9WgXcQ'));
+        expect(iframeUrl, contains('youtube-nocookie.com/embed/dQw4w9WgXcQ'));
       });
 
       test('should return null if the provider render mode is not iframe', () {
@@ -226,6 +233,37 @@ void main() {
         );
 
         expect(result.html, equals('<div>YouTube Video</div>'));
+      });
+
+      test('should use the cache provider from EmbedConfig', () async {
+        const url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+        final param = EmbedLoaderParam(
+          url: url,
+          embedType: EmbedType.youtube,
+          width: 640,
+        );
+        final cachedResponse = {
+          'version': '1.0',
+          'type': 'video',
+          'html': '<div>Cached YouTube Video</div>',
+        };
+
+        when(() => mockCacheProvider.getFileFromCache(any())).thenAnswer(
+          (_) async => Uint8List.fromList(
+            utf8.encode(jsonEncode(cachedResponse)),
+          ),
+        );
+
+        final result = await EmbedService.getResult(
+          param: param,
+          config: EmbedConfig(cacheProvider: mockCacheProvider),
+          httpClient: mockClient,
+        );
+
+        expect(result.html, equals('<div>Cached YouTube Video</div>'));
+        verify(() => mockCacheProvider.getFileFromCache(any())).called(1);
+        verifyNever(
+            () => mockClient.get(any(), headers: any(named: 'headers')));
       });
     });
 

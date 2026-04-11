@@ -141,7 +141,7 @@ void main() {
       expect(rule.iframeUrlBuilder, isNotNull);
       final iframeUrl = rule.iframeUrlBuilder!(ytUrl);
       expect(iframeUrl, isNotNull);
-      expect(iframeUrl, contains('youtube.com/embed/dQw4w9WgXcQ'));
+      expect(iframeUrl, contains('youtube-nocookie.com/embed/dQw4w9WgXcQ'));
     });
 
     // -----------------------------------------------------------------------

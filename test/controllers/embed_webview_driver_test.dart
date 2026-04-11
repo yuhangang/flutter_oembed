@@ -273,6 +273,20 @@ void main() {
     });
 
     group('updateEmbedPostHeight()', () {
+      test('uses the robust DOM height query', () async {
+        when(() => mockWebViewController.runJavaScriptReturningResult(any()))
+            .thenAnswer((_) async => '500');
+
+        final driver = EmbedWebViewDriver(
+            controller: controller, webViewController: mockWebViewController);
+        await driver.updateEmbedPostHeight();
+
+        expect(controller.height, 500.0);
+        verify(() => mockWebViewController.runJavaScriptReturningResult(
+              'Math.ceil(Math.max(document.body.scrollHeight, document.body.offsetHeight, document.documentElement.clientHeight, document.documentElement.scrollHeight, document.documentElement.offsetHeight));',
+            )).called(1);
+      });
+
       test('should handle and swallow JavaScript execution errors', () async {
         when(() => mockWebViewController.runJavaScriptReturningResult(any()))
             .thenThrow(Exception('JS Error'));

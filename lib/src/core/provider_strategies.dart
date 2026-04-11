@@ -14,7 +14,6 @@ import 'package:flutter_oembed/src/models/youtube_embed_params.dart';
 import 'package:flutter_oembed/src/services/embed_apis.dart';
 import 'package:flutter_oembed/src/utils/embed_html_utils.dart';
 import 'package:flutter_oembed/src/utils/embed_webview_controller_utils.dart';
-import 'package:flutter_oembed/src/widgets/tiktok_embed_player.dart';
 import 'package:flutter_oembed/src/widgets/youtube_embed_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -130,24 +129,6 @@ class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
     // TikTok handles its own pausing via IntersectionObserver in their script,
     // but we can try to mute it if it's a photo post.
     await controller.muteAudioWidget();
-  }
-
-  @override
-  EmbedRenderer resolveRenderer(EmbedProviderContext context,
-      {EmbedConfig? config}) {
-    if (context.iframeUrl != null) {
-      return IframeRenderer(context.iframeUrl!);
-    }
-
-    return NativeWidgetRenderer(
-        (widgetContext, maxWidth, controller, embedConstraints) {
-      return TikTokEmbedPlayer(
-        videoIdOrUrl: context.url,
-        maxWidth: maxWidth,
-        embedConstraints: embedConstraints,
-        embedParams: context.embedParams as TikTokEmbedParams?,
-      );
-    });
   }
 }
 

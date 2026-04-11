@@ -67,7 +67,7 @@ void main() {
       );
       expect(
         result,
-        'https://www.youtube.com/embed/dQw4w9WgXcQ?playsinline=1&enablejsapi=1&origin=https%3A%2F%2Fwww.youtube.com&widget_referrer=https%3A%2F%2Fwww.youtube.com',
+        'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?playsinline=1&enablejsapi=1&origin=https%3A%2F%2Fwww.youtube-nocookie.com&widget_referrer=https%3A%2F%2Fwww.youtube-nocookie.com',
       );
     });
 

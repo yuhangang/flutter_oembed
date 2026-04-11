@@ -1,12 +1,12 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:flutter_oembed/src/core/embed_scope.dart';
+import 'package:flutter_oembed/src/core/embed_cache_provider.dart';
 import 'package:flutter_oembed/src/logging/embed_logger.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
 import 'package:flutter_oembed/src/models/embed_constant.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/services/default_embed_cache_provider.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:http/http.dart' as http;
 
@@ -46,13 +46,15 @@ abstract class BaseEmbedApi {
   // Caching helpers — override to inject a custom cache manager in tests.
   // ---------------------------------------------------------------------------
 
-  @internal
-  BaseCacheManager get cacheManager => EmbedScope.cacheManager;
-
-  Future<EmbedData?> getCachedResult(Uri uri, {EmbedLogger? logger}) async {
+  Future<EmbedData?> getCachedResult(
+    Uri uri, {
+    EmbedCacheProvider? cacheProvider,
+    EmbedLogger? logger,
+  }) async {
     try {
-      final cache = await cacheManager.getFileFromCache(uri.toString());
-      final bytes = await cache?.file.readAsBytes();
+      final bytes = await _resolveCacheProvider(cacheProvider).getFileFromCache(
+        uri.toString(),
+      );
       if (bytes != null) {
         logger?.debug('Cache hit', data: {'uri': uri.toString()});
         return EmbedData.fromJson(jsonDecode(utf8.decode(bytes)));
@@ -73,6 +75,7 @@ abstract class BaseEmbedApi {
   Future<void> setCachedResult(
     Uri uri,
     EmbedData oembedData, {
+    EmbedCacheProvider? cacheProvider,
     Duration? maxAge,
     EmbedLogger? logger,
   }) async {
@@ -80,7 +83,7 @@ abstract class BaseEmbedApi {
       final resolvedMaxAge = maxAge ??
           oembedData.cacheAgeDuration ??
           kDefaultEmbedHtmlCacheLifeSpan;
-      await cacheManager.putFile(
+      await _resolveCacheProvider(cacheProvider).putFile(
         uri.toString(),
         Uint8List.fromList(jsonEncode(oembedData.toJson()).codeUnits),
         maxAge: resolvedMaxAge,
@@ -107,6 +110,7 @@ abstract class BaseEmbedApi {
     String url, {
     String locale = 'en',
     Brightness brightness = Brightness.light,
+    EmbedCacheProvider? cacheProvider,
     EmbedCacheConfig? cacheConfig,
     EmbedLogger? logger,
     Map<String, String>? queryParameters,
@@ -127,7 +131,11 @@ abstract class BaseEmbedApi {
     });
 
     if (config.enabled) {
-      final cached = await getCachedResult(uri, logger: logger);
+      final cached = await getCachedResult(
+        uri,
+        cacheProvider: cacheProvider,
+        logger: logger,
+      );
       if (cached != null) {
         logger?.info('Using cached OEmbed response', data: {'url': url});
         return cached;
@@ -156,7 +164,13 @@ abstract class BaseEmbedApi {
 
         if (config.enabled) {
           final ttl = config.resolve(decoded.cacheAgeDuration);
-          await setCachedResult(uri, decoded, maxAge: ttl, logger: logger);
+          await setCachedResult(
+            uri,
+            decoded,
+            cacheProvider: cacheProvider,
+            maxAge: ttl,
+            logger: logger,
+          );
         }
 
         logger?.info('Fetched OEmbed response', data: {'url': url});
@@ -177,6 +191,15 @@ abstract class BaseEmbedApi {
         client.close();
       }
     }
+  }
+
+  @internal
+  EmbedCacheProvider resolveCacheProvider([EmbedCacheProvider? cacheProvider]) {
+    return _resolveCacheProvider(cacheProvider);
+  }
+
+  EmbedCacheProvider _resolveCacheProvider(EmbedCacheProvider? cacheProvider) {
+    return cacheProvider ?? DefaultEmbedCacheProvider.instance;
   }
 }
 

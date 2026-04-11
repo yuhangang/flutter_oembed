@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:flutter_oembed/src/core/embed_cache_provider.dart';
 import 'package:flutter_oembed/src/models/base_embed_params.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/services/default_embed_cache_provider.dart';
 import 'package:flutter_oembed/src/services/embed_service.dart';
-import 'package:meta/meta.dart';
 
 /// Provides [EmbedConfig] to the widget subtree.
 ///
@@ -21,9 +21,6 @@ import 'package:meta/meta.dart';
 /// )
 /// ```
 class EmbedScope extends InheritedWidget {
-  @internal
-  static BaseCacheManager cacheManager = DefaultCacheManager();
-
   final EmbedConfig config;
 
   const EmbedScope({
@@ -53,8 +50,17 @@ class EmbedScope extends InheritedWidget {
   }
 
   /// Clears all cached OEmbed data from the persistent storage.
-  static Future<void> clearCache() async {
-    await cacheManager.emptyCache();
+  ///
+  /// Pass [config] to clear the cache backend associated with that scope.
+  /// When omitted, the package default cache provider is used.
+  static Future<void> clearCache({
+    EmbedConfig? config,
+    EmbedCacheProvider? cacheProvider,
+  }) async {
+    await _resolveCacheProvider(
+      config: config,
+      cacheProvider: cacheProvider,
+    ).emptyCache();
   }
 
   /// Removes a single cached OEmbed response for the given content URL and request shape.
@@ -67,6 +73,7 @@ class EmbedScope extends InheritedWidget {
   static Future<bool> evictCacheForUrl(
     String url, {
     EmbedConfig? config,
+    EmbedCacheProvider? cacheProvider,
     EmbedType? embedType,
     double? width,
     Map<String, String>? queryParameters,
@@ -84,8 +91,20 @@ class EmbedScope extends InheritedWidget {
       return false;
     }
 
-    await cacheManager.removeFile(cacheUri.toString());
+    await _resolveCacheProvider(
+      config: config,
+      cacheProvider: cacheProvider,
+    ).removeFile(cacheUri.toString());
     return true;
+  }
+
+  static EmbedCacheProvider _resolveCacheProvider({
+    EmbedConfig? config,
+    EmbedCacheProvider? cacheProvider,
+  }) {
+    return cacheProvider ??
+        config?.cacheProvider ??
+        DefaultEmbedCacheProvider.instance;
   }
 
   /// Returns `true` when the widget should notify dependents of a change.

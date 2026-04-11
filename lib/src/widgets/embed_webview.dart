@@ -1,8 +1,11 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
+import 'package:flutter_oembed/src/models/embed_constant.dart';
 import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
@@ -142,10 +145,21 @@ class _EmbedViewState extends State<EmbedWebView> {
     EmbedStyle? style,
     EmbedStrings strings,
   ) {
+    final gestureRecognizers = widget.scrollable
+        ? <Factory<OneSequenceGestureRecognizer>>{
+            const Factory<OneSequenceGestureRecognizer>(
+              EagerGestureRecognizer.new,
+            ),
+          }
+        : const <Factory<OneSequenceGestureRecognizer>>{};
+
     return Semantics(
       container: true,
       label: strings.contentSemanticsLabel,
-      child: WebViewWidget(controller: _driver.webViewController),
+      child: WebViewWidget(
+        controller: _driver.webViewController,
+        gestureRecognizers: gestureRecognizers,
+      ),
     );
   }
 
@@ -187,18 +201,22 @@ class _EmbedViewState extends State<EmbedWebView> {
         final strings = config?.strings ?? const EmbedStrings();
         final loadingState = widget.controller.loadingState;
         final embedConstraints = _effectiveEmbedConstraints;
+        final measuredHeight = widget.controller.height;
         final double? aspectRatio = widget.data?.aspectRatio ??
             widget.controller.preloadedData?.aspectRatio;
 
         double height = embedConstraints?.preferredHeight ??
+            measuredHeight ??
             (aspectRatio != null
                 ? widget.maxWidth / aspectRatio
-                : (widget.controller.height ?? _fallbackHeight()));
+                : _fallbackHeight());
 
         if (embedConstraints != null) {
           height = embedConstraints.clampHeight(height);
-        } else if (widget.scrollable && style != null) {
-          height = height.clamp(0.0, style.maxScrollableHeight).toDouble();
+        } else if (widget.scrollable) {
+          final maxScrollableHeight =
+              style?.maxScrollableHeight ?? kDefaultMaxScrollableEmbedHeight;
+          height = height.clamp(0.0, maxScrollableHeight).toDouble();
         }
 
         final effectiveWebViewBuilder =

@@ -129,6 +129,7 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
       extendBody: true,
       body: SingleChildScrollView(
         padding: EdgeInsets.only(
+          top: 16.0,
           bottom:
               24.0 + MediaQuery.viewPaddingOf(context).bottom + kToolbarHeight,
           left: 16.0,

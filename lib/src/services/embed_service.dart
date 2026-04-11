@@ -28,6 +28,7 @@ class EmbedService {
     final resolvedLogger =
         logger ?? config?.logger ?? const EmbedLogger.disabled();
     final resolvedCacheConfig = cacheConfig ?? config?.cache;
+    final resolvedCacheProvider = config?.cacheProvider;
     final locale = config?.locale ?? 'en';
     final brightness = config?.brightness ?? Brightness.light;
 
@@ -49,6 +50,7 @@ class EmbedService {
       param.url,
       locale: locale,
       brightness: brightness,
+      cacheProvider: resolvedCacheProvider,
       cacheConfig: resolvedCacheConfig,
       logger: resolvedLogger,
       queryParameters: param.queryParameters,

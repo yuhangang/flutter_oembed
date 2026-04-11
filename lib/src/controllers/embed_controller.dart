@@ -47,6 +47,7 @@ class EmbedController extends ChangeNotifier {
     if (!newHeight.isFinite || newHeight <= 0) return;
     final currentHeight = height;
     final shouldUpdate = currentHeight == null ||
+        newHeight > currentHeight ||
         (currentHeight - newHeight).abs() >= _heightUpdateDeltaThreshold;
     if (shouldUpdate) {
       height = newHeight;

@@ -1,5 +1,6 @@
 const String kTikTokV3EmbedUrl = 'https://www.tiktok.com/embed/v3';
-const String kYouTubeEmbedBaseUrl = 'https://www.youtube.com/embed';
+const String kYouTubeEmbedOrigin = 'https://www.youtube-nocookie.com';
+const String kYouTubeEmbedBaseUrl = '$kYouTubeEmbedOrigin/embed';
 const String kSpotifyEmbedBaseUrl = 'https://open.spotify.com/embed';
 const String kVimeoEmbedBaseUrl = 'https://player.vimeo.com/video';
 

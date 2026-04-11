@@ -21,7 +21,7 @@ WebViewController generateWebViewController() {
 extension EmbedWebviewControllerUtils on WebViewController {
   Future<double?> getEmbedDocumentHeight() async {
     final documentHeightQuery = await runJavaScriptReturningResult(
-      'Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);',
+      'Math.ceil(Math.max(document.body.scrollHeight, document.body.offsetHeight, document.documentElement.clientHeight, document.documentElement.scrollHeight, document.documentElement.offsetHeight));',
     );
 
     double? height = double.tryParse(

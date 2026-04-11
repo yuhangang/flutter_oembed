@@ -240,12 +240,18 @@ class EmbedWebViewDriver {
       }
     } else if (embedUrl != null) {
       if (_isDisposed) return;
+      final embedUri = Uri.parse(embedUrl);
+      final refererHeader = controller.param.embedType == EmbedType.youtube &&
+              (embedUri.host.contains('youtube.com') ||
+                  embedUri.host.contains('youtube-nocookie.com'))
+          ? embedUri.origin
+          : controller.param.url;
       await webViewController.loadRequest(
-        Uri.parse(embedUrl),
+        embedUri,
         headers: <String, String>{
           if (controller.param.embedType == EmbedType.youtube ||
               controller.param.embedType == EmbedType.spotify)
-            'Referer': controller.param.url,
+            'Referer': refererHeader,
         },
       );
     }

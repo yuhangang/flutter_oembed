@@ -7,11 +7,17 @@
 * **Embed Constraints**: Added `EmbedConstraints` to allow fine-grained control over the dimensions (min/max width/height) of rendered embeds.
 * **Customizable Strings**: Introduced `EmbedStrings` for localizing or customizing error messages and UI text components.
 * **Provider Automation**: Added a new generator tool for OEmbed provider configurations.
+* **Cache Control**: Added `EmbedCacheProvider.never()` for easily disabling the caching layer.
+* **Scoped Cache Providers**: Added `EmbedConfig.cacheProvider` so cache backends can be injected per scope instead of relying on a global singleton.
 
 ### Improvements
 * **Stability**: Major overhaul of error handling with the new `EmbedError` structure.
 * **Reliability**: Improved `EmbedWebViewDriver` for more robust lifecycle and state management.
 * **WebView**: Enhanced `EmbedWebView` for better error recovery and loading states.
+* **YouTube**: Fixed iframe-mode YouTube embeds in the HTML, Markdown, and Quill example integrations by aligning the embed host, origin, and referer used inside mobile WebViews.
+* **TikTok**: Fixed a regression where TikTok embeds default to using the specialized v1 player instead of standard oEmbed rendering.
+* **Custom Providers**: Expanded the example app's custom-provider integration to include additional manual oEmbed registration recipes, including CodePen, Pinterest, Bluesky Social, Flickr, Tumblr, TED, and audio.com.
+* **Sizing**: Fixed a WebView sizing edge case where provider-reported aspect ratios could override later measured DOM height, causing slight bottom clipping on providers such as Pinterest.
 * **Refactoring**: Significant cleanup of core components including `EmbedScope`, `EmbedController`, and `EmbedDataLoader`.
 
 ### Testing

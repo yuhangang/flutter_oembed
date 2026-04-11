@@ -1,3 +1,4 @@
+import 'package:embed_example/integrations/custom_provider_integration.dart';
 import 'package:embed_example/integrations/discovery_integration.dart';
 import 'package:embed_example/integrations/html_integration.dart';
 import 'package:embed_example/integrations/markdown_integration.dart';
@@ -99,6 +100,14 @@ class _MyHomePageState extends State<MyHomePage> {
                   icon: Icons.explore_rounded,
                   color: Colors.purple,
                   page: const DiscoveryIntegrationPage(),
+                ),
+                _buildIntegrationCard(
+                  context,
+                  title: 'Custom Provider',
+                  subtitle: 'Manual rules for Pinterest and more',
+                  icon: Icons.extension_rounded,
+                  color: Colors.brown,
+                  page: const CustomProviderIntegrationPage(),
                 ),
               ],
             ),

@@ -3,6 +3,7 @@ import 'package:flutter_oembed/src/core/provider_strategy.dart';
 import 'package:flutter_oembed/src/core/provider_strategies.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/embed_renderer.dart';
 import 'package:flutter_oembed/src/models/provider_rule.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 import 'package:flutter_oembed/src/services/api/meta_embed_api.dart';
@@ -68,6 +69,10 @@ void main() {
 
       await strategy.pauseMedia(mockController);
       verify(() => mockController.runJavaScript(any())).called(1);
+
+      // Verify renderer resolution
+      final renderer = strategy.resolveRenderer(defaultContext);
+      expect(renderer, isA<OEmbedRenderer>());
     });
 
     test('XProviderStrategy', () async {
