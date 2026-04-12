@@ -55,12 +55,15 @@ class EmbedWebViewDriver {
     );
   }
 
-  void dispose() {
+  void dispose({bool preserveWebView = false}) {
     if (_isDisposed) return;
     _isDisposed = true;
+    controller.cancelLoadTimeout();
     controller.unbindMediaControls();
     _focusCoordinator.detach(this, groupKey: _focusGroupKey);
-    unawaited(_disposeWebView());
+    if (!preserveWebView) {
+      unawaited(_disposeWebView());
+    }
   }
 
   void updateFocusGroup(ModalRoute<dynamic>? route) {
@@ -588,15 +591,15 @@ else {
     try {
       switch (action) {
         case _MediaControlAction.pause:
-          await _strategy.pauseMedia(webViewController);
+          await _strategy.mediaStrategy?.pauseMedia(webViewController);
         case _MediaControlAction.resume:
-          await _strategy.resumeMedia(webViewController);
+          await _strategy.mediaStrategy?.resumeMedia(webViewController);
         case _MediaControlAction.mute:
-          await _strategy.muteMedia(webViewController);
+          await _strategy.mediaStrategy?.muteMedia(webViewController);
         case _MediaControlAction.unmute:
-          await _strategy.unmuteMedia(webViewController);
+          await _strategy.mediaStrategy?.unmuteMedia(webViewController);
         case _MediaControlAction.seek:
-          await _strategy.seekMediaTo(
+          await _strategy.mediaStrategy?.seekMediaTo(
             webViewController,
             position ?? Duration.zero,
           );

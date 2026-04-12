@@ -38,36 +38,8 @@ abstract class EmbedProviderStrategy {
     VoidCallback? onTwitterLoaded,
   }) async {}
 
-  /// Pause any media (video/audio) currently playing in the WebView.
-  Future<void> pauseMedia(WebViewController controller) async {
-    await controller.pauseMediaElements();
-  }
-
-  /// Resume media in the WebView when the embed becomes visible again.
-  ///
-  /// This is best-effort only. Some providers block playback unless the user
-  /// interacts with the player again after the route is uncovered.
-  Future<void> resumeMedia(WebViewController controller) async {
-    await controller.resumeMediaElements();
-  }
-
-  /// Mute media in the WebView when the provider supports it.
-  Future<void> muteMedia(WebViewController controller) async {
-    await controller.muteMediaElements();
-  }
-
-  /// Unmute media in the WebView when the provider supports it.
-  Future<void> unmuteMedia(WebViewController controller) async {
-    await controller.unmuteMediaElements();
-  }
-
-  /// Seek media to a position in seconds when the provider supports it.
-  Future<void> seekMediaTo(
-    WebViewController controller,
-    Duration position,
-  ) async {
-    await controller.seekMediaElementsTo(position.inMilliseconds / 1000);
-  }
+  /// The media strategy for controlling playback.
+  EmbedMediaStrategy? get mediaStrategy => const EmbedMediaStrategy();
 
   /// Resolves the base URL for the WebView's HTML content.
   /// If null, no base URL will be used.
@@ -100,6 +72,42 @@ abstract class EmbedProviderStrategy {
       return IframeRenderer(context.iframeUrl!);
     }
     return const OEmbedRenderer();
+  }
+}
+
+/// A strategy for controlling media playback within a WebView.
+class EmbedMediaStrategy {
+  const EmbedMediaStrategy();
+
+  /// Pause any media (video/audio) currently playing in the WebView.
+  Future<void> pauseMedia(WebViewController controller) async {
+    await controller.pauseMediaElements();
+  }
+
+  /// Resume media in the WebView when the embed becomes visible again.
+  ///
+  /// This is best-effort only. Some providers block playback unless the user
+  /// interacts with the player again after the route is uncovered.
+  Future<void> resumeMedia(WebViewController controller) async {
+    await controller.resumeMediaElements();
+  }
+
+  /// Mute media in the WebView when the provider supports it.
+  Future<void> muteMedia(WebViewController controller) async {
+    await controller.muteMediaElements();
+  }
+
+  /// Unmute media in the WebView when the provider supports it.
+  Future<void> unmuteMedia(WebViewController controller) async {
+    await controller.unmuteMediaElements();
+  }
+
+  /// Seek media to a position in seconds when the provider supports it.
+  Future<void> seekMediaTo(
+    WebViewController controller,
+    Duration position,
+  ) async {
+    await controller.seekMediaElementsTo(position.inMilliseconds / 1000);
   }
 }
 

@@ -19,16 +19,19 @@ class EmbedWidgetLoader extends StatefulWidget {
     super.key,
     required this.param,
     this.preloadedData,
+    this.controller,
     this.config,
     this.style,
     this.cacheConfig,
     this.embedConstraints,
     this.scrollable = false,
+    this.reuseKey,
     this.webViewBuilder,
   });
 
   final SocialEmbedParam param;
   final EmbedData? preloadedData;
+  final EmbedController? controller;
 
   /// Optional config override. If provided, takes precedence over [EmbedScope].
   /// Used by [EmbedCard] to merge per-widget callbacks (e.g. [onLinkTap]).
@@ -37,6 +40,7 @@ class EmbedWidgetLoader extends StatefulWidget {
   final EmbedCacheConfig? cacheConfig;
   final EmbedConstraints? embedConstraints;
   final bool scrollable;
+  final Object? reuseKey;
   final Widget Function(BuildContext context, Widget child)? webViewBuilder;
 
   @override
@@ -84,6 +88,9 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
   EmbedController _createController({
     required EmbedConfig? config,
   }) {
+    if (widget.controller != null) {
+      return widget.controller!;
+    }
     return EmbedController(
       param: widget.param,
       config: config,
@@ -96,12 +103,16 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
   }) {
     final previous = _controller;
     _controller = _createController(config: config);
-    previous.dispose();
+    if (!identical(previous, _controller) && widget.controller == null) {
+      previous.dispose();
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    if (widget.controller == null) {
+      _controller.dispose();
+    }
     super.dispose();
   }
 
@@ -138,6 +149,7 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
                 style: style,
                 embedConstraints: widget.embedConstraints,
                 scrollable: widget.scrollable,
+                reuseKey: widget.reuseKey,
                 webViewBuilder: widget.webViewBuilder,
               );
             }
@@ -166,6 +178,7 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
                   style: style,
                   embedConstraints: widget.embedConstraints,
                   scrollable: widget.scrollable,
+                  reuseKey: widget.reuseKey,
                   webViewBuilder: widget.webViewBuilder,
                 ),
               OEmbedRenderer() => EmbedDataLoader(
@@ -176,6 +189,7 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
                   cacheConfig: widget.cacheConfig,
                   embedConstraints: widget.embedConstraints,
                   scrollable: widget.scrollable,
+                  reuseKey: widget.reuseKey,
                   webViewBuilder: widget.webViewBuilder,
                   loaderParam: EmbedLoaderParam(
                     url: widget.param.url,

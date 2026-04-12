@@ -4,6 +4,8 @@ import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
 import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/controllers/embed_controller.dart';
+import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_oembed/src/utils/embed_matchers.dart';
 import 'package:flutter_oembed/src/widgets/embed_card.dart';
 import 'package:flutter_oembed/src/widgets/embed_renderer.dart';
@@ -160,6 +162,37 @@ void main() {
 
     expect(widget.url, testUrl);
     expect(widget.embedType, isNull);
+  });
+
+  testWidgets('EmbedCard.url factory forwards reuseKey', (tester) async {
+    const reuseKey = 'feed-item-42';
+
+    final widget = EmbedCard.url(
+      'https://twitter.com/x/status/123',
+      reuseKey: reuseKey,
+    );
+
+    expect(widget.reuseKey, reuseKey);
+  });
+
+  testWidgets('EmbedCard.url factory forwards controller', (tester) async {
+    final controller = EmbedController(
+      param: SocialEmbedParam(
+        url: 'https://vimeo.com/22439234',
+        embedType: EmbedType.vimeo,
+      ),
+    );
+
+    try {
+      final widget = EmbedCard.url(
+        'https://vimeo.com/22439234',
+        controller: controller,
+      );
+
+      expect(widget.controller, same(controller));
+    } finally {
+      controller.dispose();
+    }
   });
 
   group('EmbedCard Auto-matching (via EmbedMatchers)', () {
@@ -379,6 +412,7 @@ void main() {
             scrollable: true,
             cacheConfig: cache,
             embedConstraints: embedConstraints,
+            reuseKey: 'youtube-player',
           ),
         ),
       ),
@@ -390,6 +424,7 @@ void main() {
     expect(loader.scrollable, isTrue);
     expect(loader.cacheConfig, equals(cache));
     expect(loader.embedConstraints, equals(embedConstraints));
+    expect(loader.reuseKey, 'youtube-player');
   });
 
   testWidgets('legacy embedHeight maps to preferredHeight constraint', (

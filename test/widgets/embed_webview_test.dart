@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
+import 'package:flutter_oembed/src/core/embed_scope.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_constant.dart';
 import 'package:flutter_oembed/src/models/embed_constraints.dart';
@@ -394,6 +395,110 @@ void main() {
 
       await tester.pump();
       await tester.pump(const Duration(seconds: 11));
+    });
+
+    testWidgets(
+        'reuses a cached WebViewController when remounted with the same reuseKey',
+        (tester) async {
+      const reuseKey = 'feed-item-1';
+
+      Widget buildHost({required bool showEmbed}) {
+        return MaterialApp(
+          home: EmbedScope(
+            config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
+            reuseWebViews: true,
+            child: Scaffold(
+              body: showEmbed
+                  ? EmbedWebView.data(
+                      param: param,
+                      data: data,
+                      maxWidth: 640,
+                      controller: controller,
+                      reuseKey: reuseKey,
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ),
+        );
+      }
+
+      await tester.pumpWidget(buildHost(showEmbed: true));
+      await tester.pump();
+      expect(fakePlatform.createdControllers, hasLength(1));
+
+      await tester.pumpWidget(buildHost(showEmbed: false));
+      await tester.pump();
+
+      await tester.pumpWidget(buildHost(showEmbed: true));
+      await tester.pump();
+      expect(fakePlatform.createdControllers, hasLength(1));
+    });
+
+    testWidgets(
+        'does not reuse a cached WebViewController when the embed content changes',
+        (tester) async {
+      const reuseKey = 'feed-item-1';
+      final firstParam = SocialEmbedParam(
+        url: 'https://youtube.com/watch?v=123',
+        embedType: EmbedType.youtube,
+      );
+      final secondParam = SocialEmbedParam(
+        url: 'https://youtube.com/watch?v=456',
+        embedType: EmbedType.youtube,
+      );
+
+      Widget buildHost({
+        required bool showEmbed,
+        required SocialEmbedParam activeParam,
+        required EmbedData activeData,
+      }) {
+        return MaterialApp(
+          home: EmbedScope(
+            config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
+            reuseWebViews: true,
+            child: Scaffold(
+              body: showEmbed
+                  ? EmbedWebView.data(
+                      param: activeParam,
+                      data: activeData,
+                      maxWidth: 640,
+                      controller: controller,
+                      reuseKey: reuseKey,
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ),
+        );
+      }
+
+      await tester.pumpWidget(
+        buildHost(
+          showEmbed: true,
+          activeParam: firstParam,
+          activeData: const EmbedData(html: '<div>first</div>'),
+        ),
+      );
+      await tester.pump();
+      expect(fakePlatform.createdControllers, hasLength(1));
+
+      await tester.pumpWidget(
+        buildHost(
+          showEmbed: false,
+          activeParam: firstParam,
+          activeData: const EmbedData(html: '<div>first</div>'),
+        ),
+      );
+      await tester.pump();
+
+      await tester.pumpWidget(
+        buildHost(
+          showEmbed: true,
+          activeParam: secondParam,
+          activeData: const EmbedData(html: '<div>second</div>'),
+        ),
+      );
+      await tester.pump();
+      expect(fakePlatform.createdControllers, hasLength(2));
     });
 
     testWidgets('should render a custom webViewBuilder when provided',

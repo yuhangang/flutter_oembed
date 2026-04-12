@@ -125,13 +125,30 @@ String _buildIframePostMessageScript({
   return """
 (function() {
   var fragments = [$fragments];
+  var currentHref = (window.location && window.location.href) || '';
+  var currentMatches = false;
+  for (var i = 0; i < fragments.length; i += 1) {
+    if (currentHref.indexOf(fragments[i]) !== -1) {
+      currentMatches = true;
+      break;
+    }
+  }
+  if (currentMatches) {
+    try {
+      if (window.postMessage) {
+        window.postMessage($messageExpression, '*');
+      }
+    } catch (e) {}
+  }
   var iframes = document.querySelectorAll('iframe');
-  for (var i = 0; i < iframes.length; i += 1) {
-    var iframe = iframes[i];
+  for (var iframeIndex = 0; iframeIndex < iframes.length; iframeIndex += 1) {
+    var iframe = iframes[iframeIndex];
     var src = iframe.src || '';
     var matches = false;
-    for (var j = 0; j < fragments.length; j += 1) {
-      if (src.indexOf(fragments[j]) !== -1) {
+    for (var fragmentIndex = 0;
+        fragmentIndex < fragments.length;
+        fragmentIndex += 1) {
+      if (src.indexOf(fragments[fragmentIndex]) !== -1) {
         matches = true;
         break;
       }

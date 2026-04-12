@@ -54,10 +54,10 @@ void main() {
           .thenAnswer((invocation) async {
         scripts.add(invocation.positionalArguments.first as String);
       });
-      await strategy.pauseMedia(mockController);
-      await strategy.resumeMedia(mockController);
-      await strategy.muteMedia(mockController);
-      await strategy.unmuteMedia(mockController);
+      await strategy.mediaStrategy!.pauseMedia(mockController);
+      await strategy.mediaStrategy!.resumeMedia(mockController);
+      await strategy.mediaStrategy!.muteMedia(mockController);
+      await strategy.mediaStrategy!.unmuteMedia(mockController);
 
       expect(scripts, hasLength(8));
       expect(scripts[1], contains('youtube-nocookie.com'));
@@ -84,27 +84,29 @@ void main() {
 
       clearInteractions(mockController);
       scripts.clear();
-      await strategy.pauseMedia(mockController);
+      await strategy.mediaStrategy!.pauseMedia(mockController);
       expect(scripts, hasLength(2));
+      expect(scripts[1], contains('window.postMessage'));
       expect(scripts[1], contains('"type":"pause"'));
 
       scripts.clear();
-      await strategy.resumeMedia(mockController);
+      await strategy.mediaStrategy!.resumeMedia(mockController);
       expect(scripts, hasLength(2));
       expect(scripts[1], contains('"type":"play"'));
 
       scripts.clear();
-      await strategy.muteMedia(mockController);
+      await strategy.mediaStrategy!.muteMedia(mockController);
       expect(scripts, hasLength(2));
       expect(scripts[1], contains('"type":"mute"'));
 
       scripts.clear();
-      await strategy.unmuteMedia(mockController);
+      await strategy.mediaStrategy!.unmuteMedia(mockController);
       expect(scripts, hasLength(2));
       expect(scripts[1], contains('"type":"unMute"'));
 
       scripts.clear();
-      await strategy.seekMediaTo(mockController, const Duration(seconds: 15));
+      await strategy.mediaStrategy!
+          .seekMediaTo(mockController, const Duration(seconds: 15));
       expect(scripts, hasLength(2));
       expect(scripts[1], contains('"type":"seekTo"'));
       expect(scripts[1], contains('"value":15'));
@@ -149,12 +151,13 @@ void main() {
           .thenAnswer((invocation) async {
         scripts.add(invocation.positionalArguments.first as String);
       });
-      await strategy.pauseMedia(mockController);
-      await strategy.resumeMedia(mockController);
-      await strategy.muteMedia(mockController);
-      await strategy.unmuteMedia(mockController);
+      await strategy.mediaStrategy!.pauseMedia(mockController);
+      await strategy.mediaStrategy!.resumeMedia(mockController);
+      await strategy.mediaStrategy!.muteMedia(mockController);
+      await strategy.mediaStrategy!.unmuteMedia(mockController);
 
       expect(scripts, hasLength(8));
+      expect(scripts[1], contains('window.postMessage'));
       expect(scripts[1], contains('"method":"pause"'));
       expect(scripts[3], contains('"method":"play"'));
       expect(scripts[5], contains('"value":0'));
@@ -171,8 +174,8 @@ void main() {
           .thenAnswer((invocation) async {
         scripts.add(invocation.positionalArguments.first as String);
       });
-      await strategy.pauseMedia(mockController);
-      await strategy.resumeMedia(mockController);
+      await strategy.mediaStrategy!.pauseMedia(mockController);
+      await strategy.mediaStrategy!.resumeMedia(mockController);
 
       expect(scripts, hasLength(4));
       expect(scripts[1], contains('"method":"pause"'));
@@ -189,8 +192,8 @@ void main() {
           .thenAnswer((invocation) async {
         scripts.add(invocation.positionalArguments.first as String);
       });
-      await strategy.pauseMedia(mockController);
-      await strategy.resumeMedia(mockController);
+      await strategy.mediaStrategy!.pauseMedia(mockController);
+      await strategy.mediaStrategy!.resumeMedia(mockController);
 
       expect(scripts, hasLength(4));
       expect(scripts[1], contains('"command":"pause"'));
@@ -207,10 +210,10 @@ void main() {
           .thenAnswer((invocation) async {
         scripts.add(invocation.positionalArguments.first as String);
       });
-      await strategy.pauseMedia(mockController);
-      await strategy.resumeMedia(mockController);
-      await strategy.muteMedia(mockController);
-      await strategy.unmuteMedia(mockController);
+      await strategy.mediaStrategy!.pauseMedia(mockController);
+      await strategy.mediaStrategy!.resumeMedia(mockController);
+      await strategy.mediaStrategy!.muteMedia(mockController);
+      await strategy.mediaStrategy!.unmuteMedia(mockController);
 
       expect(scripts, hasLength(8));
       expect(scripts[1], contains('"command":"pause"'));

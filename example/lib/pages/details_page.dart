@@ -233,6 +233,7 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
             EmbedCard.url(
               widget.sample['url'],
               embedType: embedType,
+              controller: _controller,
               key: ValueKey(
                 '${widget.sample['url']}-${settings.locale}-${settings.brightness}-$embedParams-${_constraintPreset.name}',
               ),

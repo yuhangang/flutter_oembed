@@ -76,7 +76,7 @@ void main() {
         (r) => r.providerName == 'Vimeo',
       );
       final result = vimeo.iframeUrlBuilder!('https://vimeo.com/22439234');
-      expect(result, 'https://player.vimeo.com/video/22439234');
+      expect(result, 'https://player.vimeo.com/video/22439234?api=1');
     });
 
     test('Spotify iframeUrlBuilder builds correct embed URL', () {

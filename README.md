@@ -55,6 +55,7 @@ dependencies:
 - When multiple embeds are visible in the same route, the package treats the highest-visibility embed as focused and attempts to keep non-focused embeds paused.
 - Provider media-control support is not uniform. YouTube, Vimeo, and TikTok's `player/v1` path are the most reliable. Meta-style embeds may still be best-effort only.
 - `EmbedController` exposes best-effort `pauseMedia()`, `resumeMedia()`, `muteMedia()`, `unmuteMedia()`, and `seekMediaTo(...)` methods once an embed is attached. TikTok `player/v1` is the most complete implementation of that API in the current package.
+- To drive those controls from your own UI, pass the same `EmbedController` into `EmbedCard(controller: ...)`, `YoutubeEmbedPlayer`, or `TikTokEmbedPlayer` so the rendered embed can bind to it.
 
 ### Brightness Support Matrix
 
@@ -121,6 +122,27 @@ EmbedCard(
   },
 )
 ```
+
+## Optional WebView Reuse
+
+If you want a subtree to retain platform WebViews across temporary unmounts
+such as tabs or virtualized lists, enable reuse on `EmbedScope` and provide an
+explicit `reuseKey` per embed:
+
+```dart
+EmbedScope(
+  config: const EmbedConfig(),
+  reuseWebViews: true,
+  child: EmbedCard.url(
+    'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    reuseKey: 'feed-item:video-42',
+  ),
+)
+```
+
+Reuse stays off by default. Change the `reuseKey` whenever the embed content
+changes; the package only reuses a cached WebView when both the key and the
+rendered embed inputs still match.
 
 ## WebView Navigation Policy
 

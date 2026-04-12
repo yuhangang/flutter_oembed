@@ -43,6 +43,28 @@ void main() {
       expect(capturedStyle, equals(config.style));
     });
 
+    testWidgets('reuseWebViewsOf reflects scope setting', (tester) async {
+      late bool reuseWebViews;
+
+      await tester.pumpWidget(
+        EmbedScope(
+          config: const EmbedConfig(),
+          reuseWebViews: true,
+          child: Builder(
+            builder: (context) {
+              reuseWebViews = EmbedScope.reuseWebViewsOf(
+                context,
+                listen: false,
+              );
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+
+      expect(reuseWebViews, isTrue);
+    });
+
     test('updateShouldNotify', () {
       const config1 = EmbedConfig(facebookAppId: '1');
       const config2 = EmbedConfig(facebookAppId: '2');

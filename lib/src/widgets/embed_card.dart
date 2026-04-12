@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
 import 'package:flutter_oembed/src/models/base_embed_params.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
@@ -69,10 +70,15 @@ class EmbedCard extends StatelessWidget {
   /// Whether the widget should delay loading the WebView until it enters the viewport.
   /// Overrides [EmbedConfig.lazyLoad].
   final bool? lazyLoad;
+  final EmbedController? controller;
 
   /// Custom query parameters to pass to the OEmbed API (for supported providers).
   final Map<String, String>? queryParameters;
   final BaseEmbedParams? embedParams;
+
+  /// Optional identity used with [EmbedScope.reuseWebViews] to reuse a cached
+  /// platform WebView when the same embed remounts later in the same scope.
+  final Object? reuseKey;
   final Widget Function(BuildContext context, Widget child)? webViewBuilder;
 
   const EmbedCard({
@@ -87,8 +93,10 @@ class EmbedCard extends StatelessWidget {
     this.embedHeight,
     this.scrollable,
     this.lazyLoad,
+    this.controller,
     this.queryParameters,
     this.embedParams,
+    this.reuseKey,
     this.webViewBuilder,
   }) : assert(
           embedConstraints == null || embedHeight == null,
@@ -112,8 +120,10 @@ class EmbedCard extends StatelessWidget {
     double? embedHeight,
     bool? scrollable,
     bool? lazyLoad,
+    EmbedController? controller,
     Map<String, String>? queryParameters,
     BaseEmbedParams? embedParams,
+    Object? reuseKey,
     Widget Function(BuildContext context, Widget child)? webViewBuilder,
   }) {
     return EmbedCard(
@@ -128,8 +138,10 @@ class EmbedCard extends StatelessWidget {
       embedHeight: embedHeight,
       scrollable: scrollable,
       lazyLoad: lazyLoad,
+      controller: controller,
       queryParameters: queryParameters,
       embedParams: embedParams,
+      reuseKey: reuseKey,
       webViewBuilder: webViewBuilder,
     );
   }
@@ -172,11 +184,13 @@ class EmbedCard extends StatelessWidget {
         return EmbedWidgetLoader(
           param: param,
           preloadedData: preloadedData,
+          controller: controller,
           config: effectiveConfig,
           style: style,
           cacheConfig: cacheConfig,
           embedConstraints: _effectiveEmbedConstraints,
           scrollable: scrollable,
+          reuseKey: reuseKey,
           webViewBuilder: webViewBuilder,
         );
       },

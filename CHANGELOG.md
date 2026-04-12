@@ -17,10 +17,12 @@
 * **Stability**: Major overhaul of error handling with the new `EmbedError` structure.
 * **Reliability**: Improved `EmbedWebViewDriver` for more robust lifecycle and state management.
 * **WebView**: Enhanced `EmbedWebView` for better error recovery and loading states.
+* **WebView**: Added optional scope-level WebView reuse with explicit per-embed `reuseKey` support for remount-heavy UIs such as tabs and lists.
 * **Navigation**: Hardened WebView navigation handling so sub-frame/bootstrap loads still work, unexpected startup redirects are blocked, and post-load external links or custom schemes are handed off outside the WebView.
 * **YouTube**: Fixed iframe-mode YouTube embeds in the HTML, Markdown, and Quill example integrations by aligning the embed host, origin, and referer used inside mobile WebViews.
 * **TikTok**: Added an opt-in mechanism to use the specialized v1 player via `TikTokEmbedParams.useV1Player` in `EmbedCard`. Standard oEmbed remains the default for better out-of-the-box compatibility.
 * **TikTok**: Switched TikTok `player/v1` media control to the documented host-to-player message contract and exposed best-effort `EmbedController` media control methods for attached embeds.
+* **EmbedController**: Added `EmbedCard.controller` so app-level media control UIs can target the actual rendered embed instance, including Vimeo and TikTok `player/v1` in the example app.
 * **Custom Providers**: Expanded the example app's custom-provider integration to include additional manual oEmbed registration recipes, including CodePen, Pinterest, Bluesky Social, Flickr, Tumblr, TED, and audio.com.
 * **Sizing**: Fixed a WebView sizing edge case where provider-reported aspect ratios could override later measured DOM height, causing slight bottom clipping on providers such as Pinterest.
 * **Refactoring**: Significant cleanup of core components including `EmbedScope`, `EmbedController`, and `EmbedDataLoader`.

@@ -99,7 +99,7 @@ void main() {
     test('buildVimeoEmbedUrl', () {
       expect(
         buildVimeoEmbedUrl('https://vimeo.com/123'),
-        equals('https://player.vimeo.com/video/123'),
+        equals('https://player.vimeo.com/video/123?api=1'),
       );
       expect(buildVimeoEmbedUrl('invalid'), isNull);
     });

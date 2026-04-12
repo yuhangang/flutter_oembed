@@ -118,6 +118,7 @@ class EmbedService {
         config: config,
         queryParameters: queryParameters,
         logger: logger,
+        silent: true,
       );
 
       final ctx = EmbedProviderContext(
@@ -254,27 +255,32 @@ class EmbedService {
     EmbedConfig? config,
     EmbedLogger? logger,
     Map<String, String>? queryParameters,
+    bool silent = false,
   }) {
     if (config == null) return null;
     final resolvedLogger = logger ?? config.logger;
 
     final rule = resolveRule(url, config: config);
     if (rule == null) {
-      resolvedLogger.debug('No iframe provider match', data: {'url': url});
+      if (!silent) {
+        resolvedLogger.debug('No iframe provider match', data: {'url': url});
+      }
       return null;
     }
 
     final mode = config.resolvedProviders.getRenderMode(rule.providerName);
     if (mode != EmbedRenderMode.iframe) {
-      resolvedLogger.debug(
-        'Rendering mode mismatch',
-        data: {
-          'url': url,
-          'provider': rule.providerName,
-          'configuredMode': mode.name,
-          'requiredMode': 'iframe',
-        },
-      );
+      if (!silent) {
+        resolvedLogger.debug(
+          'Rendering mode mismatch',
+          data: {
+            'url': url,
+            'provider': rule.providerName,
+            'configuredMode': mode.name,
+            'requiredMode': 'iframe',
+          },
+        );
+      }
       return null;
     }
 

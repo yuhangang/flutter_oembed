@@ -26,7 +26,7 @@ void main() {
     test('should return the correct iframe URL for Vimeo', () {
       final url = EmbedService.resolveIframeUrl('https://vimeo.com/12345',
           config: config);
-      expect(url, equals('https://player.vimeo.com/video/12345'));
+      expect(url, equals('https://player.vimeo.com/video/12345?api=1'));
     });
 
     test('should return the correct iframe URL for Spotify', () {

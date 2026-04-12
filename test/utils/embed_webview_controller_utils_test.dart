@@ -46,6 +46,8 @@ void main() {
       expect(scripts, hasLength(1));
       expect(scripts.single, contains('youtube-nocookie.com'));
       expect(scripts.single, contains('youtube.com'));
+      expect(scripts.single, contains('window.location'));
+      expect(scripts.single, contains('window.postMessage'));
       expect(scripts.single, contains('pauseVideo'));
     });
 
@@ -69,6 +71,26 @@ void main() {
       expect(scripts.single, contains('"type":"seekTo"'));
       expect(scripts.single, contains('"value":42'));
       expect(scripts.single, contains('"x-tiktok-player":true'));
+    });
+
+    test('postJsonStringMessageToIframes can target a top-level player page',
+        () async {
+      final controller = MockWebViewController();
+      final scripts = <String>[];
+      when(() => controller.runJavaScript(any()))
+          .thenAnswer((invocation) async {
+        scripts.add(invocation.positionalArguments.first as String);
+      });
+
+      await controller.postJsonStringMessageToIframes(
+        srcFragments: const ['vimeo.com'],
+        messageJson: '{"method":"pause"}',
+      );
+
+      expect(scripts, hasLength(1));
+      expect(scripts.single, contains("currentHref.indexOf(fragments[i])"));
+      expect(scripts.single,
+          contains("window.postMessage('{\"method\":\"pause\"}', '*')"));
     });
   });
 }

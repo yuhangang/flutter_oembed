@@ -3,9 +3,12 @@ import 'package:webview_flutter_platform_interface/webview_flutter_platform_inte
 
 class FakeWebViewPlatform extends WebViewPlatform {
   FakePlatformWebViewController? lastCreatedController;
+  final List<FakePlatformWebViewController> createdControllers =
+      <FakePlatformWebViewController>[];
 
   void reset() {
     lastCreatedController = null;
+    createdControllers.clear();
   }
 
   @override
@@ -21,6 +24,7 @@ class FakeWebViewPlatform extends WebViewPlatform {
   ) {
     final controller = FakePlatformWebViewController(params);
     lastCreatedController = controller;
+    createdControllers.add(controller);
     return controller;
   }
 

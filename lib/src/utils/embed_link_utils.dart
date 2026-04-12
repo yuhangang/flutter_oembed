@@ -125,5 +125,6 @@ String? getVimeoVideoId(String url) {
 String? buildVimeoEmbedUrl(String url) {
   final videoId = getVimeoVideoId(url);
   if (videoId == null) return null;
-  return '$kVimeoEmbedBaseUrl/$videoId';
+  return Uri.parse('$kVimeoEmbedBaseUrl/$videoId')
+      .replace(queryParameters: const {'api': '1'}).toString();
 }

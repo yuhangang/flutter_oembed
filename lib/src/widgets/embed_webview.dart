@@ -29,6 +29,7 @@ class EmbedWebView extends StatefulWidget {
   final EmbedController controller;
   final EmbedStyle? style;
   final bool scrollable;
+  final Object? reuseKey;
   final Widget Function(BuildContext context, Widget child)? webViewBuilder;
 
   const EmbedWebView.data({
@@ -41,6 +42,7 @@ class EmbedWebView extends StatefulWidget {
     required this.controller,
     this.style,
     this.scrollable = false,
+    this.reuseKey,
     this.webViewBuilder,
   })  : assert(
           embedConstraints == null || embedHeight == null,
@@ -58,6 +60,7 @@ class EmbedWebView extends StatefulWidget {
     required this.controller,
     this.style,
     this.scrollable = false,
+    this.reuseKey,
     this.webViewBuilder,
   })  : assert(
           embedConstraints == null || embedHeight == null,
@@ -76,12 +79,28 @@ class _EmbedViewState extends State<EmbedWebView> {
   static const _defaultContentFallbackHeight = 320.0;
 
   late EmbedWebViewDriver _driver;
+  Object? _reuseScopeToken;
+  bool _reuseWebViewsEnabled = false;
+
+  _EmbedWebViewReuseSignature get _reuseSignature =>
+      _EmbedWebViewReuseSignature(
+        param: widget.param,
+        data: widget.data,
+        url: widget.url,
+      );
 
   @override
   void initState() {
     super.initState();
-    _driver = EmbedWebViewDriver(controller: widget.controller);
+    _captureReuseScope(listen: false);
+    _driver = _createDriver();
     _scheduleInit();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _captureReuseScope();
   }
 
   @override
@@ -89,19 +108,39 @@ class _EmbedViewState extends State<EmbedWebView> {
     super.didUpdateWidget(oldWidget);
 
     final controllerChanged = oldWidget.controller != widget.controller;
-    if (controllerChanged) {
-      _driver.dispose();
-      _driver = EmbedWebViewDriver(controller: widget.controller);
-    }
-
-    if (controllerChanged ||
+    final shouldRefresh = controllerChanged ||
         oldWidget.data != widget.data ||
         oldWidget.url != widget.url ||
         oldWidget.maxWidth != widget.maxWidth ||
         oldWidget.scrollable != widget.scrollable ||
-        oldWidget.param != widget.param) {
+        oldWidget.param != widget.param ||
+        oldWidget.reuseKey != widget.reuseKey;
+
+    if (shouldRefresh) {
+      _driver.dispose();
+      _driver = _createDriver();
       _scheduleInit(forceReload: true);
     }
+  }
+
+  EmbedWebViewDriver _createDriver() {
+    final reusedController = widget.reuseKey != null && _reuseWebViewsEnabled
+        ? EmbedScope.takeReusedWebViewControllerFromToken(
+            _reuseScopeToken,
+            reuseKey: widget.reuseKey!,
+            signature: _reuseSignature,
+          )
+        : null;
+    return EmbedWebViewDriver(
+      controller: widget.controller,
+      webViewController: reusedController,
+    );
+  }
+
+  void _captureReuseScope({bool listen = true}) {
+    _reuseScopeToken = EmbedScope.reuseScopeTokenOf(context, listen: listen);
+    _reuseWebViewsEnabled = _reuseScopeToken != null &&
+        EmbedScope.reuseWebViewsOf(context, listen: listen);
   }
 
   void _scheduleInit({bool forceReload = false}) {
@@ -121,7 +160,17 @@ class _EmbedViewState extends State<EmbedWebView> {
 
   @override
   void dispose() {
-    _driver.dispose();
+    var preserveWebView = false;
+    if (widget.reuseKey != null && _reuseWebViewsEnabled) {
+      EmbedScope.releaseReusedWebViewControllerToToken(
+        _reuseScopeToken,
+        reuseKey: widget.reuseKey!,
+        signature: _reuseSignature,
+        controller: _driver.webViewController,
+      );
+      preserveWebView = true;
+    }
+    _driver.dispose(preserveWebView: preserveWebView);
     super.dispose();
   }
 
@@ -284,6 +333,30 @@ class _EmbedViewState extends State<EmbedWebView> {
       },
     );
   }
+}
+
+@immutable
+class _EmbedWebViewReuseSignature {
+  const _EmbedWebViewReuseSignature({
+    required this.param,
+    required this.data,
+    required this.url,
+  });
+
+  final SocialEmbedParam param;
+  final EmbedData? data;
+  final String? url;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _EmbedWebViewReuseSignature &&
+        other.param == param &&
+        other.data == data &&
+        other.url == url;
+  }
+
+  @override
+  int get hashCode => Object.hash(param, data, url);
 }
 
 class _EmbedWebviewObserver extends StatefulWidget {

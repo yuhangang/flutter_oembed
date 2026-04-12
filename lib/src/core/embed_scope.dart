@@ -6,6 +6,7 @@ import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/services/default_embed_cache_provider.dart';
 import 'package:flutter_oembed/src/services/embed_service.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 /// Provides [EmbedConfig] to the widget subtree.
 ///
@@ -20,21 +21,33 @@ import 'package:flutter_oembed/src/services/embed_service.dart';
 ///   child: ...,
 /// )
 /// ```
-class EmbedScope extends InheritedWidget {
+class EmbedScope extends StatefulWidget {
   final EmbedConfig config;
+
+  /// Enables opt-in WebView controller reuse for embeds in this subtree.
+  ///
+  /// Reuse is still disabled unless individual embeds provide a `reuseKey`.
+  final bool reuseWebViews;
 
   const EmbedScope({
     super.key,
     required this.config,
-    required super.child,
+    this.reuseWebViews = false,
+    required this.child,
   });
 
-  static EmbedScope? _maybeOf(BuildContext context, {bool listen = true}) {
+  final Widget child;
+
+  static _EmbedScopeInherited? _maybeOf(
+    BuildContext context, {
+    bool listen = true,
+  }) {
     if (listen) {
-      return context.dependOnInheritedWidgetOfExactType<EmbedScope>();
+      return context.dependOnInheritedWidgetOfExactType<_EmbedScopeInherited>();
     }
-    return context.getElementForInheritedWidgetOfExactType<EmbedScope>()?.widget
-        as EmbedScope?;
+    return context
+        .getElementForInheritedWidgetOfExactType<_EmbedScopeInherited>()
+        ?.widget as _EmbedScopeInherited?;
   }
 
   /// Returns the [EmbedConfig] from the nearest [EmbedScope], or null.
@@ -47,6 +60,69 @@ class EmbedScope extends InheritedWidget {
   /// Prefer this over extracting style from `configOf(context)?.style` for readability.
   static EmbedStyle? styleOf(BuildContext context, {bool listen = true}) {
     return _maybeOf(context, listen: listen)?.config.style;
+  }
+
+  /// Returns whether the nearest [EmbedScope] allows controller reuse.
+  static bool reuseWebViewsOf(BuildContext context, {bool listen = true}) {
+    return _maybeOf(context, listen: listen)?.reuseWebViews ?? false;
+  }
+
+  static WebViewController? takeReusedWebViewController(
+    BuildContext context, {
+    required Object reuseKey,
+    required Object signature,
+  }) {
+    return takeReusedWebViewControllerFromToken(
+      reuseScopeTokenOf(context, listen: false),
+      reuseKey: reuseKey,
+      signature: signature,
+    );
+  }
+
+  static Object? reuseScopeTokenOf(BuildContext context, {bool listen = true}) {
+    return _maybeOf(context, listen: listen)?.state;
+  }
+
+  static WebViewController? takeReusedWebViewControllerFromToken(
+    Object? scopeToken, {
+    required Object reuseKey,
+    required Object signature,
+  }) {
+    final state = scopeToken is _EmbedScopeState ? scopeToken : null;
+    if (state == null || !state.widget.reuseWebViews) return null;
+    return state._takeReusedWebViewController(
+      reuseKey: reuseKey,
+      signature: signature,
+    );
+  }
+
+  static void releaseReusedWebViewController(
+    BuildContext context, {
+    required Object reuseKey,
+    required Object signature,
+    required WebViewController controller,
+  }) {
+    releaseReusedWebViewControllerToToken(
+      reuseScopeTokenOf(context, listen: false),
+      reuseKey: reuseKey,
+      signature: signature,
+      controller: controller,
+    );
+  }
+
+  static void releaseReusedWebViewControllerToToken(
+    Object? scopeToken, {
+    required Object reuseKey,
+    required Object signature,
+    required WebViewController controller,
+  }) {
+    final state = scopeToken is _EmbedScopeState ? scopeToken : null;
+    if (state == null || !state.widget.reuseWebViews) return;
+    state._releaseReusedWebViewController(
+      reuseKey: reuseKey,
+      signature: signature,
+      controller: controller,
+    );
   }
 
   /// Clears all cached OEmbed data from the persistent storage.
@@ -114,7 +190,76 @@ class EmbedScope extends InheritedWidget {
   /// `onNavigationRequest`, `httpClient`) from its equality check to avoid
   /// comparing closures. An identity change therefore captures all mutations,
   /// including callback-only updates.
+  bool updateShouldNotify(EmbedScope oldWidget) {
+    return !identical(config, oldWidget.config) ||
+        reuseWebViews != oldWidget.reuseWebViews;
+  }
+
   @override
-  bool updateShouldNotify(EmbedScope oldWidget) =>
-      !identical(config, oldWidget.config);
+  State<EmbedScope> createState() => _EmbedScopeState();
+}
+
+class _EmbedScopeState extends State<EmbedScope> {
+  final Map<Object, _ReusedWebViewControllerEntry> _reusedControllers =
+      <Object, _ReusedWebViewControllerEntry>{};
+
+  WebViewController? _takeReusedWebViewController({
+    required Object reuseKey,
+    required Object signature,
+  }) {
+    final entry = _reusedControllers.remove(reuseKey);
+    if (entry == null) return null;
+    if (entry.signature != signature) return null;
+    return entry.controller;
+  }
+
+  void _releaseReusedWebViewController({
+    required Object reuseKey,
+    required Object signature,
+    required WebViewController controller,
+  }) {
+    _reusedControllers[reuseKey] = _ReusedWebViewControllerEntry(
+      signature: signature,
+      controller: controller,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _EmbedScopeInherited(
+      config: widget.config,
+      reuseWebViews: widget.reuseWebViews,
+      state: this,
+      child: widget.child,
+    );
+  }
+}
+
+class _EmbedScopeInherited extends InheritedWidget {
+  const _EmbedScopeInherited({
+    required this.config,
+    required this.reuseWebViews,
+    required this.state,
+    required super.child,
+  });
+
+  final EmbedConfig config;
+  final bool reuseWebViews;
+  final _EmbedScopeState state;
+
+  @override
+  bool updateShouldNotify(_EmbedScopeInherited oldWidget) {
+    return !identical(config, oldWidget.config) ||
+        reuseWebViews != oldWidget.reuseWebViews;
+  }
+}
+
+class _ReusedWebViewControllerEntry {
+  const _ReusedWebViewControllerEntry({
+    required this.signature,
+    required this.controller,
+  });
+
+  final Object signature;
+  final WebViewController controller;
 }
