@@ -128,6 +128,56 @@ String buildTikTokHtmlDocument(
 ''';
 }
 
+/// HTML wrapper for the TikTok Player v1 iframe host page.
+String buildTikTokPlayerHtmlDocument(
+  String iframeSrc, {
+  required double maxWidth,
+  bool scrollable = false,
+}) {
+  final scrollStyles = !scrollable ? 'overflow: hidden;' : '';
+  return '''
+<!DOCTYPE html><html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      background: transparent;
+      $scrollStyles
+    }
+    #player-shell {
+      width: 100%;
+      max-width: ${maxWidth}px;
+      margin: 0 auto;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      min-height: 100vh;
+      display: block;
+      border: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="player-shell">
+    <iframe
+      id="tiktok-player"
+      src="$iframeSrc"
+      allow="autoplay; fullscreen"
+      referrerpolicy="strict-origin-when-cross-origin"
+      scrolling="no">
+    </iframe>
+  </div>
+  $resizeObserverScript
+</body>
+</html>
+''';
+}
+
 /// HTML wrapper for Facebook and Instagram embeds.
 String buildMetaHtmlDocument(
   String embedHtml, {

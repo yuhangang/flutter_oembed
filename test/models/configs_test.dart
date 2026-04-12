@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_constant.dart';
 import 'package:flutter_oembed/src/models/embed_constraints.dart';
@@ -105,15 +106,20 @@ void main() {
     test('copyWith', () {
       const config = EmbedConfig();
       const cacheProvider = _FakeEmbedCacheProvider();
+      final routeObserver = RouteObserver<ModalRoute<dynamic>>();
       final updated = config.copyWith(
         facebookAppId: 'new',
         cacheProvider: cacheProvider,
+        pauseOnRouteCover: true,
+        routeObserver: routeObserver,
         strings: const EmbedStrings(
           loadingSemanticsLabel: 'Memuat kandungan',
         ),
       );
       expect(updated.facebookAppId, equals('new'));
       expect(updated.cacheProvider, same(cacheProvider));
+      expect(updated.pauseOnRouteCover, isTrue);
+      expect(updated.routeObserver, same(routeObserver));
       expect(
         updated.strings.loadingSemanticsLabel,
         equals('Memuat kandungan'),

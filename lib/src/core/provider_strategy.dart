@@ -6,6 +6,7 @@ import 'package:flutter_oembed/src/models/embed_renderer.dart';
 import 'package:flutter_oembed/src/models/provider_rule.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 import 'package:flutter_oembed/src/utils/embed_html_utils.dart';
+import 'package:flutter_oembed/src/utils/embed_webview_controller_utils.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 /// Defines provider-specific behaviors for rendering and interaction.
@@ -39,10 +40,33 @@ abstract class EmbedProviderStrategy {
 
   /// Pause any media (video/audio) currently playing in the WebView.
   Future<void> pauseMedia(WebViewController controller) async {
-    // Default implementation: try to pause all video/audio tags
-    await controller.runJavaScript('''
-      document.querySelectorAll('video, audio').forEach(m => m.pause());
-    ''');
+    await controller.pauseMediaElements();
+  }
+
+  /// Resume media in the WebView when the embed becomes visible again.
+  ///
+  /// This is best-effort only. Some providers block playback unless the user
+  /// interacts with the player again after the route is uncovered.
+  Future<void> resumeMedia(WebViewController controller) async {
+    await controller.resumeMediaElements();
+  }
+
+  /// Mute media in the WebView when the provider supports it.
+  Future<void> muteMedia(WebViewController controller) async {
+    await controller.muteMediaElements();
+  }
+
+  /// Unmute media in the WebView when the provider supports it.
+  Future<void> unmuteMedia(WebViewController controller) async {
+    await controller.unmuteMediaElements();
+  }
+
+  /// Seek media to a position in seconds when the provider supports it.
+  Future<void> seekMediaTo(
+    WebViewController controller,
+    Duration position,
+  ) async {
+    await controller.seekMediaElementsTo(position.inMilliseconds / 1000);
   }
 
   /// Resolves the base URL for the WebView's HTML content.

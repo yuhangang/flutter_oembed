@@ -22,6 +22,11 @@ class EmbedController extends ChangeNotifier {
   Object? lastError;
   bool _isDisposed = false;
   Timer? _timeoutTimer;
+  Future<void> Function()? _pauseMediaHandler;
+  Future<void> Function()? _resumeMediaHandler;
+  Future<void> Function()? _muteMediaHandler;
+  Future<void> Function()? _unmuteMediaHandler;
+  Future<void> Function(Duration position)? _seekMediaHandler;
   EmbedLogger get _logger => config?.logger ?? const EmbedLogger.disabled();
 
   EmbedController({
@@ -34,6 +39,7 @@ class EmbedController extends ChangeNotifier {
   void dispose() {
     if (_isDisposed) return;
     _isDisposed = true;
+    _unbindMediaControls();
     cancelLoadTimeout();
     super.dispose();
   }
@@ -109,5 +115,63 @@ class EmbedController extends ChangeNotifier {
   void cancelLoadTimeout() {
     _timeoutTimer?.cancel();
     _timeoutTimer = null;
+  }
+
+  /// Best-effort request to pause media for the attached embed.
+  Future<void> pauseMedia() async {
+    if (_isDisposed) return;
+    await _pauseMediaHandler?.call();
+  }
+
+  /// Best-effort request to resume media for the attached embed.
+  Future<void> resumeMedia() async {
+    if (_isDisposed) return;
+    await _resumeMediaHandler?.call();
+  }
+
+  /// Best-effort request to mute media for the attached embed.
+  Future<void> muteMedia() async {
+    if (_isDisposed) return;
+    await _muteMediaHandler?.call();
+  }
+
+  /// Best-effort request to unmute media for the attached embed.
+  Future<void> unmuteMedia() async {
+    if (_isDisposed) return;
+    await _unmuteMediaHandler?.call();
+  }
+
+  /// Best-effort request to seek media for the attached embed.
+  Future<void> seekMediaTo(Duration position) async {
+    if (_isDisposed) return;
+    await _seekMediaHandler?.call(position);
+  }
+
+  void bindMediaControls({
+    required Future<void> Function() pause,
+    required Future<void> Function() resume,
+    required Future<void> Function() mute,
+    required Future<void> Function() unmute,
+    required Future<void> Function(Duration position) seekTo,
+  }) {
+    if (_isDisposed) return;
+    _pauseMediaHandler = pause;
+    _resumeMediaHandler = resume;
+    _muteMediaHandler = mute;
+    _unmuteMediaHandler = unmute;
+    _seekMediaHandler = seekTo;
+  }
+
+  void unbindMediaControls() {
+    if (_isDisposed) return;
+    _unbindMediaControls();
+  }
+
+  void _unbindMediaControls() {
+    _pauseMediaHandler = null;
+    _resumeMediaHandler = null;
+    _muteMediaHandler = null;
+    _unmuteMediaHandler = null;
+    _seekMediaHandler = null;
   }
 }

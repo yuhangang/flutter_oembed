@@ -227,6 +227,10 @@ class _EmbedViewState extends State<EmbedWebView> {
           child: Stack(
             fit: StackFit.expand,
             children: [
+              _EmbedWebviewObserver(
+                driver: _driver,
+                controller: widget.controller,
+              ),
               _buildWebView(context, style, strings),
               if (loadingState == EmbedLoadingState.loading)
                 _buildLoadingOverlay(context, style, strings)
@@ -268,17 +272,86 @@ class _EmbedViewState extends State<EmbedWebView> {
 
         return VisibilityDetector(
           key: ValueKey(widget.param),
-          onVisibilityChanged: (info) => widget.controller.updateVisibility(
-            info.visibleFraction > 0,
-            onVisibilityChange: (visible) {
-              if (!visible && loadingState == EmbedLoadingState.loaded) {
-                _driver.pauseMedias();
-              }
-            },
-          ),
+          onVisibilityChanged: (info) {
+            widget.controller.updateVisibility(
+              info.visibleFraction > 0,
+              onVisibilityChange: (_) {},
+            );
+            _driver.updateVisibilityFraction(info.visibleFraction);
+          },
           child: webViewContainer,
         );
       },
     );
   }
+}
+
+class _EmbedWebviewObserver extends StatefulWidget {
+  final EmbedWebViewDriver driver;
+  final EmbedController controller;
+
+  const _EmbedWebviewObserver({
+    required this.driver,
+    required this.controller,
+  });
+
+  @override
+  State<_EmbedWebviewObserver> createState() => _EmbedWebviewObserverState();
+}
+
+class _EmbedWebviewObserverState extends State<_EmbedWebviewObserver>
+    with RouteAware {
+  RouteObserver<ModalRoute<dynamic>>? _routeObserver;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _updateSubscription();
+  }
+
+  @override
+  void didUpdateWidget(_EmbedWebviewObserver oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.driver != widget.driver ||
+        oldWidget.controller != widget.controller) {
+      _updateSubscription();
+    }
+  }
+
+  void _updateSubscription() {
+    if (!mounted) return;
+
+    final config = widget.controller.config ?? EmbedScope.configOf(context);
+    final routeObserver = config?.routeObserver;
+    final route = ModalRoute.of(context);
+
+    if (routeObserver != _routeObserver) {
+      _routeObserver?.unsubscribe(this);
+      _routeObserver = routeObserver;
+      if (routeObserver != null && route != null) {
+        routeObserver.subscribe(this, route);
+      }
+    }
+
+    widget.driver.updateFocusGroup(route);
+  }
+
+  @override
+  void dispose() {
+    _routeObserver?.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPushNext() {
+    widget.driver.setRouteCovered(true);
+  }
+
+  @override
+  void didPopNext() {
+    widget.driver.setRouteCovered(false);
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox();
 }

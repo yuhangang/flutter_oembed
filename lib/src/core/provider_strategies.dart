@@ -14,6 +14,7 @@ import 'package:flutter_oembed/src/models/youtube_embed_params.dart';
 import 'package:flutter_oembed/src/services/embed_apis.dart';
 import 'package:flutter_oembed/src/utils/embed_html_utils.dart';
 import 'package:flutter_oembed/src/utils/embed_webview_controller_utils.dart';
+import 'package:flutter_oembed/src/widgets/tiktok_embed_player.dart';
 import 'package:flutter_oembed/src/widgets/youtube_embed_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -52,7 +53,38 @@ class YouTubeProviderStrategy extends GenericEmbedProviderStrategy {
 
   @override
   Future<void> pauseMedia(WebViewController controller) async {
-    await controller.pauseVideos();
+    await controller.pauseMediaElements();
+    await controller.postJsonStringMessageToIframes(
+      srcFragments: _youTubeIframeSrcFragments,
+      messageJson: _youTubePauseMessage,
+    );
+  }
+
+  @override
+  Future<void> resumeMedia(WebViewController controller) async {
+    await controller.resumeMediaElements();
+    await controller.postJsonStringMessageToIframes(
+      srcFragments: _youTubeIframeSrcFragments,
+      messageJson: _youTubePlayMessage,
+    );
+  }
+
+  @override
+  Future<void> muteMedia(WebViewController controller) async {
+    await controller.muteMediaElements();
+    await controller.postJsonStringMessageToIframes(
+      srcFragments: _youTubeIframeSrcFragments,
+      messageJson: _youTubeMuteMessage,
+    );
+  }
+
+  @override
+  Future<void> unmuteMedia(WebViewController controller) async {
+    await controller.unmuteMediaElements();
+    await controller.postJsonStringMessageToIframes(
+      srcFragments: _youTubeIframeSrcFragments,
+      messageJson: _youTubeUnmuteMessage,
+    );
   }
 
   @override
@@ -77,6 +109,7 @@ class YouTubeProviderStrategy extends GenericEmbedProviderStrategy {
         rel: (context.embedParams as YoutubeEmbedParams?)?.rel ?? false,
         theme: (context.embedParams as YoutubeEmbedParams?)?.theme,
         color: (context.embedParams as YoutubeEmbedParams?)?.color,
+        controller: controller,
       );
     });
   }
@@ -98,6 +131,14 @@ class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
     required double maxWidth,
     bool scrollable = false,
   }) {
+    if (type == EmbedType.tiktok_v1) {
+      return buildTikTokPlayerHtmlDocument(
+        embedHtml,
+        maxWidth: maxWidth,
+        scrollable: scrollable,
+      );
+    }
+
     return buildTikTokHtmlDocument(
       embedHtml,
       maxWidth: maxWidth,
@@ -116,19 +157,81 @@ class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
   Future<void> onPageFinished(WebViewController controller) async {
     // TikTok handles its own pausing via IntersectionObserver in their script,
     // but we can try to mute it if it's a photo post.
-    await controller.runJavaScript('''
-      document.querySelectorAll('video, audio').forEach(m => {
-        m.muted = true;
-        m.pause();
+    await controller.muteMediaElements();
+    await controller.pauseMediaElements();
+  }
+
+  @override
+  EmbedRenderer resolveRenderer(EmbedProviderContext context,
+      {EmbedConfig? config}) {
+    final params = context.embedParams as TikTokEmbedParams?;
+    final isV1Type = context.embedType == EmbedType.tiktok_v1;
+
+    if (isV1Type || params?.useV1Player == true) {
+      return NativeWidgetRenderer(
+          (widgetContext, maxWidth, controller, embedConstraints) {
+        return TikTokEmbedPlayer(
+          videoIdOrUrl: context.url,
+          maxWidth: maxWidth,
+          embedConstraints: embedConstraints,
+          embedParams: params,
+          controller: controller,
+        );
       });
-    ''');
+    }
+
+    return super.resolveRenderer(context, config: config);
   }
 
   @override
   Future<void> pauseMedia(WebViewController controller) async {
-    // TikTok handles its own pausing via IntersectionObserver in their script,
-    // but we can try to mute it if it's a photo post.
-    await controller.muteAudioWidget();
+    await controller.pauseMediaElements();
+    await controller.postJavaScriptMessageToIframes(
+      srcFragments: _tikTokPlayerIframeSrcFragments,
+      messageExpression: _buildTikTokPlayerCommandExpression(type: 'pause'),
+    );
+  }
+
+  @override
+  Future<void> resumeMedia(WebViewController controller) async {
+    await controller.resumeMediaElements();
+    await controller.postJavaScriptMessageToIframes(
+      srcFragments: _tikTokPlayerIframeSrcFragments,
+      messageExpression: _buildTikTokPlayerCommandExpression(type: 'play'),
+    );
+  }
+
+  @override
+  Future<void> muteMedia(WebViewController controller) async {
+    await controller.muteMediaElements();
+    await controller.postJavaScriptMessageToIframes(
+      srcFragments: _tikTokPlayerIframeSrcFragments,
+      messageExpression: _buildTikTokPlayerCommandExpression(type: 'mute'),
+    );
+  }
+
+  @override
+  Future<void> unmuteMedia(WebViewController controller) async {
+    await controller.unmuteMediaElements();
+    await controller.postJavaScriptMessageToIframes(
+      srcFragments: _tikTokPlayerIframeSrcFragments,
+      messageExpression: _buildTikTokPlayerCommandExpression(type: 'unMute'),
+    );
+  }
+
+  @override
+  Future<void> seekMediaTo(
+    WebViewController controller,
+    Duration position,
+  ) async {
+    await controller.seekMediaElementsTo(position.inMilliseconds / 1000);
+    await controller.postJavaScriptMessageToIframes(
+      srcFragments: _tikTokPlayerIframeSrcFragments,
+      messageExpression: _buildTikTokPlayerCommandExpression(
+        type: 'seekTo',
+        value: position.inSeconds,
+      ),
+    );
   }
 }
 
@@ -232,7 +335,38 @@ class VimeoProviderStrategy extends GenericEmbedProviderStrategy {
 
   @override
   Future<void> pauseMedia(WebViewController controller) async {
-    await controller.pauseVideos();
+    await controller.pauseMediaElements();
+    await controller.postJsonStringMessageToIframes(
+      srcFragments: _vimeoIframeSrcFragments,
+      messageJson: _vimeoPauseMessage,
+    );
+  }
+
+  @override
+  Future<void> resumeMedia(WebViewController controller) async {
+    await controller.resumeMediaElements();
+    await controller.postJsonStringMessageToIframes(
+      srcFragments: _vimeoIframeSrcFragments,
+      messageJson: _vimeoPlayMessage,
+    );
+  }
+
+  @override
+  Future<void> muteMedia(WebViewController controller) async {
+    await controller.muteMediaElements();
+    await controller.postJsonStringMessageToIframes(
+      srcFragments: _vimeoIframeSrcFragments,
+      messageJson: _vimeoMuteMessage,
+    );
+  }
+
+  @override
+  Future<void> unmuteMedia(WebViewController controller) async {
+    await controller.unmuteMediaElements();
+    await controller.postJsonStringMessageToIframes(
+      srcFragments: _vimeoIframeSrcFragments,
+      messageJson: _vimeoUnmuteMessage,
+    );
   }
 }
 
@@ -249,7 +383,20 @@ class SoundCloudProviderStrategy extends GenericEmbedProviderStrategy {
 
   @override
   Future<void> pauseMedia(WebViewController controller) async {
-    await controller.pauseVideos();
+    await controller.pauseMediaElements();
+    await controller.postJsonStringMessageToIframes(
+      srcFragments: _soundCloudIframeSrcFragments,
+      messageJson: _soundCloudPauseMessage,
+    );
+  }
+
+  @override
+  Future<void> resumeMedia(WebViewController controller) async {
+    await controller.resumeMediaElements();
+    await controller.postJsonStringMessageToIframes(
+      srcFragments: _soundCloudIframeSrcFragments,
+      messageJson: _soundCloudPlayMessage,
+    );
   }
 }
 
@@ -268,7 +415,104 @@ class SpotifyProviderStrategy extends GenericEmbedProviderStrategy {
 
   @override
   Future<void> pauseMedia(WebViewController controller) async {
-    await controller.pauseVideos();
+    await controller.pauseMediaElements();
+    await controller.postJsonStringMessageToIframes(
+      srcFragments: _spotifyIframeSrcFragments,
+      messageJson: _spotifyPauseMessage,
+    );
+  }
+
+  @override
+  Future<void> resumeMedia(WebViewController controller) async {
+    await controller.resumeMediaElements();
+    await controller.postJsonStringMessageToIframes(
+      srcFragments: _spotifyIframeSrcFragments,
+      messageJson: _spotifyPlayMessage,
+    );
+  }
+}
+
+class DailymotionProviderStrategy extends GenericEmbedProviderStrategy {
+  const DailymotionProviderStrategy();
+
+  @override
+  String buildHtmlDocument(
+    String embedHtml, {
+    required EmbedType type,
+    required double maxWidth,
+    bool scrollable = false,
+  }) {
+    var modifiedHtml = embedHtml.replaceFirst(
+      'src="https://geo.dailymotion.com/player.html?',
+      'src="https://geo.dailymotion.com/player.html?api=postMessage&',
+    );
+
+    if (modifiedHtml == embedHtml &&
+        modifiedHtml
+            .contains('src="https://www.dailymotion.com/embed/video/')) {
+      final match = RegExp(
+              r'src="(https:\/\/www\.dailymotion\.com\/embed\/video\/[^"]+)"')
+          .firstMatch(modifiedHtml);
+      if (match != null) {
+        final srcUrl = match.group(1)!;
+        final newSrc = srcUrl.contains('?')
+            ? '$srcUrl&api=postMessage'
+            : '$srcUrl?api=postMessage';
+        modifiedHtml = modifiedHtml.replaceFirst(srcUrl, newSrc);
+      }
+    }
+
+    return super.buildHtmlDocument(
+      modifiedHtml,
+      type: type,
+      maxWidth: maxWidth,
+      scrollable: scrollable,
+    );
+  }
+
+  @override
+  BaseEmbedApi createApi(EmbedProviderContext context) {
+    return GenericEmbedApi(
+      context.resolvedEndpoint,
+      proxyUrl: context.proxyUrl,
+      width: context.width,
+    );
+  }
+
+  @override
+  Future<void> pauseMedia(WebViewController controller) async {
+    await controller.pauseMediaElements();
+    await controller.postJsonStringMessageToIframes(
+      srcFragments: _dailymotionIframeSrcFragments,
+      messageJson: _dailymotionPauseMessage,
+    );
+  }
+
+  @override
+  Future<void> resumeMedia(WebViewController controller) async {
+    await controller.resumeMediaElements();
+    await controller.postJsonStringMessageToIframes(
+      srcFragments: _dailymotionIframeSrcFragments,
+      messageJson: _dailymotionPlayMessage,
+    );
+  }
+
+  @override
+  Future<void> muteMedia(WebViewController controller) async {
+    await controller.muteMediaElements();
+    await controller.postJsonStringMessageToIframes(
+      srcFragments: _dailymotionIframeSrcFragments,
+      messageJson: _dailymotionMuteMessage,
+    );
+  }
+
+  @override
+  Future<void> unmuteMedia(WebViewController controller) async {
+    await controller.unmuteMediaElements();
+    await controller.postJsonStringMessageToIframes(
+      srcFragments: _dailymotionIframeSrcFragments,
+      messageJson: _dailymotionUnmuteMessage,
+    );
   }
 }
 
@@ -293,4 +537,53 @@ class RedditProviderStrategy extends GenericEmbedProviderStrategy {
   BaseEmbedApi createApi(EmbedProviderContext context) {
     return RedditEmbedApi(width: context.width);
   }
+}
+
+const _youTubeIframeSrcFragments = [
+  'youtube.com',
+  'youtube-nocookie.com',
+  'youtu.be',
+];
+const _vimeoIframeSrcFragments = ['vimeo.com'];
+const _soundCloudIframeSrcFragments = ['soundcloud.com'];
+const _spotifyIframeSrcFragments = ['spotify.com'];
+const _tikTokPlayerIframeSrcFragments = ['tiktok.com/player/'];
+const _dailymotionIframeSrcFragments = ['dailymotion.com'];
+
+const _youTubePauseMessage =
+    '{"event":"command","func":"pauseVideo","args":""}';
+const _youTubePlayMessage = '{"event":"command","func":"playVideo","args":""}';
+const _youTubeMuteMessage = '{"event":"command","func":"mute","args":""}';
+const _youTubeUnmuteMessage = '{"event":"command","func":"unMute","args":""}';
+
+const _vimeoPauseMessage = '{"method":"pause"}';
+const _vimeoPlayMessage = '{"method":"play"}';
+const _vimeoMuteMessage = '{"method":"setVolume","value":0}';
+const _vimeoUnmuteMessage = '{"method":"setVolume","value":1}';
+
+const _soundCloudPauseMessage = '{"method":"pause"}';
+const _soundCloudPlayMessage = '{"method":"play"}';
+
+const _spotifyPauseMessage = '{"command":"pause"}';
+const _spotifyPlayMessage = '{"command":"play"}';
+
+const _dailymotionPauseMessage = '{"command":"pause","parameters":[]}';
+const _dailymotionPlayMessage = '{"command":"play","parameters":[]}';
+const _dailymotionMuteMessage = '{"command":"muted","parameters":[true]}';
+const _dailymotionUnmuteMessage = '{"command":"muted","parameters":[false]}';
+
+String _buildTikTokPlayerCommandExpression({
+  required String type,
+  Object? value,
+}) {
+  final encodedValue = switch (value) {
+    null => '""',
+    int number => '$number',
+    double number => '$number',
+    bool flag => '$flag',
+    String text => '"${text.replaceAll(r'\', r'\\').replaceAll('"', r'\"')}"',
+    _ => '"${value.toString().replaceAll(r'\', r'\\').replaceAll('"', r'\"')}"',
+  };
+
+  return '{"type":"$type","value":$encodedValue,"x-tiktok-player":true}';
 }

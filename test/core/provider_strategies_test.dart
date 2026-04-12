@@ -49,10 +49,22 @@ void main() {
       final api = strategy.createApi(defaultContext);
       expect(api.baseUrl, equals('https://www.youtube.com/oembed'));
 
+      final scripts = <String>[];
       when(() => mockController.runJavaScript(any()))
-          .thenAnswer((_) async => {});
+          .thenAnswer((invocation) async {
+        scripts.add(invocation.positionalArguments.first as String);
+      });
       await strategy.pauseMedia(mockController);
-      verify(() => mockController.runJavaScript(any())).called(1);
+      await strategy.resumeMedia(mockController);
+      await strategy.muteMedia(mockController);
+      await strategy.unmuteMedia(mockController);
+
+      expect(scripts, hasLength(8));
+      expect(scripts[1], contains('youtube-nocookie.com'));
+      expect(scripts[1], contains('pauseVideo'));
+      expect(scripts[3], contains('playVideo'));
+      expect(scripts[5], contains('"func":"mute"'));
+      expect(scripts[7], contains('"func":"unMute"'));
     });
 
     test('TikTokProviderStrategy', () async {
@@ -62,13 +74,40 @@ void main() {
       final api = strategy.createApi(defaultContext);
       expect(api, isA<TikTokEmbedApi>());
 
+      final scripts = <String>[];
       when(() => mockController.runJavaScript(any()))
-          .thenAnswer((_) async => {});
+          .thenAnswer((invocation) async {
+        scripts.add(invocation.positionalArguments.first as String);
+      });
       await strategy.onPageFinished(mockController);
-      verify(() => mockController.runJavaScript(any())).called(1);
+      expect(scripts, hasLength(2));
 
+      clearInteractions(mockController);
+      scripts.clear();
       await strategy.pauseMedia(mockController);
-      verify(() => mockController.runJavaScript(any())).called(1);
+      expect(scripts, hasLength(2));
+      expect(scripts[1], contains('"type":"pause"'));
+
+      scripts.clear();
+      await strategy.resumeMedia(mockController);
+      expect(scripts, hasLength(2));
+      expect(scripts[1], contains('"type":"play"'));
+
+      scripts.clear();
+      await strategy.muteMedia(mockController);
+      expect(scripts, hasLength(2));
+      expect(scripts[1], contains('"type":"mute"'));
+
+      scripts.clear();
+      await strategy.unmuteMedia(mockController);
+      expect(scripts, hasLength(2));
+      expect(scripts[1], contains('"type":"unMute"'));
+
+      scripts.clear();
+      await strategy.seekMediaTo(mockController, const Duration(seconds: 15));
+      expect(scripts, hasLength(2));
+      expect(scripts[1], contains('"type":"seekTo"'));
+      expect(scripts[1], contains('"value":15'));
 
       // Verify renderer resolution
       final renderer = strategy.resolveRenderer(defaultContext);
@@ -105,10 +144,21 @@ void main() {
       final api = strategy.createApi(defaultContext);
       expect(api, isA<VimeoEmbedApi>());
 
+      final scripts = <String>[];
       when(() => mockController.runJavaScript(any()))
-          .thenAnswer((_) async => {});
+          .thenAnswer((invocation) async {
+        scripts.add(invocation.positionalArguments.first as String);
+      });
       await strategy.pauseMedia(mockController);
-      verify(() => mockController.runJavaScript(any())).called(1);
+      await strategy.resumeMedia(mockController);
+      await strategy.muteMedia(mockController);
+      await strategy.unmuteMedia(mockController);
+
+      expect(scripts, hasLength(8));
+      expect(scripts[1], contains('"method":"pause"'));
+      expect(scripts[3], contains('"method":"play"'));
+      expect(scripts[5], contains('"value":0'));
+      expect(scripts[7], contains('"value":1'));
     });
 
     test('SoundCloudProviderStrategy', () async {
@@ -116,10 +166,17 @@ void main() {
       final api = strategy.createApi(defaultContext);
       expect(api, isA<SoundCloudEmbedApi>());
 
+      final scripts = <String>[];
       when(() => mockController.runJavaScript(any()))
-          .thenAnswer((_) async => {});
+          .thenAnswer((invocation) async {
+        scripts.add(invocation.positionalArguments.first as String);
+      });
       await strategy.pauseMedia(mockController);
-      verify(() => mockController.runJavaScript(any())).called(1);
+      await strategy.resumeMedia(mockController);
+
+      expect(scripts, hasLength(4));
+      expect(scripts[1], contains('"method":"pause"'));
+      expect(scripts[3], contains('"method":"play"'));
     });
 
     test('SpotifyProviderStrategy', () async {
@@ -127,10 +184,39 @@ void main() {
       final api = strategy.createApi(defaultContext);
       expect(api, isA<SpotifyEmbedApi>());
 
+      final scripts = <String>[];
       when(() => mockController.runJavaScript(any()))
-          .thenAnswer((_) async => {});
+          .thenAnswer((invocation) async {
+        scripts.add(invocation.positionalArguments.first as String);
+      });
       await strategy.pauseMedia(mockController);
-      verify(() => mockController.runJavaScript(any())).called(1);
+      await strategy.resumeMedia(mockController);
+
+      expect(scripts, hasLength(4));
+      expect(scripts[1], contains('"command":"pause"'));
+      expect(scripts[3], contains('"command":"play"'));
+    });
+
+    test('DailymotionProviderStrategy', () async {
+      const strategy = DailymotionProviderStrategy();
+      final api = strategy.createApi(defaultContext);
+      expect(api, isA<GenericEmbedApi>());
+
+      final scripts = <String>[];
+      when(() => mockController.runJavaScript(any()))
+          .thenAnswer((invocation) async {
+        scripts.add(invocation.positionalArguments.first as String);
+      });
+      await strategy.pauseMedia(mockController);
+      await strategy.resumeMedia(mockController);
+      await strategy.muteMedia(mockController);
+      await strategy.unmuteMedia(mockController);
+
+      expect(scripts, hasLength(8));
+      expect(scripts[1], contains('"command":"pause"'));
+      expect(scripts[3], contains('"command":"play"'));
+      expect(scripts[5], contains('"parameters":[true]'));
+      expect(scripts[7], contains('"parameters":[false]'));
     });
 
     test('GenericEmbedProviderStrategy', () {

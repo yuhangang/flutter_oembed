@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
+import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_constant.dart';
 import 'package:flutter_oembed/src/models/embed_constraints.dart';
@@ -16,9 +17,11 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../fake_webview_platform.dart';
 
 void main() {
+  final fakePlatform = FakeWebViewPlatform();
+
   setUpAll(() {
     VisibilityDetectorController.instance.updateInterval = Duration.zero;
-    WebViewPlatform.instance = FakeWebViewPlatform();
+    WebViewPlatform.instance = fakePlatform;
   });
 
   group('EmbedWebView', () {
@@ -27,6 +30,8 @@ void main() {
     late EmbedData data;
 
     setUp(() {
+      resetEmbedFocusCoordinatorForTests();
+      fakePlatform.reset();
       param = SocialEmbedParam(
         url: 'https://youtube.com/watch?v=123',
         embedType: EmbedType.youtube,
@@ -60,6 +65,231 @@ void main() {
       await tester.pump();
       expect(find.byType(WebViewWidget), findsOneWidget);
       await tester.pump(const Duration(seconds: 11));
+    });
+
+    testWidgets('pauses media when a new route covers the embed',
+        (tester) async {
+      final routeObserver = RouteObserver<ModalRoute<dynamic>>();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorObservers: [routeObserver],
+          home: Scaffold(
+            body: EmbedWebView.data(
+              param: param,
+              data: data,
+              maxWidth: 640,
+              controller: EmbedController(
+                param: param,
+                config: EmbedConfig(
+                  pauseOnRouteCover: true,
+                  routeObserver: routeObserver,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final routeAwareController =
+          tester.widget<EmbedWebView>(find.byType(EmbedWebView)).controller;
+
+      try {
+        routeAwareController.setLoadingState(EmbedLoadingState.loaded);
+        await tester.pump();
+
+        Navigator.of(tester.element(find.byType(EmbedWebView))).push(
+          MaterialPageRoute<void>(
+            builder: (_) => const Scaffold(body: Text('Next')),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(fakePlatform.lastCreatedController?.javaScriptCalls, isNotEmpty);
+      } finally {
+        routeAwareController.dispose();
+      }
+    });
+
+    testWidgets('pauses media when a modal bottom sheet covers the embed',
+        (tester) async {
+      final routeObserver = RouteObserver<ModalRoute<dynamic>>();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorObservers: [routeObserver],
+          home: Builder(
+            builder: (context) {
+              return Scaffold(
+                floatingActionButton: FloatingActionButton(
+                  onPressed: () {
+                    showModalBottomSheet<void>(
+                      context: context,
+                      builder: (_) => const SizedBox(height: 120),
+                    );
+                  },
+                ),
+                body: EmbedWebView.data(
+                  param: param,
+                  data: data,
+                  maxWidth: 640,
+                  controller: EmbedController(
+                    param: param,
+                    config: EmbedConfig(
+                      pauseOnRouteCover: true,
+                      routeObserver: routeObserver,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+
+      final routeAwareController =
+          tester.widget<EmbedWebView>(find.byType(EmbedWebView)).controller;
+
+      try {
+        routeAwareController.setLoadingState(EmbedLoadingState.loaded);
+        await tester.pump();
+
+        await tester.tap(find.byType(FloatingActionButton));
+        await tester.pumpAndSettle();
+
+        expect(fakePlatform.lastCreatedController?.javaScriptCalls, isNotEmpty);
+      } finally {
+        routeAwareController.dispose();
+      }
+    });
+
+    testWidgets('attempts to resume media when returning from a covered route',
+        (tester) async {
+      final routeObserver = RouteObserver<ModalRoute<dynamic>>();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorObservers: [routeObserver],
+          home: Scaffold(
+            body: EmbedWebView.data(
+              param: param,
+              data: data,
+              maxWidth: 640,
+              controller: EmbedController(
+                param: param,
+                config: EmbedConfig(
+                  pauseOnRouteCover: true,
+                  routeObserver: routeObserver,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final routeAwareController =
+          tester.widget<EmbedWebView>(find.byType(EmbedWebView)).controller;
+
+      try {
+        routeAwareController.setLoadingState(EmbedLoadingState.loaded);
+        await tester.pump();
+
+        Navigator.of(tester.element(find.byType(EmbedWebView))).push(
+          MaterialPageRoute<void>(
+            builder: (_) => const Scaffold(body: Text('Next')),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final pauseCallCount =
+            fakePlatform.lastCreatedController?.javaScriptCalls.length ?? 0;
+
+        Navigator.of(tester.element(find.text('Next'))).pop();
+        await tester.pumpAndSettle();
+
+        expect(
+          fakePlatform.lastCreatedController?.javaScriptCalls.length,
+          greaterThan(pauseCallCount),
+        );
+      } finally {
+        routeAwareController.dispose();
+      }
+    });
+
+    testWidgets(
+        'pauses again after a manual resume when the route is covered a second time',
+        (tester) async {
+      final routeObserver = RouteObserver<ModalRoute<dynamic>>();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorObservers: [routeObserver],
+          home: Scaffold(
+            body: EmbedWebView.data(
+              param: param,
+              data: data,
+              maxWidth: 640,
+              controller: EmbedController(
+                param: param,
+                config: EmbedConfig(
+                  pauseOnRouteCover: true,
+                  routeObserver: routeObserver,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final routeAwareController =
+          tester.widget<EmbedWebView>(find.byType(EmbedWebView)).controller;
+
+      try {
+        routeAwareController.setLoadingState(EmbedLoadingState.loaded);
+        await tester.pump();
+
+        Navigator.of(tester.element(find.byType(EmbedWebView))).push(
+          MaterialPageRoute<void>(
+            builder: (_) => const Scaffold(body: Text('Next')),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final firstPauseCount = (fakePlatform
+                .lastCreatedController?.javaScriptCalls
+                .where((call) => call.contains('pause'))
+                .length ??
+            0);
+        expect(firstPauseCount, greaterThan(0));
+
+        Navigator.of(tester.element(find.text('Next'))).pop();
+        await tester.pumpAndSettle();
+
+        await routeAwareController.resumeMedia();
+        await tester.pump();
+
+        final resumeCountAfterManualResume = (fakePlatform
+                .lastCreatedController?.javaScriptCalls
+                .where((call) => call.contains('play'))
+                .length ??
+            0);
+        expect(resumeCountAfterManualResume, greaterThan(0));
+
+        Navigator.of(tester.element(find.byType(EmbedWebView))).push(
+          MaterialPageRoute<void>(
+            builder: (_) => const Scaffold(body: Text('Next again')),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final secondPauseCount = (fakePlatform
+                .lastCreatedController?.javaScriptCalls
+                .where((call) => call.contains('pause'))
+                .length ??
+            0);
+        expect(secondPauseCount, greaterThan(firstPauseCount));
+      } finally {
+        routeAwareController.dispose();
+      }
     });
 
     testWidgets('exposes loading semantics while the embed is loading',

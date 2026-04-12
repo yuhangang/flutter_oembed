@@ -223,6 +223,39 @@ class _CustomProviderIntegrationPageState
                       .toList(),
             ),
             const SizedBox(height: 20),
+            TextField(
+              controller: _urlController,
+              decoration: InputDecoration(
+                labelText: _selectedExample.inputLabel,
+                hintText: _selectedExample.inputHint,
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  onPressed: _applyUrl,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onSubmitted: (_) => _applyUrl(),
+            ),
+            const SizedBox(height: 12),
+
+            Text(
+              'Rendering:',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            EmbedScope(
+              config: customConfig,
+              child: EmbedCard.url(
+                _currentUrl,
+                scrollable: _selectedExample.providerName == 'CodePen',
+                key: ValueKey('${_selectedExample.providerName}:$_currentUrl'),
+                style: const EmbedStyle(loadingBuilder: _buildPlaceholder),
+              ),
+            ),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -281,52 +314,6 @@ class _CustomProviderIntegrationPageState
               ),
             ),
             const SizedBox(height: 24),
-            TextField(
-              controller: _urlController,
-              decoration: InputDecoration(
-                labelText: _selectedExample.inputLabel,
-                hintText: _selectedExample.inputHint,
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  onPressed: _applyUrl,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onSubmitted: (_) => _applyUrl(),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children:
-                  _selectedExample.suggestions
-                      .map(
-                        (suggestion) => ActionChip(
-                          label: Text(suggestion.label),
-                          onPressed: () => _applySuggestion(suggestion.url),
-                        ),
-                      )
-                      .toList(),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Rendering:',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            EmbedScope(
-              config: customConfig,
-              child: EmbedCard.url(
-                _currentUrl,
-                scrollable: _selectedExample.providerName == 'CodePen',
-                key: ValueKey('${_selectedExample.providerName}:$_currentUrl'),
-                style: const EmbedStyle(loadingBuilder: _buildPlaceholder),
-              ),
-            ),
           ],
         ),
       ),
@@ -335,13 +322,6 @@ class _CustomProviderIntegrationPageState
 
   static Widget _buildPlaceholder(BuildContext context) {
     return const SocialEmbedPlaceholder(embedType: EmbedType.other);
-  }
-
-  void _applySuggestion(String url) {
-    setState(() {
-      _urlController.text = url;
-      _currentUrl = url;
-    });
   }
 
   void _applyUrl() {

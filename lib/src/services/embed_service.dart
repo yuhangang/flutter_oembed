@@ -133,6 +133,7 @@ class EmbedService {
         proxyUrl: config?.proxyUrl,
         embedParams: embedParams,
         iframeUrl: iframeUrl,
+        embedType: embedType,
       );
       return rule.strategy.resolveRenderer(ctx, config: config);
     }
@@ -207,6 +208,7 @@ class EmbedService {
         providerName: rule.providerName,
         proxyUrl: config?.proxyUrl,
         embedParams: param.embedParams,
+        embedType: param.embedType,
       );
 
       final api = rule.apiFactory?.call(ctx) ?? rule.strategy.createApi(ctx);

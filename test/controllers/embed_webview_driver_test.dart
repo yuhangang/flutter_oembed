@@ -33,6 +33,7 @@ void main() {
     late MockWebViewController mockWebViewController;
 
     setUp(() {
+      resetEmbedFocusCoordinatorForTests();
       controller = EmbedController(
         param: SocialEmbedParam(
           url: 'https://twitter.com/user/status/123',
@@ -64,6 +65,82 @@ void main() {
           .thenAnswer((_) async {});
       when(() => mockWebViewController.runJavaScriptReturningResult(any()))
           .thenAnswer((_) async => '100');
+    });
+
+    group('focus arbitration', () {
+      test('pauses non-focused embed when another visible embed has priority',
+          () async {
+        final secondController = EmbedController(
+          param: SocialEmbedParam(
+            url: 'https://youtube.com/watch?v=456',
+            embedType: EmbedType.youtube,
+          ),
+          config: const EmbedConfig(),
+        );
+        secondController.setLoadingState(EmbedLoadingState.loaded);
+
+        final secondWebViewController = MockWebViewController();
+        when(() => secondWebViewController.runJavaScript(any()))
+            .thenAnswer((_) async {});
+
+        controller.setLoadingState(EmbedLoadingState.loaded);
+
+        final firstDriver = EmbedWebViewDriver(
+          controller: controller,
+          webViewController: mockWebViewController,
+        );
+        final secondDriver = EmbedWebViewDriver(
+          controller: secondController,
+          webViewController: secondWebViewController,
+        );
+
+        firstDriver.updateVisibilityFraction(0.9);
+        secondDriver.updateVisibilityFraction(0.2);
+
+        verify(() => secondWebViewController.runJavaScript(any())).called(1);
+        verify(() => mockWebViewController.runJavaScript(any())).called(1);
+
+        secondController.dispose();
+        firstDriver.dispose();
+        secondDriver.dispose();
+      });
+
+      test('transfers focus when another embed becomes more visible', () async {
+        final secondController = EmbedController(
+          param: SocialEmbedParam(
+            url: 'https://youtube.com/watch?v=456',
+            embedType: EmbedType.youtube,
+          ),
+          config: const EmbedConfig(),
+        );
+        secondController.setLoadingState(EmbedLoadingState.loaded);
+
+        final secondWebViewController = MockWebViewController();
+        when(() => secondWebViewController.runJavaScript(any()))
+            .thenAnswer((_) async {});
+
+        controller.setLoadingState(EmbedLoadingState.loaded);
+
+        final firstDriver = EmbedWebViewDriver(
+          controller: controller,
+          webViewController: mockWebViewController,
+        );
+        final secondDriver = EmbedWebViewDriver(
+          controller: secondController,
+          webViewController: secondWebViewController,
+        );
+
+        firstDriver.updateVisibilityFraction(0.8);
+        secondDriver.updateVisibilityFraction(0.3);
+        secondDriver.updateVisibilityFraction(0.95);
+
+        verify(() => mockWebViewController.runJavaScript(any())).called(2);
+        verify(() => secondWebViewController.runJavaScript(any())).called(2);
+
+        secondController.dispose();
+        firstDriver.dispose();
+        secondDriver.dispose();
+      });
     });
 
     group('initEmbedWebview()', () {

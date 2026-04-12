@@ -31,79 +31,129 @@ extension EmbedWebviewControllerUtils on WebViewController {
     return height;
   }
 
-  /// Called when user navigate to other page.
-  ///
-  /// It will mute all the audio in the embed post.
-  Future<void> muteAudioWidget() async {
-    await runJavaScript(_muteAudioWidgetScript);
-
-    return;
+  /// Mutes media elements in the top-level document.
+  Future<void> muteMediaElements() async {
+    await runJavaScript(_muteMediaElementsScript);
   }
 
-  /// Called when user navigate to other page.
+  /// Unmutes media elements in the top-level document.
+  Future<void> unmuteMediaElements() async {
+    await runJavaScript(_unmuteMediaElementsScript);
+  }
+
+  /// Pauses media elements in the top-level document.
+  Future<void> pauseMediaElements() async {
+    await runJavaScript(_pauseMediaElementsScript);
+  }
+
+  /// Attempts to resume paused media elements in the top-level document.
   ///
-  /// It will pause all the videos(if exists) in the embed post.
-  /// If the embed post is not able to pause the videos,
-  /// it will refresh the embed `iframe` to pause the videos.
-  Future<void> pauseVideos() async {
+  /// Playback can still be blocked by provider autoplay policies.
+  Future<void> resumeMediaElements() async {
+    await runJavaScript(_resumeMediaElementsScript);
+  }
+
+  /// Seeks top-level media elements to the requested position in seconds.
+  Future<void> seekMediaElementsTo(double seconds) async {
+    await runJavaScript(_buildSeekMediaElementsScript(seconds));
+  }
+
+  /// Sends a JSON string message to matching iframe players via postMessage.
+  Future<void> postJsonStringMessageToIframes({
+    required List<String> srcFragments,
+    required String messageJson,
+  }) async {
     await runJavaScript(
-      _pauseVideosScript,
+      _buildIframePostMessageScript(
+        srcFragments: srcFragments,
+        messageExpression: _wrapJavaScriptStringLiteral(messageJson),
+      ),
+    );
+  }
+
+  /// Sends a JavaScript object or expression to matching iframe players via
+  /// postMessage.
+  Future<void> postJavaScriptMessageToIframes({
+    required List<String> srcFragments,
+    required String messageExpression,
+  }) async {
+    await runJavaScript(
+      _buildIframePostMessageScript(
+        srcFragments: srcFragments,
+        messageExpression: messageExpression,
+      ),
     );
   }
 }
 
-const _muteAudioWidgetScript = """
-// 1. Mute top-level media
+const _muteMediaElementsScript = """
 document.querySelectorAll('video, audio').forEach(media => {
   try { media.muted = true; } catch (e) {}
 });
-
-// 2. Safely mute iframes via postMessage to avoid CORS
-document.querySelectorAll('iframe').forEach(iframe => {
-  let src = iframe.src || '';
-  try {
-    if (src.includes('youtube.com') || src.includes('youtu.be')) {
-      iframe.contentWindow.postMessage('{"event":"command","func":"mute","args":""}', '*');
-    } else if (src.includes('vimeo.com')) {
-      iframe.contentWindow.postMessage('{"method":"setVolume", "value": 0}', '*');
-    }
-  } catch (e) {}
-});
 """;
 
-const _pauseVideosScript = """
-// 1. Pause any direct <video> or <audio> tags in the main document (No CORS issue here)
+const _unmuteMediaElementsScript = """
 document.querySelectorAll('video, audio').forEach(media => {
-  try { 
-    media.pause(); 
-  } catch (e) {}
-});
-
-// 2. Safely interact with iframes using postMessage to avoid CORS errors
-document.querySelectorAll('iframe').forEach(iframe => {
-  let src = iframe.src || '';
-
-  try {
-    if (src.includes('youtube.com') || src.includes('youtu.be')) {
-      iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
-    }
-    else if (src.includes('vimeo.com')) {
-      iframe.contentWindow.postMessage('{"method":"pause"}', '*');
-    }
-    else if (src.includes('spotify.com')) {
-      iframe.contentWindow.postMessage('{"command":"pause"}', '*');
-    }
-    else if (src.includes('soundcloud.com')) {
-      iframe.contentWindow.postMessage('{"method":"pause"}', '*');
-    }
-    else {
-      // For social embeds (TikTok, Instagram, etc) that don't support postMessage,
-      // we rely on their internal IntersectionObservers to auto-pause when hidden.
-      // Uncommenting the below line would force reload them, causing loss of scroll state.
-      // iframe.src = iframe.src; 
-    }
-  } catch (e) {
-    console.error("Error messaging iframe:", e);
-  }
+  try { media.muted = false; } catch (e) {}
 });
 """;
+
+const _pauseMediaElementsScript = """
+document.querySelectorAll('video, audio').forEach(media => {
+  try { media.pause(); } catch (e) {}
+});
+""";
+
+const _resumeMediaElementsScript = """
+document.querySelectorAll('video, audio').forEach(media => {
+  try { media.play?.(); } catch (e) {}
+});
+""";
+
+String _buildSeekMediaElementsScript(double seconds) => """
+document.querySelectorAll('video, audio').forEach(media => {
+  try { media.currentTime = $seconds; } catch (e) {}
+});
+""";
+
+String _buildIframePostMessageScript({
+  required List<String> srcFragments,
+  required String messageExpression,
+}) {
+  final fragments = srcFragments.map(_wrapJavaScriptStringLiteral).join(', ');
+
+  return """
+(function() {
+  var fragments = [$fragments];
+  var iframes = document.querySelectorAll('iframe');
+  for (var i = 0; i < iframes.length; i += 1) {
+    var iframe = iframes[i];
+    var src = iframe.src || '';
+    var matches = false;
+    for (var j = 0; j < fragments.length; j += 1) {
+      if (src.indexOf(fragments[j]) !== -1) {
+        matches = true;
+        break;
+      }
+    }
+    if (!matches) {
+      continue;
+    }
+    try {
+      if (iframe.contentWindow && iframe.contentWindow.postMessage) {
+        iframe.contentWindow.postMessage($messageExpression, '*');
+      }
+    } catch (e) {}
+  }
+})();
+""";
+}
+
+String _wrapJavaScriptStringLiteral(String value) {
+  final escaped = value
+      .replaceAll(r'\', r'\\')
+      .replaceAll("'", r"\'")
+      .replaceAll('\n', r'\n')
+      .replaceAll('\r', r'\r');
+  return "'$escaped'";
+}

@@ -64,6 +64,7 @@ class FakePlatformWebViewController extends PlatformWebViewController {
   String? lastLoadedHtml;
   String? lastBaseUrl;
   LoadRequestParams? lastRequest;
+  final List<String> javaScriptCalls = <String>[];
 
   @override
   Future<void> addJavaScriptChannel(
@@ -88,7 +89,9 @@ class FakePlatformWebViewController extends PlatformWebViewController {
   Future<void> reload() async {}
 
   @override
-  Future<void> runJavaScript(String javaScript) async {}
+  Future<void> runJavaScript(String javaScript) async {
+    javaScriptCalls.add(javaScript);
+  }
 
   @override
   Future<Object> runJavaScriptReturningResult(String javaScript) async => '0';

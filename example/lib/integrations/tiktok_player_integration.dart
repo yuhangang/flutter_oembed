@@ -100,6 +100,28 @@ class _TikTokPlayerIntegrationState extends State<TikTokPlayerIntegrationPage> {
                               ),
                           dense: true,
                         ),
+                        SwitchListTile(
+                          title: const Text('Muted'),
+                          value: tiktokParams.muted,
+                          onChanged:
+                              (val) => controller.updateTikTok(
+                                tiktokParams.copyWith(muted: val),
+                              ),
+                          dense: true,
+                        ),
+                        const Divider(),
+                        SwitchListTile(
+                          title: const Text('Use v1 Player in EmbedCard'),
+                          subtitle: const Text(
+                            'Opt-in to the native player instead of oEmbed',
+                          ),
+                          value: tiktokParams.useV1Player,
+                          onChanged:
+                              (val) => controller.updateTikTok(
+                                tiktokParams.copyWith(useV1Player: val),
+                              ),
+                          dense: true,
+                        ),
                       ],
                     ),
                   ),
@@ -118,20 +140,43 @@ class _TikTokPlayerIntegrationState extends State<TikTokPlayerIntegrationPage> {
                     builder: (context, constraints) {
                       final width = constraints.maxWidth;
                       final effectiveWidth = width.isFinite ? width : 320.0;
-                      return TikTokEmbedPlayer(
-                        // You must change the key so the WebView reloads the URL
-                        // when options like `controls` change
-                        key: ValueKey(
-                          '${tiktokParams.controls}-${tiktokParams.autoplay}-${tiktokParams.loop}-${tiktokParams.musicInfo}-${tiktokParams.description}-${settings.locale}-${settings.brightness}-${_playerHeight.round()}',
-                        ),
-                        videoIdOrUrl: _testUrl,
-                        controls: tiktokParams.controls,
-                        autoplay: tiktokParams.autoplay,
-                        loop: tiktokParams.loop,
-                        musicInfo: tiktokParams.musicInfo,
-                        description: tiktokParams.description,
-                        maxWidth: effectiveWidth,
-                        aspectRatio: effectiveWidth / _playerHeight,
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Direct TikTokEmbedPlayer (Legacy Standalone)',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TikTokEmbedPlayer(
+                            videoIdOrUrl: _testUrl,
+                            embedParams: tiktokParams,
+                            maxWidth: effectiveWidth,
+                            aspectRatio: effectiveWidth / _playerHeight,
+                          ),
+                          const SizedBox(height: 32),
+                          const Text(
+                            'Standard EmbedCard (Modern Unified)',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          EmbedCard(
+                            url: _testUrl,
+                            embedParams: tiktokParams,
+                            // Use constraints to match the standalone player height
+                            embedConstraints: EmbedConstraints(
+                              preferredHeight: _playerHeight,
+                            ),
+                          ),
+                        ],
                       );
                     },
                   ),

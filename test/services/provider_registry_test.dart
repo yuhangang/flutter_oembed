@@ -70,5 +70,15 @@ void main() {
           rule?.shouldAllowNavigation?.call('https://www.facebook.com/other'),
           isFalse);
     });
+
+    test('should correctly identify allowed navigation for X embeds', () {
+      final rule = EmbedService.resolveRule('https://x.com/NASA/status/123');
+      expect(rule?.shouldAllowNavigation?.call('https://twitter.com/'), isTrue);
+      expect(rule?.shouldAllowNavigation?.call('https://platform.twitter.com/'),
+          isTrue);
+      expect(rule?.shouldAllowNavigation?.call('https://x.com/i/web/status/1'),
+          isTrue);
+      expect(rule?.shouldAllowNavigation?.call('https://google.com'), isFalse);
+    });
   });
 }

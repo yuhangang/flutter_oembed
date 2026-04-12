@@ -49,7 +49,12 @@ dependencies:
 
 - Meta providers such as Facebook, Instagram, and Threads require a Meta App ID and Client Token.
 - Provider behavior is not uniform. Some providers expose less metadata or more restrictive embed behavior than others.
-- The package auto-pauses media when embeds leave the viewport, but there is no stable public media-control API yet.
+- The package auto-pauses media when embeds leave the viewport.
+- Route-cover pausing is also available for page pushes and modal bottom sheets when you provide a `RouteObserver` through `EmbedConfig.routeObserver` and `MaterialApp.navigatorObservers`.
+- When the covered route becomes visible again, the package also makes a best-effort resume attempt for providers that expose controllable players. Autoplay policies may still block resume until the user interacts again.
+- When multiple embeds are visible in the same route, the package treats the highest-visibility embed as focused and attempts to keep non-focused embeds paused.
+- Provider media-control support is not uniform. YouTube, Vimeo, and TikTok's `player/v1` path are the most reliable. Meta-style embeds may still be best-effort only.
+- `EmbedController` exposes best-effort `pauseMedia()`, `resumeMedia()`, `muteMedia()`, `unmuteMedia()`, and `seekMediaTo(...)` methods once an embed is attached. TikTok `player/v1` is the most complete implementation of that API in the current package.
 
 ### Brightness Support Matrix
 
@@ -83,12 +88,25 @@ dependencies:
 Wrap your app in an `EmbedScope` to provide global configuration:
 
 ```dart
+final embedRouteObserver = RouteObserver<ModalRoute<dynamic>>();
+
 EmbedScope(
   config: EmbedConfig(
     facebookAppId: 'YOUR_APP_ID',
     facebookClientToken: 'YOUR_CLIENT_TOKEN',
+    pauseOnRouteCover: true,
+    routeObserver: embedRouteObserver,
   ),
   child: MyApp(),
+)
+```
+
+Then attach the same observer to your app navigator:
+
+```dart
+MaterialApp(
+  navigatorObservers: [embedRouteObserver],
+  home: const MyHomePage(),
 )
 ```
 
@@ -99,10 +117,22 @@ EmbedCard(
   url: 'https://twitter.com/X/status/1328842765115920384',
   embedType: EmbedType.x,
   onLinkTap: (url, data) {
-    debugPrint('User tapped link: $url');
+    debugPrint('Intercepted external link: $url');
   },
 )
 ```
+
+## WebView Navigation Policy
+
+`flutter_oembed` keeps a strict boundary around the embed WebView:
+
+- `about:blank`, `data:`, `blob:`, and sub-frame navigations stay inside the WebView so provider scripts and nested iframes can initialize correctly.
+- Unexpected main-frame redirects are blocked while the embed is still loading to avoid auto-redirect hijacks.
+- Once loaded, external main-frame navigations are prevented inside the WebView and handed off to the host app instead.
+- If you do not provide `onLinkTap`, the package attempts to open intercepted links with the platform's external browser or native app via `url_launcher`.
+- If you provide `onLinkTap`, your callback becomes responsible for deciding what to do with that intercepted URL.
+
+Use `EmbedConfig.onNavigationRequest` only when you need to override this policy completely.
 
 ## Sizing And Height Constraints
 
@@ -170,6 +200,8 @@ You can customize caching, provider render modes, and style:
 ```dart
 EmbedConfig(
   useDynamicDiscovery: true, // Enables searching the official oEmbed registry if no local provider matches
+  pauseOnRouteCover: true, // Pauses supported media when a new page or bottom sheet covers the route
+  routeObserver: embedRouteObserver,
   providers: EmbedProviderConfig(
     providerRenderModes: {
       'YouTube': EmbedRenderMode.iframe,
@@ -208,6 +240,31 @@ void main() {
 
 You can also provide your own `EmbedCacheProvider` implementation in
 `EmbedConfig` when you need a custom cache backend per scope or test.
+
+## Programmatic Media Control
+
+If you keep a reference to an `EmbedController`, you can issue best-effort media
+commands after the embed has been mounted. This is most reliable with
+`TikTokEmbedPlayer` and TikTok `player/v1` embeds.
+
+```dart
+final controller = EmbedController(
+  param: const SocialEmbedParam(
+    url: 'https://www.tiktok.com/@scout2015/video/6718335390845095173',
+    embedType: EmbedType.tiktok_v1,
+  ),
+);
+
+await controller.pauseMedia();
+await controller.resumeMedia();
+await controller.muteMedia();
+await controller.unmuteMedia();
+await controller.seekMediaTo(const Duration(seconds: 15));
+```
+
+These calls are no-ops until the controller is bound to a rendered embed. Other
+providers may support only pause/resume, or may fall back to provider-defined
+best-effort behavior.
 
 ## Custom Provider Rules
 
@@ -258,7 +315,7 @@ before matching.
 
 ## Debug Logging
 
-Enable debug logging when you need visibility into provider resolution, cache hits, network requests, and WebView loading events:
+Enable debug logging when you need visibility into provider resolution, cache hits, network requests, WebView loading events, and media-control decisions (pause/resume, route-cover, focus changes):
 
 ```dart
 EmbedConfig(
@@ -271,7 +328,7 @@ You can also forward logs to your own logger:
 ```dart
 EmbedConfig(
   onLinkTap: (url, data) {
-    debugPrint('Clicked $url on $data');
+    debugPrint('Intercepted $url on $data');
   },
   logger: EmbedLogger.enabled(
     level: EmbedLogLevel.info,
@@ -306,6 +363,7 @@ See the example app in `/example` for concrete integration code.
 
 - If Meta embeds fail, verify your App ID and Client Token first.
 - If a provider resolves but renders an empty frame, enable debug logging and inspect WebView/network events.
+- If taps should open inside your own router instead of the system browser/app, provide `onLinkTap` or a full `onNavigationRequest` override.
 - If a URL is not matched, provide a custom provider rule or enable dynamic discovery where appropriate.
 - If you need Flutter Web support, this package does not provide it yet.
 

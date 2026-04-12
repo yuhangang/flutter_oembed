@@ -54,6 +54,7 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
   late bool _tkNativeContextMenu;
   late bool _tkClosedCaption;
   late bool _tkMuted;
+  late bool _tkUseV1Player;
 
   // YouTube state
   late String? _ytTheme;
@@ -116,6 +117,7 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
     _tkNativeContextMenu = settings.tiktokParams.nativeContextMenu;
     _tkClosedCaption = settings.tiktokParams.closedCaption;
     _tkMuted = settings.tiktokParams.muted;
+    _tkUseV1Player = settings.tiktokParams.useV1Player;
 
     _ytTheme = settings.youtubeParams.theme;
     _ytColor = settings.youtubeParams.color;
@@ -163,7 +165,7 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
           color: _scColor,
         ),
       );
-    } else if (widget.embedType == EmbedType.tiktok_v1) {
+    } else if (widget.embedType.isTikTok) {
       controller.updateTikTok(
         TikTokEmbedParams(
           controls: _tkControls,
@@ -180,6 +182,7 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
           nativeContextMenu: _tkNativeContextMenu,
           closedCaption: _tkClosedCaption,
           muted: _tkMuted,
+          useV1Player: _tkUseV1Player,
         ),
       );
     } else if (widget.embedType == EmbedType.youtube) {
@@ -227,8 +230,7 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
                       ..._buildMetaSettings(),
                     if (widget.embedType == EmbedType.soundcloud)
                       ..._buildSoundCloudSettings(),
-                    if (widget.embedType == EmbedType.tiktok_v1)
-                      ..._buildTikTokSettings(),
+                    if (widget.embedType.isTikTok) ..._buildTikTokSettings(),
                     if (widget.embedType == EmbedType.youtube)
                       ..._buildYoutubeSettings(),
                   ],
@@ -462,6 +464,13 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
 
   List<Widget> _buildTikTokSettings() {
     return [
+      SwitchListTile(
+        title: const Text('Use v1 Player'),
+        subtitle: const Text('Toggle between oEmbed and native player'),
+        value: _tkUseV1Player,
+        onChanged: (v) => setState(() => _tkUseV1Player = v),
+      ),
+      const Divider(),
       SwitchListTile(
         title: const Text('Show Controls'),
         value: _tkControls,

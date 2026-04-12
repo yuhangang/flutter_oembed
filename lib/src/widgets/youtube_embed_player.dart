@@ -170,7 +170,11 @@ class YoutubeEmbedPlayer extends StatefulWidget {
     this.experimentalOrigin = kYoutubeNoCookiePlayerHost,
     this.theme,
     this.color,
+    this.controller,
   });
+
+  /// Optional controller to manage the player state.
+  final EmbedController? controller;
 
   /// The player's theme preference. Valid: 'dark', 'light'.
   final String? theme;
@@ -183,7 +187,8 @@ class YoutubeEmbedPlayer extends StatefulWidget {
 }
 
 class _YoutubeEmbedPlayerState extends State<YoutubeEmbedPlayer> {
-  EmbedController? _controller;
+  late EmbedController _controller;
+  bool _isControllerInternal = false;
   late final SocialEmbedParam _param;
 
   @override
@@ -203,16 +208,45 @@ class _YoutubeEmbedPlayerState extends State<YoutubeEmbedPlayer> {
     _initControllerIfNeeded();
   }
 
+  @override
+  void didUpdateWidget(YoutubeEmbedPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      if (_isControllerInternal) {
+        _controller.dispose();
+      }
+
+      if (widget.controller != null) {
+        _controller = widget.controller!;
+        _isControllerInternal = false;
+      } else {
+        _controller = EmbedController(
+          param: _param,
+          config: EmbedScope.configOf(context),
+        );
+        _isControllerInternal = true;
+      }
+    }
+  }
+
   void _initControllerIfNeeded() {
-    _controller ??= EmbedController(
-      param: _param,
-      config: EmbedScope.configOf(context),
-    );
+    if (widget.controller != null) {
+      _controller = widget.controller!;
+      _isControllerInternal = false;
+    } else {
+      _controller = EmbedController(
+        param: _param,
+        config: EmbedScope.configOf(context),
+      );
+      _isControllerInternal = true;
+    }
   }
 
   @override
   void dispose() {
-    _controller?.dispose();
+    if (_isControllerInternal) {
+      _controller.dispose();
+    }
     super.dispose();
   }
 
@@ -277,13 +311,11 @@ class _YoutubeEmbedPlayerState extends State<YoutubeEmbedPlayer> {
       style: style,
       footerUrl: _param.url,
       childBuilder: (context) {
-        if (_controller == null) return const SizedBox.shrink();
-
         final player = EmbedWebView.data(
           param: _param,
           data: mockData,
           maxWidth: widget.maxWidth ?? double.infinity,
-          controller: _controller!,
+          controller: _controller,
           style: style,
           embedConstraints: widget.embedConstraints,
         );

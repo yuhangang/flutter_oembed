@@ -79,14 +79,24 @@ class EmbedConfig extends Equatable {
 
   /// Custom navigation request handler.
   /// If provided, this is called before the default navigation logic.
-  /// Return [NavigationDecision.prevent] to stop navigation or [NavigationDecision.navigate] to allow it.
+  ///
+  /// Return [NavigationDecision.prevent] to stop navigation or
+  /// [NavigationDecision.navigate] to allow it.
   /// Return null to fall back to the default navigation logic.
+  ///
+  /// The built-in policy always allows sub-frame/bootstrap document loads,
+  /// blocks unexpected main-frame redirects while the embed is still loading,
+  /// and routes post-load external navigations out of the WebView.
   final FutureOr<NavigationDecision>? Function(NavigationRequest)?
       onNavigationRequest;
 
   /// A simpler callback for handling link clicks.
-  /// If provided, this is called when a user clicks a link inside the embed.
-  /// Defaults to null. Leaving this null will just log a warning when clicked.
+  ///
+  /// If provided, this is called when the default navigation policy intercepts
+  /// an external main-frame navigation after the embed has loaded.
+  ///
+  /// Leaving this null makes the package attempt to open the URL via
+  /// `url_launcher` using the platform's external browser or app.
   ///
   /// This is easier to use than [onNavigationRequest] as it only provides the URL.
   final void Function(String url, EmbedData? data)? onLinkTap;
@@ -106,6 +116,19 @@ class EmbedConfig extends Equatable {
   /// Whether the widget should delay loading the WebView until it enters the viewport.
   /// Defaults to `false`.
   final bool lazyLoad;
+
+  /// Whether embeds should pause media when another route covers the current route.
+  ///
+  /// This can pause playback when the user navigates to a new page or opens a
+  /// modal bottom sheet. Requires [routeObserver] to be provided on the same
+  /// [Navigator].
+  final bool pauseOnRouteCover;
+
+  /// Route observer used by embeds to subscribe to route-cover events.
+  ///
+  /// Pass the same observer instance to `MaterialApp.navigatorObservers` to
+  /// enable route-aware media pausing.
+  final RouteObserver<ModalRoute<dynamic>>? routeObserver;
 
   /// Optional logger used by the library to emit provider resolution, cache,
   /// navigation, and loading diagnostics.
@@ -136,6 +159,8 @@ class EmbedConfig extends Equatable {
     this.loadTimeout = kDefaultEmbedLoadTimeout,
     this.scrollable = false,
     this.lazyLoad = false,
+    this.pauseOnRouteCover = false,
+    this.routeObserver,
     this.logger = const EmbedLogger.disabled(),
     this.httpClient,
   });
@@ -165,6 +190,8 @@ class EmbedConfig extends Equatable {
         loadTimeout,
         scrollable,
         lazyLoad,
+        pauseOnRouteCover,
+        routeObserver,
         logger,
       ];
 
@@ -193,6 +220,8 @@ class EmbedConfig extends Equatable {
     Duration? loadTimeout,
     bool? scrollable,
     bool? lazyLoad,
+    bool? pauseOnRouteCover,
+    RouteObserver<ModalRoute<dynamic>>? routeObserver,
     EmbedLogger? logger,
     http.Client? httpClient,
   }) {
@@ -213,6 +242,8 @@ class EmbedConfig extends Equatable {
       loadTimeout: loadTimeout ?? this.loadTimeout,
       scrollable: scrollable ?? this.scrollable,
       lazyLoad: lazyLoad ?? this.lazyLoad,
+      pauseOnRouteCover: pauseOnRouteCover ?? this.pauseOnRouteCover,
+      routeObserver: routeObserver ?? this.routeObserver,
       logger: logger ?? this.logger,
       httpClient: httpClient ?? this.httpClient,
     );

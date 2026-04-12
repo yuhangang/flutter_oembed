@@ -21,6 +21,8 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final ExampleSettingsController _settingsController =
       ExampleSettingsController();
+  final RouteObserver<ModalRoute<dynamic>> _embedRouteObserver =
+      RouteObserver<ModalRoute<dynamic>>();
 
   @override
   Widget build(BuildContext context) {
@@ -80,10 +82,13 @@ class _MyAppState extends State<MyApp> {
                   );
                 },
               ),
+              pauseOnRouteCover: true,
+              routeObserver: _embedRouteObserver,
               logger: const EmbedLogger.enabled(),
             ),
             child: MaterialApp(
               title: 'OEmbed Example',
+              navigatorObservers: [_embedRouteObserver],
               themeMode:
                   settings.brightness == Brightness.light
                       ? ThemeMode.light

@@ -35,6 +35,29 @@ enum _ConstraintPreset {
 class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
   _ConstraintPreset _constraintPreset = _ConstraintPreset.auto;
   double _customHeight = 232.0; // Default for custom slider
+  EmbedController? _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _initController();
+  }
+
+  void _initController() {
+    final videoIdOrUrl = widget.sample['url'] as String;
+    _controller = EmbedController(
+      param: SocialEmbedParam(
+        url: videoIdOrUrl,
+        embedType: widget.sample['type'],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
 
   void _showSettingsSheet() {
     showModalBottomSheet(
@@ -81,12 +104,17 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
         embedType == EmbedType.instagram ||
         embedType == EmbedType.threads ||
         embedType == EmbedType.soundcloud ||
-        embedType == EmbedType.tiktok_v1;
+        embedType?.isTikTok == true;
 
     final supportsConstraints =
         embedType == EmbedType.spotify ||
         embedType == EmbedType.youtube ||
         embedType == EmbedType.tiktok_v1;
+
+    final supportsMediaControls =
+        embedType == EmbedType.youtube ||
+        embedType == EmbedType.vimeo ||
+        embedType?.isTikTok == true;
 
     return Scaffold(
       appBar: AppBar(
@@ -200,6 +228,7 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
                 fontFamily: 'monospace',
               ),
             ),
+            if (supportsMediaControls) _buildMediaControl(context),
             const SizedBox(height: 16),
             EmbedCard.url(
               widget.sample['url'],
@@ -272,6 +301,77 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
     );
   }
 
+  Widget _buildMediaControl(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final buttonWidth = (constraints.maxWidth - 12) / 2;
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _buildControlButton(
+                  context,
+                  width: buttonWidth,
+                  icon: Icons.play_arrow_rounded,
+                  label: 'Resume',
+                  onPressed: () => _controller?.resumeMedia(),
+                ),
+                _buildControlButton(
+                  context,
+                  width: buttonWidth,
+                  icon: Icons.pause_rounded,
+                  label: 'Pause',
+                  onPressed: () => _controller?.pauseMedia(),
+                ),
+                _buildControlButton(
+                  context,
+                  width: buttonWidth,
+                  icon: Icons.volume_off_rounded,
+                  label: 'Mute',
+                  onPressed: () => _controller?.muteMedia(),
+                ),
+                _buildControlButton(
+                  context,
+                  width: buttonWidth,
+                  icon: Icons.volume_up_rounded,
+                  label: 'Unmute',
+                  onPressed: () => _controller?.unmuteMedia(),
+                ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildControlButton(
+    BuildContext context, {
+    required double width,
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      width: width,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 20),
+        label: Text(label),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          alignment: Alignment.centerLeft,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+
   EmbedConstraints? _resolvedConstraints(ExampleSettings settings) {
     final width = MediaQuery.sizeOf(context).width - 32;
 
@@ -327,7 +427,7 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
       return settings.metaParams;
     }
     if (type == EmbedType.soundcloud) return settings.soundCloudParams;
-    if (type == EmbedType.tiktok_v1) return settings.tiktokParams;
+    if (type?.isTikTok == true) return settings.tiktokParams;
     return null;
   }
 }
@@ -364,7 +464,7 @@ class _ConstraintPresetSheetState extends State<_ConstraintPresetSheet> {
     final isSpotify = widget.embedType == EmbedType.spotify;
     final isVideo =
         widget.embedType == EmbedType.youtube ||
-        widget.embedType == EmbedType.tiktok_v1;
+        widget.embedType?.isTikTok == true;
 
     final options = <_ConstraintPreset>[_ConstraintPreset.auto];
     if (isSpotify) {
