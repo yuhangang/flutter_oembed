@@ -1,6 +1,6 @@
 name: flutter_oembed
 description: "A Flutter package for embedding social media content (X, TikTok, Instagram, Facebook, YouTube, Spotify, Vimeo, and more) using the OEmbed protocol with WebView rendering."
-version: 1.0.1-alpha
+version: 1.0.1-alpha.1
 repository: https://github.com/yuhangang/flutter_oembed
 homepage: https://github.com/yuhangang/flutter_oembed
 issue_tracker: https://github.com/yuhangang/flutter_oembed/issues

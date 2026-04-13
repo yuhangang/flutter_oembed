@@ -11,7 +11,7 @@ A Flutter package for embedding rich social and media content with oEmbed APIs a
 
 ## Current Package Status
 
-- Current package version: `1.0.0`
+- Current package version: `1.0.1-alpha`
 - Verified platforms: Android, iOS
 - Not supported currently: Flutter Web
 - Not yet verified for release: macOS, Windows, Linux
@@ -20,7 +20,7 @@ Use the current stable line:
 
 ```yaml
 dependencies:
-  flutter_oembed: ^1.0.0
+  flutter_oembed: ^1.0.1-alpha
 ```
 
 ## Features
@@ -123,27 +123,6 @@ EmbedCard(
 )
 ```
 
-## Optional WebView Reuse
-
-If you want a subtree to retain platform WebViews across temporary unmounts
-such as tabs or virtualized lists, enable reuse on `EmbedScope` and provide an
-explicit `reuseKey` per embed:
-
-```dart
-EmbedScope(
-  config: const EmbedConfig(),
-  reuseWebViews: true,
-  child: EmbedCard.url(
-    'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-    reuseKey: 'feed-item:video-42',
-  ),
-)
-```
-
-Reuse stays off by default. Change the `reuseKey` whenever the embed content
-changes; the package only reuses a cached WebView when both the key and the
-rendered embed inputs still match.
-
 ## WebView Navigation Policy
 
 `flutter_oembed` keeps a strict boundary around the embed WebView:
@@ -181,6 +160,35 @@ finishes rendering.
 
 `embedHeight` is still accepted as a legacy shorthand, but new code should use
 `embedConstraints: EmbedConstraints(preferredHeight: ...)`.
+
+## Lazy Loading
+
+By default, `flutter_oembed` initializes the WebView as soon as the widget is
+built. To improve performance in long lists or complex pages, you can enable
+lazy loading to delay WebView initialization until the widget enters the
+viewport:
+
+```dart
+EmbedScope(
+  config: const EmbedConfig(
+    lazyLoad: true,
+  ),
+  child: MyFeed(),
+)
+```
+
+You can also override this per-embed:
+
+```dart
+EmbedCard.url(
+  'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+  lazyLoad: true,
+)
+```
+
+When lazy loading is enabled, the widget shows a placeholder (defaults to a
+`CircularProgressIndicator`) until it becomes visible. You can customize this
+placeholder via `EmbedStyle.lazyLoadPlaceholderBuilder`.
 
 ## Provider Specific Parameters
 
@@ -240,7 +248,18 @@ EmbedConfig(
 )
 ```
 
-### Disabling Cache
+### Cache Management
+
+By default, `flutter_oembed` uses `flutter_cache_manager` to persist oEmbed API
+responses. You can manage this cache via `EmbedScope`:
+
+```dart
+// Clear the entire oEmbed response cache
+await EmbedScope.clearCache();
+
+// Evict a specific URL from the cache
+await EmbedScope.evictCacheForUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+```
 
 There are two ways to disable caching:
 
@@ -248,20 +267,30 @@ There are two ways to disable caching:
 2. **Via Cache Backend**: Set `cacheProvider: EmbedCacheProvider.never()` in `EmbedConfig`. This replaces the storage layer for that scope with a no-op provider.
 
 ```dart
-void main() {
-  runApp(
-    EmbedScope(
-      config: EmbedConfig(
-        cacheProvider: EmbedCacheProvider.never(),
-      ),
-      child: const MyApp(),
-    ),
-  );
-}
+EmbedScope(
+  config: EmbedConfig(
+    cacheProvider: EmbedCacheProvider.never(),
+  ),
+  child: const MyApp(),
+)
 ```
 
 You can also provide your own `EmbedCacheProvider` implementation in
 `EmbedConfig` when you need a custom cache backend per scope or test.
+
+### Customizable Strings
+
+You can customize or localize the user-facing text used by the package for
+loading, errors, and accessibility via `EmbedStrings`:
+
+```dart
+EmbedConfig(
+  strings: EmbedStrings(
+    loadingSemanticsLabel: 'Cargando contenido...',
+    retryHint: 'Toca dos veces para reintentar',
+  ),
+)
+```
 
 ## Programmatic Media Control
 
