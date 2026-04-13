@@ -11,7 +11,7 @@ A Flutter package for embedding rich social and media content with oEmbed APIs a
 
 ## Current Package Status
 
-- Current package version: `1.0.1-alpha`
+- Current package version: `1.0.1-alpha.2`
 - Verified platforms: Android, iOS
 - Not supported currently: Flutter Web
 - Not yet verified for release: macOS, Windows, Linux
@@ -20,7 +20,7 @@ Use the current stable line:
 
 ```yaml
 dependencies:
-  flutter_oembed: ^1.0.1-alpha
+  flutter_oembed: ^1.0.1-alpha.2
 ```
 
 ## Features

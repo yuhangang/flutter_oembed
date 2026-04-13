@@ -554,12 +554,6 @@ else {
       return;
     }
 
-    if (focused) {
-      if (_isRouteCovered) return;
-      unawaited(resumeMedias(reason: reason));
-      return;
-    }
-
     if (wasFocused || forcePause || _visibleFraction <= 0) {
       unawaited(pauseMedias(reason: reason));
     }
