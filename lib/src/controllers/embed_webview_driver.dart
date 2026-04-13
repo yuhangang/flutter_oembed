@@ -78,10 +78,7 @@ class EmbedWebViewDriver {
 
     if (covered) {
       await pauseMedias(reason: 'route_covered');
-    }
-    // TODO: Determine if we should resume media when route is uncovered
-    /*
-else {
+    } else {
       if (!_isFocused || _visibleFraction <= 0) return;
       try {
         await resumeMedias(reason: 'route_exposed');
@@ -94,7 +91,6 @@ else {
         );
       }
     }
-    */
   }
 
   void updateVisibilityFraction(double visibleFraction) {
@@ -554,8 +550,14 @@ else {
       return;
     }
 
-    if (wasFocused || forcePause || _visibleFraction <= 0) {
-      unawaited(pauseMedias(reason: reason));
+    if (focused) {
+      if (!_isRouteCovered && _visibleFraction > 0) {
+        unawaited(resumeMedias(reason: reason));
+      }
+    } else {
+      if (wasFocused || forcePause || _visibleFraction <= 0) {
+        unawaited(pauseMedias(reason: reason));
+      }
     }
   }
 

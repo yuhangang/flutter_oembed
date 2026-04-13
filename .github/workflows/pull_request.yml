@@ -24,8 +24,7 @@ jobs:
         with:
           channel: 'stable'
           cache: true
-          # You can specify a version if needed, e.g.:
-          # flutter-version: '3.5.0'
+          flutter-version: '3.38.9'
 
       - name: Install Dependencies
         run: |
