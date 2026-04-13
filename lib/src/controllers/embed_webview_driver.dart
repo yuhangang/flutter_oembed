@@ -25,7 +25,14 @@ class EmbedWebViewDriver {
   final EmbedController controller;
   final WebViewController webViewController;
   late final EmbedNavigationHandler _navigationHandler;
+  static final _focusCoordinator = _EmbedFocusCoordinator();
+  static final Object _defaultFocusGroup = Object();
+
   EmbedProviderStrategy _strategy = const GenericEmbedProviderStrategy();
+  Object _focusGroupKey = _defaultFocusGroup;
+  double _visibleFraction = 0;
+  bool _isFocused = false;
+  bool _isRouteCovered = false;
   bool _isDisposed = false;
 
   EmbedLogger get _logger =>
@@ -35,16 +42,76 @@ class EmbedWebViewDriver {
     required this.controller,
     WebViewController? webViewController,
   }) : webViewController = webViewController ?? generateWebViewController() {
+    controller.bindMediaControls(
+      pause: () => pauseMedias(),
+      resume: () => resumeMedias(),
+      mute: () => muteMedias(),
+      unmute: () => unmuteMedias(),
+      seekTo: seekMediaTo,
+    );
     _navigationHandler = EmbedNavigationHandler(
       param: controller.param,
       config: controller.config,
     );
   }
 
-  void dispose() {
+  void dispose({bool preserveWebView = false}) {
     if (_isDisposed) return;
     _isDisposed = true;
-    unawaited(_disposeWebView());
+    controller.cancelLoadTimeout();
+    controller.unbindMediaControls();
+    _focusCoordinator.detach(this, groupKey: _focusGroupKey);
+    if (!preserveWebView) {
+      unawaited(_disposeWebView());
+    }
+  }
+
+  void updateFocusGroup(ModalRoute<dynamic>? route) {
+    if (_isDisposed) return;
+    final nextGroupKey = route ?? _defaultFocusGroup;
+    _updateFocusGroup(nextGroupKey);
+  }
+
+  Future<void> setRouteCovered(bool covered) async {
+    if (_isDisposed || _isRouteCovered == covered) return;
+    _isRouteCovered = covered;
+
+    if (covered) {
+      await pauseMedias(reason: 'route_covered');
+    } else {
+      if (!_isFocused || _visibleFraction <= 0) return;
+      try {
+        await resumeMedias(reason: 'route_exposed');
+      } catch (error, stackTrace) {
+        _logger.debug(
+          'Failed to resume media after route uncover',
+          data: {'url': controller.param.url},
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }
+    }
+  }
+
+  void updateVisibilityFraction(double visibleFraction) {
+    if (_isDisposed) return;
+    final normalized = visibleFraction.clamp(0.0, 1.0).toDouble();
+    if ((normalized - _visibleFraction).abs() < 0.01) return;
+    _visibleFraction = normalized;
+
+    _logger.debug(
+      'Embed visibility changed',
+      data: {
+        'url': controller.param.url,
+        'visibleFraction': normalized,
+      },
+    );
+
+    _focusCoordinator.updateVisibility(
+      this,
+      groupKey: _focusGroupKey,
+      visibleFraction: normalized,
+    );
   }
 
   /// Initialises and loads the WebView.
@@ -66,8 +133,7 @@ class EmbedWebViewDriver {
 
     if (!forceReload &&
         controller.loadingState == EmbedLoadingState.loaded &&
-        (controller.height != null ||
-            controller.param.embedType == EmbedType.tiktok)) {
+        (controller.height != null || controller.param.embedType.isTikTok)) {
       return;
     }
 
@@ -79,6 +145,7 @@ class EmbedWebViewDriver {
     await _initWebViewController(
       backgroundColor: backgroundColor,
       embedData: embedData,
+      embedUrl: embedUrl,
       scrollable: scrollable,
     );
     if (_isDisposed) return;
@@ -96,6 +163,7 @@ class EmbedWebViewDriver {
   Future<void> _initWebViewController({
     required Color backgroundColor,
     required EmbedData? embedData,
+    required String? embedUrl,
     bool scrollable = false,
   }) async {
     final resolvedData = embedData ?? controller.preloadedData;
@@ -144,10 +212,26 @@ class EmbedWebViewDriver {
     await webViewController.addJavaScriptChannel(
       'ErrorChannel',
       onMessageReceived: (JavaScriptMessage message) {
+        if (_shouldIgnoreJavaScriptError(message.message)) {
+          _logger.debug(
+            'Ignoring non-fatal WebView JS error',
+            data: {
+              'url': controller.param.url,
+              'message': message.message,
+            },
+          );
+          return;
+        }
+
         _logger.warning('WebView JS error received', data: {
           'url': controller.param.url,
           'message': message.message,
         });
+
+        if (controller.loadingState == EmbedLoadingState.loaded) {
+          return;
+        }
+
         controller.setLoadingState(
           EmbedLoadingState.error,
           error: StateError('WebView JavaScript error: ${message.message}'),
@@ -157,10 +241,15 @@ class EmbedWebViewDriver {
     if (_isDisposed) return;
 
     final baseUrl = embedData?.providerUrl;
+    final trustedMainFrameUrls = <String>[
+      if (resolvedData?.url case final url? when url.isNotEmpty) url,
+      if (embedUrl case final url? when url.isNotEmpty) url,
+    ];
 
     await webViewController.setNavigationDelegate(
       _navigationHandler.buildDelegate(
         baseUrl: baseUrl,
+        trustedMainFrameUrls: trustedMainFrameUrls,
         loadingStateGetter: () => controller.loadingState,
         onPageStarted: (url) async {
           await _strategy.onPageStarted(webViewController);
@@ -240,12 +329,18 @@ class EmbedWebViewDriver {
       }
     } else if (embedUrl != null) {
       if (_isDisposed) return;
+      final embedUri = Uri.parse(embedUrl);
+      final refererHeader = controller.param.embedType == EmbedType.youtube &&
+              (embedUri.host.contains('youtube.com') ||
+                  embedUri.host.contains('youtube-nocookie.com'))
+          ? embedUri.origin
+          : controller.param.url;
       await webViewController.loadRequest(
-        Uri.parse(embedUrl),
+        embedUri,
         headers: <String, String>{
           if (controller.param.embedType == EmbedType.youtube ||
               controller.param.embedType == EmbedType.spotify)
-            'Referer': controller.param.url,
+            'Referer': refererHeader,
         },
       );
     }
@@ -363,8 +458,43 @@ class EmbedWebViewDriver {
     }
   }
 
-  Future<void> pauseMedias() async {
-    await _strategy.pauseMedia(webViewController);
+  Future<void> pauseMedias({String reason = 'manual'}) async {
+    await _controlMedia(
+      action: _MediaControlAction.pause,
+      reason: reason,
+    );
+  }
+
+  Future<void> resumeMedias({String reason = 'manual'}) async {
+    await _controlMedia(
+      action: _MediaControlAction.resume,
+      reason: reason,
+    );
+  }
+
+  Future<void> muteMedias({String reason = 'manual'}) async {
+    await _controlMedia(
+      action: _MediaControlAction.mute,
+      reason: reason,
+    );
+  }
+
+  Future<void> unmuteMedias({String reason = 'manual'}) async {
+    await _controlMedia(
+      action: _MediaControlAction.unmute,
+      reason: reason,
+    );
+  }
+
+  Future<void> seekMediaTo(
+    Duration position, {
+    String reason = 'manual',
+  }) async {
+    await _controlMedia(
+      action: _MediaControlAction.seek,
+      reason: reason,
+      position: position,
+    );
   }
 
   Future<void> refresh() async {
@@ -378,6 +508,110 @@ class EmbedWebViewDriver {
   Future<bool> _delayWhileActive(Duration duration) async {
     await Future.delayed(duration);
     return !_isDisposed;
+  }
+
+  void _updateFocusGroup(Object nextGroupKey) {
+    if (identical(nextGroupKey, _focusGroupKey)) return;
+    _focusCoordinator.detach(this, groupKey: _focusGroupKey);
+    _focusGroupKey = nextGroupKey;
+    if (_visibleFraction > 0) {
+      _focusCoordinator.updateVisibility(
+        this,
+        groupKey: _focusGroupKey,
+        visibleFraction: _visibleFraction,
+      );
+    }
+  }
+
+  void onFocusChanged(
+    bool focused, {
+    required String reason,
+    bool forcePause = false,
+  }) {
+    if (_isDisposed) return;
+    final wasFocused = _isFocused;
+    _isFocused = focused;
+
+    if (focused == wasFocused && !forcePause) {
+      return;
+    }
+
+    _logger.info(
+      'Embed focus changed',
+      data: {
+        'url': controller.param.url,
+        'focused': focused,
+        'reason': reason,
+        'visibleFraction': _visibleFraction,
+      },
+    );
+
+    if (controller.loadingState != EmbedLoadingState.loaded) {
+      return;
+    }
+
+    if (focused) {
+      if (!_isRouteCovered && _visibleFraction > 0) {
+        unawaited(resumeMedias(reason: reason));
+      }
+    } else {
+      if (wasFocused || forcePause || _visibleFraction <= 0) {
+        unawaited(pauseMedias(reason: reason));
+      }
+    }
+  }
+
+  Future<void> _controlMedia({
+    required _MediaControlAction action,
+    required String reason,
+    Duration? position,
+  }) async {
+    if (_isDisposed || controller.loadingState != EmbedLoadingState.loaded) {
+      return;
+    }
+
+    _logger.info(
+      'Media control requested',
+      data: {
+        'url': controller.param.url,
+        'action': action.name,
+        'reason': reason,
+        'strategy': _strategy.runtimeType.toString(),
+        'focused': _isFocused,
+        'visibleFraction': _visibleFraction,
+        'routeCovered': _isRouteCovered,
+        if (position != null) 'positionMs': position.inMilliseconds,
+      },
+    );
+
+    try {
+      switch (action) {
+        case _MediaControlAction.pause:
+          await _strategy.mediaStrategy?.pauseMedia(webViewController);
+        case _MediaControlAction.resume:
+          await _strategy.mediaStrategy?.resumeMedia(webViewController);
+        case _MediaControlAction.mute:
+          await _strategy.mediaStrategy?.muteMedia(webViewController);
+        case _MediaControlAction.unmute:
+          await _strategy.mediaStrategy?.unmuteMedia(webViewController);
+        case _MediaControlAction.seek:
+          await _strategy.mediaStrategy?.seekMediaTo(
+            webViewController,
+            position ?? Duration.zero,
+          );
+      }
+    } catch (error, stackTrace) {
+      _logger.warning(
+        'Media control failed',
+        data: {
+          'url': controller.param.url,
+          'action': action.name,
+          'reason': reason,
+        },
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
   }
 
   Future<void> _disposeWebView() async {
@@ -403,4 +637,135 @@ class EmbedWebViewDriver {
       );
     }
   }
+
+  bool _shouldIgnoreJavaScriptError(String message) {
+    final normalized = message.trim().toLowerCase();
+
+    // Cross-origin iframes often surface this opaque browser error even when
+    // the embed itself is functioning. Treating it as fatal breaks later media
+    // controls and route-cover pause behavior.
+    if (normalized.contains('js_error: script error. at :0')) {
+      return true;
+    }
+
+    if (normalized == 'js_error: script error.') {
+      return true;
+    }
+
+    return false;
+  }
+}
+
+enum _MediaControlAction { pause, resume, mute, unmute, seek }
+
+class _EmbedFocusCoordinator {
+  final Map<Object, Map<EmbedWebViewDriver, double>> _visibleFractionsByGroup =
+      <Object, Map<EmbedWebViewDriver, double>>{};
+  final Map<Object, EmbedWebViewDriver> _focusedByGroup =
+      <Object, EmbedWebViewDriver>{};
+
+  void updateVisibility(
+    EmbedWebViewDriver driver, {
+    required Object groupKey,
+    required double visibleFraction,
+  }) {
+    final group = _visibleFractionsByGroup.putIfAbsent(
+      groupKey,
+      () => <EmbedWebViewDriver, double>{},
+    );
+
+    if (visibleFraction <= 0) {
+      group.remove(driver);
+    } else {
+      group[driver] = visibleFraction;
+    }
+
+    final nextFocused = _pickFocused(group, _focusedByGroup[groupKey]);
+    final prevFocused = _focusedByGroup[groupKey];
+
+    if (nextFocused == null) {
+      if (prevFocused != null) {
+        prevFocused.onFocusChanged(false, reason: 'focus_none_visible');
+      }
+      _focusedByGroup.remove(groupKey);
+      _visibleFractionsByGroup.remove(groupKey);
+      return;
+    }
+
+    if (!identical(prevFocused, nextFocused)) {
+      if (prevFocused != null) {
+        prevFocused.onFocusChanged(false, reason: 'focus_transferred');
+      }
+      _focusedByGroup[groupKey] = nextFocused;
+      nextFocused.onFocusChanged(true, reason: 'focus_acquired');
+    }
+
+    if (!identical(driver, nextFocused) && visibleFraction > 0) {
+      driver.onFocusChanged(
+        false,
+        reason: 'focus_not_primary',
+        forcePause: true,
+      );
+    }
+  }
+
+  void detach(EmbedWebViewDriver driver, {Object? groupKey}) {
+    if (groupKey != null) {
+      _detachFromGroup(driver, groupKey);
+      return;
+    }
+
+    final keys = _visibleFractionsByGroup.keys.toList();
+    for (final key in keys) {
+      _detachFromGroup(driver, key);
+    }
+  }
+
+  void _detachFromGroup(EmbedWebViewDriver driver, Object groupKey) {
+    final group = _visibleFractionsByGroup[groupKey];
+    if (group == null) return;
+
+    group.remove(driver);
+    final wasFocused = identical(_focusedByGroup[groupKey], driver);
+
+    if (group.isEmpty) {
+      _visibleFractionsByGroup.remove(groupKey);
+      _focusedByGroup.remove(groupKey);
+      return;
+    }
+
+    if (wasFocused) {
+      final nextFocused = _pickFocused(group, null);
+      if (nextFocused == null) {
+        _focusedByGroup.remove(groupKey);
+        return;
+      }
+      _focusedByGroup[groupKey] = nextFocused;
+      nextFocused.onFocusChanged(true, reason: 'focus_rebalanced');
+    }
+  }
+
+  EmbedWebViewDriver? _pickFocused(
+    Map<EmbedWebViewDriver, double> group,
+    EmbedWebViewDriver? currentFocused,
+  ) {
+    if (group.isEmpty) return null;
+    EmbedWebViewDriver? winner = currentFocused;
+    double winnerFraction = winner != null ? (group[winner] ?? -1) : -1;
+
+    group.forEach((driver, fraction) {
+      if (fraction > winnerFraction) {
+        winner = driver;
+        winnerFraction = fraction;
+      }
+    });
+
+    return winner;
+  }
+}
+
+@visibleForTesting
+void resetEmbedFocusCoordinatorForTests() {
+  EmbedWebViewDriver._focusCoordinator._visibleFractionsByGroup.clear();
+  EmbedWebViewDriver._focusCoordinator._focusedByGroup.clear();
 }

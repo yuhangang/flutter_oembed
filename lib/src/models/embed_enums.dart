@@ -17,6 +17,7 @@ enum EmbedType {
   giphy,
   tiktok_v1,
   nytimes,
+  codepen,
   other,
 }
 
@@ -76,6 +77,8 @@ EmbedType? getEmbedTypeFromString(String typeString) {
       return EmbedType.giphy;
     case 'nytimes':
       return EmbedType.nytimes;
+    case 'codepen':
+      return EmbedType.codepen;
   }
 
   return null;

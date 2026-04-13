@@ -15,6 +15,21 @@ bool _facebookNavigationCheck(String url) {
   return uri?.pathSegments.contains('plugins') ?? false;
 }
 
+bool _xNavigationCheck(String url) {
+  final uri = Uri.tryParse(url);
+  final host = uri?.host.toLowerCase();
+  return switch (host) {
+    'twitter.com' ||
+    'www.twitter.com' ||
+    'platform.twitter.com' ||
+    'publish.twitter.com' ||
+    'x.com' ||
+    'www.x.com' =>
+      true,
+    _ => false,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Default provider registry
 // ---------------------------------------------------------------------------
@@ -152,18 +167,21 @@ const List<EmbedProviderRule> kDefaultEmbedProviders = [
     endpoint: 'https://publish.twitter.com/oembed',
     providerName: 'X',
     strategy: XProviderStrategy(),
+    shouldAllowNavigation: _xNavigationCheck,
     isVerified: true,
   ),
   EmbedProviderRule(
     pattern: r'https?:\/\/(www\.)?dailymotion\.com\/video\/.*',
     endpoint: 'https://www.dailymotion.com/services/oembed',
     providerName: 'Dailymotion',
+    strategy: DailymotionProviderStrategy(),
     isVerified: true,
   ),
   EmbedProviderRule(
     pattern: r'https?:\/\/geo\.dailymotion\.com\/player\.html\?video=.*',
     endpoint: 'https://www.dailymotion.com/services/oembed',
     providerName: 'Dailymotion',
+    strategy: DailymotionProviderStrategy(),
     isVerified: true,
   ),
   EmbedProviderRule(

@@ -44,6 +44,10 @@ class TikTokEmbedParams extends BaseEmbedParams {
   /// Set the default volume to 0 and prevent volume changes. Defaults to false.
   final bool muted;
 
+  /// Whether to use the native v1 player instead of standard oEmbed.
+  /// Defaults to false.
+  final bool useV1Player;
+
   const TikTokEmbedParams({
     this.controls = true,
     this.progressBar = true,
@@ -59,6 +63,7 @@ class TikTokEmbedParams extends BaseEmbedParams {
     this.nativeContextMenu = true,
     this.closedCaption = true,
     this.muted = false,
+    this.useV1Player = false,
   });
 
   @override
@@ -96,6 +101,7 @@ class TikTokEmbedParams extends BaseEmbedParams {
     bool? nativeContextMenu,
     bool? closedCaption,
     bool? muted,
+    bool? useV1Player,
   }) {
     return TikTokEmbedParams(
       controls: controls ?? this.controls,
@@ -112,6 +118,7 @@ class TikTokEmbedParams extends BaseEmbedParams {
       nativeContextMenu: nativeContextMenu ?? this.nativeContextMenu,
       closedCaption: closedCaption ?? this.closedCaption,
       muted: muted ?? this.muted,
+      useV1Player: useV1Player ?? this.useV1Player,
     );
   }
 
@@ -131,5 +138,6 @@ class TikTokEmbedParams extends BaseEmbedParams {
         nativeContextMenu,
         closedCaption,
         muted,
+        useV1Player,
       ];
 }

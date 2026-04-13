@@ -28,6 +28,7 @@ class EmbedService {
     final resolvedLogger =
         logger ?? config?.logger ?? const EmbedLogger.disabled();
     final resolvedCacheConfig = cacheConfig ?? config?.cache;
+    final resolvedCacheProvider = config?.cacheProvider;
     final locale = config?.locale ?? 'en';
     final brightness = config?.brightness ?? Brightness.light;
 
@@ -49,6 +50,7 @@ class EmbedService {
       param.url,
       locale: locale,
       brightness: brightness,
+      cacheProvider: resolvedCacheProvider,
       cacheConfig: resolvedCacheConfig,
       logger: resolvedLogger,
       queryParameters: param.queryParameters,
@@ -116,6 +118,7 @@ class EmbedService {
         config: config,
         queryParameters: queryParameters,
         logger: logger,
+        silent: true,
       );
 
       final ctx = EmbedProviderContext(
@@ -131,6 +134,7 @@ class EmbedService {
         proxyUrl: config?.proxyUrl,
         embedParams: embedParams,
         iframeUrl: iframeUrl,
+        embedType: embedType,
       );
       return rule.strategy.resolveRenderer(ctx, config: config);
     }
@@ -205,6 +209,7 @@ class EmbedService {
         providerName: rule.providerName,
         proxyUrl: config?.proxyUrl,
         embedParams: param.embedParams,
+        embedType: param.embedType,
       );
 
       final api = rule.apiFactory?.call(ctx) ?? rule.strategy.createApi(ctx);
@@ -250,27 +255,32 @@ class EmbedService {
     EmbedConfig? config,
     EmbedLogger? logger,
     Map<String, String>? queryParameters,
+    bool silent = false,
   }) {
     if (config == null) return null;
     final resolvedLogger = logger ?? config.logger;
 
     final rule = resolveRule(url, config: config);
     if (rule == null) {
-      resolvedLogger.debug('No iframe provider match', data: {'url': url});
+      if (!silent) {
+        resolvedLogger.debug('No iframe provider match', data: {'url': url});
+      }
       return null;
     }
 
     final mode = config.resolvedProviders.getRenderMode(rule.providerName);
     if (mode != EmbedRenderMode.iframe) {
-      resolvedLogger.debug(
-        'Rendering mode mismatch',
-        data: {
-          'url': url,
-          'provider': rule.providerName,
-          'configuredMode': mode.name,
-          'requiredMode': 'iframe',
-        },
-      );
+      if (!silent) {
+        resolvedLogger.debug(
+          'Rendering mode mismatch',
+          data: {
+            'url': url,
+            'provider': rule.providerName,
+            'configuredMode': mode.name,
+            'requiredMode': 'iframe',
+          },
+        );
+      }
       return null;
     }
 

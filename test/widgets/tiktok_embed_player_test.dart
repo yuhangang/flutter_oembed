@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_oembed/src/controllers/embed_controller.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/tiktok_embed_player.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_oembed/src/models/tiktok_embed_params.dart';
@@ -33,7 +36,7 @@ void main() {
       );
 
       final webView = tester.widget<EmbedWebView>(find.byType(EmbedWebView));
-      expect(webView.url, contains('/12345'));
+      expect(webView.data?.html, contains('/12345'));
     });
 
     testWidgets('should use embedParams to construct the player URL',
@@ -53,8 +56,8 @@ void main() {
       );
 
       final webView = tester.widget<EmbedWebView>(find.byType(EmbedWebView));
-      expect(webView.url, contains('autoplay=1'));
-      expect(webView.url, contains('controls=0'));
+      expect(webView.data?.html, contains('autoplay=1'));
+      expect(webView.data?.html, contains('controls=0'));
     });
 
     testWidgets('should respect individual player configuration parameters',
@@ -84,20 +87,20 @@ void main() {
       );
 
       final webView = tester.widget<EmbedWebView>(find.byType(EmbedWebView));
-      expect(webView.url, contains('autoplay=1'));
-      expect(webView.url, contains('controls=0'));
-      expect(webView.url, contains('loop=1'));
-      expect(webView.url, contains('music_info=1'));
-      expect(webView.url, contains('description=1'));
-      expect(webView.url, contains('progress_bar=0'));
-      expect(webView.url, contains('play_button=0'));
-      expect(webView.url, contains('volume_control=0'));
-      expect(webView.url, contains('fullscreen_button=0'));
-      expect(webView.url, contains('timestamp=0'));
-      expect(webView.url, contains('rel=0'));
-      expect(webView.url, contains('native_context_menu=0'));
-      expect(webView.url, contains('closed_caption=0'));
-      expect(webView.url, contains('muted=1'));
+      expect(webView.data?.html, contains('autoplay=1'));
+      expect(webView.data?.html, contains('controls=0'));
+      expect(webView.data?.html, contains('loop=1'));
+      expect(webView.data?.html, contains('music_info=1'));
+      expect(webView.data?.html, contains('description=1'));
+      expect(webView.data?.html, contains('progress_bar=0'));
+      expect(webView.data?.html, contains('play_button=0'));
+      expect(webView.data?.html, contains('volume_control=0'));
+      expect(webView.data?.html, contains('fullscreen_button=0'));
+      expect(webView.data?.html, contains('timestamp=0'));
+      expect(webView.data?.html, contains('rel=0'));
+      expect(webView.data?.html, contains('native_context_menu=0'));
+      expect(webView.data?.html, contains('closed_caption=0'));
+      expect(webView.data?.html, contains('muted=1'));
     });
 
     testWidgets('should not crash when the player is disposed', (tester) async {
@@ -112,6 +115,73 @@ void main() {
       await tester.pump();
       // Should not crash on dispose
       await tester.pumpWidget(const SizedBox());
+    });
+
+    testWidgets(
+        'recreates the inner WebView when embed params change without a manual key',
+        (tester) async {
+      final controller = EmbedController(
+        param: SocialEmbedParam(
+          url: 'https://www.tiktok.com/@user/video/123',
+          embedType: EmbedType.tiktok_v1,
+        ),
+      );
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TikTokEmbedPlayer(
+                videoIdOrUrl: '123',
+                controller: controller,
+                embedParams: const TikTokEmbedParams(
+                  autoplay: false,
+                  controls: true,
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 350));
+
+        expect(
+          fakePlatform.lastCreatedController?.lastLoadedHtml,
+          contains('autoplay=0'),
+        );
+        expect(
+          fakePlatform.lastCreatedController?.lastLoadedHtml,
+          contains('controls=1'),
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: TikTokEmbedPlayer(
+                videoIdOrUrl: '123',
+                controller: controller,
+                embedParams: const TikTokEmbedParams(
+                  autoplay: true,
+                  controls: false,
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 350));
+
+        expect(
+          fakePlatform.lastCreatedController?.lastLoadedHtml,
+          contains('autoplay=1'),
+        );
+        expect(
+          fakePlatform.lastCreatedController?.lastLoadedHtml,
+          contains('controls=0'),
+        );
+      } finally {
+        controller.dispose();
+      }
     });
   });
 }

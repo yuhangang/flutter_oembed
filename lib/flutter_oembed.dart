@@ -18,6 +18,7 @@ library;
 //
 // Configuration & Scope
 export 'src/core/embed_scope.dart';
+export 'src/core/embed_cache_provider.dart';
 export 'src/logging/embed_logger.dart';
 //
 // Models

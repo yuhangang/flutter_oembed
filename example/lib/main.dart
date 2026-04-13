@@ -21,6 +21,8 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final ExampleSettingsController _settingsController =
       ExampleSettingsController();
+  final RouteObserver<ModalRoute<dynamic>> _embedRouteObserver =
+      RouteObserver<ModalRoute<dynamic>>();
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +33,7 @@ class _MyAppState extends State<MyApp> {
         builder: (context, _) {
           final settings = _settingsController.settings;
           return EmbedScope(
+            reuseWebViews: true,
             config: EmbedConfig(
               locale: settings.locale,
               brightness: settings.brightness,
@@ -38,10 +41,17 @@ class _MyAppState extends State<MyApp> {
                 // Only allow these providers (comment out to enable all)
                 // enabledProviders: {'YouTube', 'Spotify', 'Vimeo', 'TikTok', 'SoundCloud'},
                 providerRenderModes: {
-                  // Use iframe mode for YouTube & Spotify (skips OEmbed API)
                   'YouTube': EmbedRenderMode.iframe,
                   'Spotify': EmbedRenderMode.iframe,
                 },
+                customProviders: const [
+                  EmbedProviderRule(
+                    providerName: 'CodePen',
+                    pattern:
+                        r'^https?:\/\/(?:codepen\.io|cdpn\.io)\/[^\/]+\/pen\/[A-Za-z0-9]+(?:\/.*)?$',
+                    endpoint: 'https://codepen.io/api/oembed',
+                  ),
+                ],
               ),
               cache: const EmbedCacheConfig(
                 enabled: true,
@@ -73,10 +83,13 @@ class _MyAppState extends State<MyApp> {
                   );
                 },
               ),
+              pauseOnRouteCover: true,
+              routeObserver: _embedRouteObserver,
               logger: const EmbedLogger.enabled(),
             ),
             child: MaterialApp(
               title: 'OEmbed Example',
+              navigatorObservers: [_embedRouteObserver],
               themeMode:
                   settings.brightness == Brightness.light
                       ? ThemeMode.light

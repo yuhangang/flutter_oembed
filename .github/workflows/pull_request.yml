@@ -24,17 +24,25 @@ jobs:
         with:
           channel: 'stable'
           cache: true
-          # You can specify a version if needed, e.g.:
-          # flutter-version: '3.5.0'
+          flutter-version: '3.38.9'
 
       - name: Install Dependencies
-        run: flutter pub get
+        run: |
+          flutter pub get
+          (cd example && flutter pub get)
+
+      - name: Verify pubspec.lock integrity
+        run: |
+          git diff --exit-code pubspec.lock
+          git diff --exit-code example/pubspec.lock
 
       - name: Check Formatting
         run: dart format --output=none --set-exit-if-changed .
 
       - name: Static Analysis
-        run: flutter analyze
+        run: |
+          flutter analyze
+          (cd example && flutter analyze)
 
       - name: Run Tests
         run: flutter test --coverage

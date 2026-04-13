@@ -7,6 +7,7 @@ import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_oembed/src/widgets/embed_surface.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/embed_data.dart';
 
 /// A standalone player widget for TikTok's native embedded player (v1).
 ///
@@ -95,14 +96,19 @@ class TikTokEmbedPlayer extends StatefulWidget {
     this.aspectRatio = 9 / 16,
     this.embedConstraints,
     this.embedParams,
+    this.controller,
   });
+
+  /// Optional controller to manage the player state.
+  final EmbedController? controller;
 
   @override
   State<TikTokEmbedPlayer> createState() => _TikTokEmbedPlayerState();
 }
 
 class _TikTokEmbedPlayerState extends State<TikTokEmbedPlayer> {
-  EmbedController? _controller;
+  late EmbedController _controller;
+  bool _isControllerInternal = false;
   late final SocialEmbedParam _param;
 
   @override
@@ -115,7 +121,7 @@ class _TikTokEmbedPlayerState extends State<TikTokEmbedPlayer> {
 
     _param = SocialEmbedParam(
       url: mockUrl,
-      embedType: EmbedType.tiktok,
+      embedType: EmbedType.tiktok_v1,
     );
   }
 
@@ -125,16 +131,45 @@ class _TikTokEmbedPlayerState extends State<TikTokEmbedPlayer> {
     _initControllerIfNeeded();
   }
 
+  @override
+  void didUpdateWidget(TikTokEmbedPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      if (_isControllerInternal) {
+        _controller.dispose();
+      }
+
+      if (widget.controller != null) {
+        _controller = widget.controller!;
+        _isControllerInternal = false;
+      } else {
+        _controller = EmbedController(
+          param: _param,
+          config: EmbedScope.configOf(context),
+        );
+        _isControllerInternal = true;
+      }
+    }
+  }
+
   void _initControllerIfNeeded() {
-    _controller ??= EmbedController(
-      param: _param,
-      config: EmbedScope.configOf(context),
-    );
+    if (widget.controller != null) {
+      _controller = widget.controller!;
+      _isControllerInternal = false;
+    } else {
+      _controller = EmbedController(
+        param: _param,
+        config: EmbedScope.configOf(context),
+      );
+      _isControllerInternal = true;
+    }
   }
 
   @override
   void dispose() {
-    _controller?.dispose();
+    if (_isControllerInternal) {
+      _controller.dispose();
+    }
     super.dispose();
   }
 
@@ -202,13 +237,11 @@ class _TikTokEmbedPlayerState extends State<TikTokEmbedPlayer> {
       style: style,
       footerUrl: _param.url,
       childBuilder: (context) {
-        if (_controller == null) return const SizedBox.shrink();
-
-        final player = EmbedWebView.url(
+        final player = EmbedWebView.data(
           param: _param,
-          url: playerUrl,
+          data: EmbedData(html: playerUrl),
           maxWidth: widget.maxWidth ?? double.infinity,
-          controller: _controller!,
+          controller: _controller,
           style: style,
           embedConstraints: widget.embedConstraints,
         );

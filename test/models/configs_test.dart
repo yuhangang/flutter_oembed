@@ -1,10 +1,31 @@
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_constant.dart';
 import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_provider_config.dart';
 import 'package:flutter_oembed/src/models/embed_strings.dart';
+import 'package:flutter_oembed/src/core/embed_cache_provider.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/models/provider_rule.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class _FakeEmbedCacheProvider implements EmbedCacheProvider {
+  const _FakeEmbedCacheProvider();
+
+  @override
+  Future<void> emptyCache() async {}
+
+  @override
+  Future<Uint8List?> getFileFromCache(String key) async => null;
+
+  @override
+  Future<void> putFile(String key, Uint8List bytes, {Duration? maxAge}) async {}
+
+  @override
+  Future<void> removeFile(String key) async {}
+}
 
 void main() {
   group('EmbedProviderConfig', () {
@@ -42,6 +63,38 @@ void main() {
               (p) => p.providerName == 'YouTube' || p.providerName == 'Vimeo'),
           isTrue);
     });
+
+    test(
+        'custom providers must be present in enabledProviders when allowlist is active',
+        () {
+      const pinterestRule = EmbedProviderRule(
+        pattern: r'^https?:\/\/(?:www\.)?pinterest\.com\/.*$',
+        endpoint: 'https://www.pinterest.com/oembed.json',
+        providerName: 'Pinterest',
+      );
+
+      const blockedConfig = EmbedProviderConfig(
+        enabledProviders: {'YouTube'},
+        customProviders: [pinterestRule],
+      );
+      expect(
+        blockedConfig.effectiveProviders.any(
+          (provider) => provider.providerName == 'Pinterest',
+        ),
+        isFalse,
+      );
+
+      const enabledConfig = EmbedProviderConfig(
+        enabledProviders: {'YouTube', 'Pinterest'},
+        customProviders: [pinterestRule],
+      );
+      expect(
+        enabledConfig.effectiveProviders.any(
+          (provider) => provider.providerName == 'Pinterest',
+        ),
+        isTrue,
+      );
+    });
   });
 
   group('EmbedConfig', () {
@@ -52,13 +105,21 @@ void main() {
 
     test('copyWith', () {
       const config = EmbedConfig();
+      const cacheProvider = _FakeEmbedCacheProvider();
+      final routeObserver = RouteObserver<ModalRoute<dynamic>>();
       final updated = config.copyWith(
         facebookAppId: 'new',
+        cacheProvider: cacheProvider,
+        pauseOnRouteCover: true,
+        routeObserver: routeObserver,
         strings: const EmbedStrings(
           loadingSemanticsLabel: 'Memuat kandungan',
         ),
       );
       expect(updated.facebookAppId, equals('new'));
+      expect(updated.cacheProvider, same(cacheProvider));
+      expect(updated.pauseOnRouteCover, isTrue);
+      expect(updated.routeObserver, same(routeObserver));
       expect(
         updated.strings.loadingSemanticsLabel,
         equals('Memuat kandungan'),

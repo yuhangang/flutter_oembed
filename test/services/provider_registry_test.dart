@@ -20,13 +20,13 @@ void main() {
       final url = EmbedService.resolveIframeUrl(
           'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
           config: config);
-      expect(url, contains('youtube.com/embed/dQw4w9WgXcQ'));
+      expect(url, contains('youtube-nocookie.com/embed/dQw4w9WgXcQ'));
     });
 
     test('should return the correct iframe URL for Vimeo', () {
       final url = EmbedService.resolveIframeUrl('https://vimeo.com/12345',
           config: config);
-      expect(url, equals('https://player.vimeo.com/video/12345'));
+      expect(url, equals('https://player.vimeo.com/video/12345?api=1'));
     });
 
     test('should return the correct iframe URL for Spotify', () {
@@ -69,6 +69,16 @@ void main() {
       expect(
           rule?.shouldAllowNavigation?.call('https://www.facebook.com/other'),
           isFalse);
+    });
+
+    test('should correctly identify allowed navigation for X embeds', () {
+      final rule = EmbedService.resolveRule('https://x.com/NASA/status/123');
+      expect(rule?.shouldAllowNavigation?.call('https://twitter.com/'), isTrue);
+      expect(rule?.shouldAllowNavigation?.call('https://platform.twitter.com/'),
+          isTrue);
+      expect(rule?.shouldAllowNavigation?.call('https://x.com/i/web/status/1'),
+          isTrue);
+      expect(rule?.shouldAllowNavigation?.call('https://google.com'), isFalse);
     });
   });
 }

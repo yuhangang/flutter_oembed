@@ -1,27 +1,36 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/core/embed_cache_provider.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_loader_param.dart';
 import 'package:flutter_oembed/src/models/embed_provider_config.dart';
+import 'package:flutter_oembed/src/models/embed_renderer.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 import 'package:flutter_oembed/src/services/embed_service.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
+import 'package:flutter_oembed/src/logging/embed_logger.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:mocktail/mocktail.dart';
 
 class MockHttpClient extends Mock implements http.Client {}
 
+class MockCacheProvider extends Mock implements EmbedCacheProvider {}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('EmbedService', () {
     late MockHttpClient mockClient;
+    late MockCacheProvider mockCacheProvider;
 
     setUp(() {
       mockClient = MockHttpClient();
+      mockCacheProvider = MockCacheProvider();
       registerFallbackValue(Uri.parse('https://example.com'));
+      registerFallbackValue(Uint8List(0));
     });
 
     group('resolveRule()', () {
@@ -137,7 +146,44 @@ void main() {
 
         final iframeUrl = EmbedService.resolveIframeUrl(url, config: config);
 
-        expect(iframeUrl, contains('youtube.com/embed/dQw4w9WgXcQ'));
+        expect(iframeUrl, contains('youtube-nocookie.com/embed/dQw4w9WgXcQ'));
+      });
+
+      test('should suppress mode-mismatch logging during resolveRender', () {
+        const url =
+            'https://www.reddit.com/r/flutterdev/comments/17yv8y8/how_to_implement_embed_in_flutter/';
+        final logs = <({String message, Map<String, dynamic>? data})>[];
+        final logger = EmbedLogger.enabled(
+          debugOnly: false,
+          sink: ({
+            required level,
+            required message,
+            data,
+            error,
+            stackTrace,
+          }) {
+            logs.add((message: message, data: data));
+          },
+        );
+        final config = EmbedConfig(
+          logger: logger,
+          providers: const EmbedProviderConfig(
+            providerRenderModes: {'Reddit': EmbedRenderMode.oembed},
+          ),
+        );
+
+        final renderer = EmbedService.resolveRender(
+          url,
+          config: config,
+          logger: logger,
+          embedType: EmbedType.reddit,
+        );
+
+        expect(renderer, isA<OEmbedRenderer>());
+        expect(
+          logs.where((entry) => entry.message == 'Rendering mode mismatch'),
+          isEmpty,
+        );
       });
 
       test('should return null if the provider render mode is not iframe', () {
@@ -226,6 +272,37 @@ void main() {
         );
 
         expect(result.html, equals('<div>YouTube Video</div>'));
+      });
+
+      test('should use the cache provider from EmbedConfig', () async {
+        const url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+        final param = EmbedLoaderParam(
+          url: url,
+          embedType: EmbedType.youtube,
+          width: 640,
+        );
+        final cachedResponse = {
+          'version': '1.0',
+          'type': 'video',
+          'html': '<div>Cached YouTube Video</div>',
+        };
+
+        when(() => mockCacheProvider.getFileFromCache(any())).thenAnswer(
+          (_) async => Uint8List.fromList(
+            utf8.encode(jsonEncode(cachedResponse)),
+          ),
+        );
+
+        final result = await EmbedService.getResult(
+          param: param,
+          config: EmbedConfig(cacheProvider: mockCacheProvider),
+          httpClient: mockClient,
+        );
+
+        expect(result.html, equals('<div>Cached YouTube Video</div>'));
+        verify(() => mockCacheProvider.getFileFromCache(any())).called(1);
+        verifyNever(
+            () => mockClient.get(any(), headers: any(named: 'headers')));
       });
     });
 

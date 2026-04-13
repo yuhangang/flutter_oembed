@@ -1,5 +1,6 @@
 const String kTikTokV3EmbedUrl = 'https://www.tiktok.com/embed/v3';
-const String kYouTubeEmbedBaseUrl = 'https://www.youtube.com/embed';
+const String kYouTubeEmbedOrigin = 'https://www.youtube-nocookie.com';
+const String kYouTubeEmbedBaseUrl = '$kYouTubeEmbedOrigin/embed';
 const String kSpotifyEmbedBaseUrl = 'https://open.spotify.com/embed';
 const String kVimeoEmbedBaseUrl = 'https://player.vimeo.com/video';
 
@@ -124,5 +125,6 @@ String? getVimeoVideoId(String url) {
 String? buildVimeoEmbedUrl(String url) {
   final videoId = getVimeoVideoId(url);
   if (videoId == null) return null;
-  return '$kVimeoEmbedBaseUrl/$videoId';
+  return Uri.parse('$kVimeoEmbedBaseUrl/$videoId')
+      .replace(queryParameters: const {'api': '1'}).toString();
 }

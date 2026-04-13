@@ -1,8 +1,11 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
+import 'package:flutter_oembed/src/models/embed_constant.dart';
 import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
@@ -26,6 +29,7 @@ class EmbedWebView extends StatefulWidget {
   final EmbedController controller;
   final EmbedStyle? style;
   final bool scrollable;
+  final Object? reuseKey;
   final Widget Function(BuildContext context, Widget child)? webViewBuilder;
 
   const EmbedWebView.data({
@@ -38,6 +42,7 @@ class EmbedWebView extends StatefulWidget {
     required this.controller,
     this.style,
     this.scrollable = false,
+    this.reuseKey,
     this.webViewBuilder,
   })  : assert(
           embedConstraints == null || embedHeight == null,
@@ -55,6 +60,7 @@ class EmbedWebView extends StatefulWidget {
     required this.controller,
     this.style,
     this.scrollable = false,
+    this.reuseKey,
     this.webViewBuilder,
   })  : assert(
           embedConstraints == null || embedHeight == null,
@@ -73,12 +79,28 @@ class _EmbedViewState extends State<EmbedWebView> {
   static const _defaultContentFallbackHeight = 320.0;
 
   late EmbedWebViewDriver _driver;
+  Object? _reuseScopeToken;
+  bool _reuseWebViewsEnabled = false;
+
+  _EmbedWebViewReuseSignature get _reuseSignature =>
+      _EmbedWebViewReuseSignature(
+        param: widget.param,
+        data: widget.data,
+        url: widget.url,
+      );
 
   @override
   void initState() {
     super.initState();
-    _driver = EmbedWebViewDriver(controller: widget.controller);
+    _captureReuseScope(listen: false);
+    _driver = _createDriver();
     _scheduleInit();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _captureReuseScope();
   }
 
   @override
@@ -86,19 +108,39 @@ class _EmbedViewState extends State<EmbedWebView> {
     super.didUpdateWidget(oldWidget);
 
     final controllerChanged = oldWidget.controller != widget.controller;
-    if (controllerChanged) {
-      _driver.dispose();
-      _driver = EmbedWebViewDriver(controller: widget.controller);
-    }
-
-    if (controllerChanged ||
+    final shouldRefresh = controllerChanged ||
         oldWidget.data != widget.data ||
         oldWidget.url != widget.url ||
         oldWidget.maxWidth != widget.maxWidth ||
         oldWidget.scrollable != widget.scrollable ||
-        oldWidget.param != widget.param) {
+        oldWidget.param != widget.param ||
+        oldWidget.reuseKey != widget.reuseKey;
+
+    if (shouldRefresh) {
+      _driver.dispose();
+      _driver = _createDriver();
       _scheduleInit(forceReload: true);
     }
+  }
+
+  EmbedWebViewDriver _createDriver() {
+    final reusedController = widget.reuseKey != null && _reuseWebViewsEnabled
+        ? EmbedScope.takeReusedWebViewControllerFromToken(
+            _reuseScopeToken,
+            reuseKey: widget.reuseKey!,
+            signature: _reuseSignature,
+          )
+        : null;
+    return EmbedWebViewDriver(
+      controller: widget.controller,
+      webViewController: reusedController,
+    );
+  }
+
+  void _captureReuseScope({bool listen = true}) {
+    _reuseScopeToken = EmbedScope.reuseScopeTokenOf(context, listen: listen);
+    _reuseWebViewsEnabled = _reuseScopeToken != null &&
+        EmbedScope.reuseWebViewsOf(context, listen: listen);
   }
 
   void _scheduleInit({bool forceReload = false}) {
@@ -118,7 +160,17 @@ class _EmbedViewState extends State<EmbedWebView> {
 
   @override
   void dispose() {
-    _driver.dispose();
+    var preserveWebView = false;
+    if (widget.reuseKey != null && _reuseWebViewsEnabled) {
+      EmbedScope.releaseReusedWebViewControllerToToken(
+        _reuseScopeToken,
+        reuseKey: widget.reuseKey!,
+        signature: _reuseSignature,
+        controller: _driver.webViewController,
+      );
+      preserveWebView = true;
+    }
+    _driver.dispose(preserveWebView: preserveWebView);
     super.dispose();
   }
 
@@ -142,10 +194,21 @@ class _EmbedViewState extends State<EmbedWebView> {
     EmbedStyle? style,
     EmbedStrings strings,
   ) {
+    final gestureRecognizers = widget.scrollable
+        ? <Factory<OneSequenceGestureRecognizer>>{
+            const Factory<OneSequenceGestureRecognizer>(
+              EagerGestureRecognizer.new,
+            ),
+          }
+        : const <Factory<OneSequenceGestureRecognizer>>{};
+
     return Semantics(
       container: true,
       label: strings.contentSemanticsLabel,
-      child: WebViewWidget(controller: _driver.webViewController),
+      child: WebViewWidget(
+        controller: _driver.webViewController,
+        gestureRecognizers: gestureRecognizers,
+      ),
     );
   }
 
@@ -187,18 +250,22 @@ class _EmbedViewState extends State<EmbedWebView> {
         final strings = config?.strings ?? const EmbedStrings();
         final loadingState = widget.controller.loadingState;
         final embedConstraints = _effectiveEmbedConstraints;
+        final measuredHeight = widget.controller.height;
         final double? aspectRatio = widget.data?.aspectRatio ??
             widget.controller.preloadedData?.aspectRatio;
 
         double height = embedConstraints?.preferredHeight ??
+            measuredHeight ??
             (aspectRatio != null
                 ? widget.maxWidth / aspectRatio
-                : (widget.controller.height ?? _fallbackHeight()));
+                : _fallbackHeight());
 
         if (embedConstraints != null) {
           height = embedConstraints.clampHeight(height);
-        } else if (widget.scrollable && style != null) {
-          height = height.clamp(0.0, style.maxScrollableHeight).toDouble();
+        } else if (widget.scrollable) {
+          final maxScrollableHeight =
+              style?.maxScrollableHeight ?? kDefaultMaxScrollableEmbedHeight;
+          height = height.clamp(0.0, maxScrollableHeight).toDouble();
         }
 
         final effectiveWebViewBuilder =
@@ -209,6 +276,10 @@ class _EmbedViewState extends State<EmbedWebView> {
           child: Stack(
             fit: StackFit.expand,
             children: [
+              _EmbedWebviewObserver(
+                driver: _driver,
+                controller: widget.controller,
+              ),
               _buildWebView(context, style, strings),
               if (loadingState == EmbedLoadingState.loading)
                 _buildLoadingOverlay(context, style, strings)
@@ -250,17 +321,110 @@ class _EmbedViewState extends State<EmbedWebView> {
 
         return VisibilityDetector(
           key: ValueKey(widget.param),
-          onVisibilityChanged: (info) => widget.controller.updateVisibility(
-            info.visibleFraction > 0,
-            onVisibilityChange: (visible) {
-              if (!visible && loadingState == EmbedLoadingState.loaded) {
-                _driver.pauseMedias();
-              }
-            },
-          ),
+          onVisibilityChanged: (info) {
+            widget.controller.updateVisibility(
+              info.visibleFraction > 0,
+              onVisibilityChange: (_) {},
+            );
+            _driver.updateVisibilityFraction(info.visibleFraction);
+          },
           child: webViewContainer,
         );
       },
     );
   }
+}
+
+@immutable
+class _EmbedWebViewReuseSignature {
+  const _EmbedWebViewReuseSignature({
+    required this.param,
+    required this.data,
+    required this.url,
+  });
+
+  final SocialEmbedParam param;
+  final EmbedData? data;
+  final String? url;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _EmbedWebViewReuseSignature &&
+        other.param == param &&
+        other.data == data &&
+        other.url == url;
+  }
+
+  @override
+  int get hashCode => Object.hash(param, data, url);
+}
+
+class _EmbedWebviewObserver extends StatefulWidget {
+  final EmbedWebViewDriver driver;
+  final EmbedController controller;
+
+  const _EmbedWebviewObserver({
+    required this.driver,
+    required this.controller,
+  });
+
+  @override
+  State<_EmbedWebviewObserver> createState() => _EmbedWebviewObserverState();
+}
+
+class _EmbedWebviewObserverState extends State<_EmbedWebviewObserver>
+    with RouteAware {
+  RouteObserver<ModalRoute<dynamic>>? _routeObserver;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _updateSubscription();
+  }
+
+  @override
+  void didUpdateWidget(_EmbedWebviewObserver oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.driver != widget.driver ||
+        oldWidget.controller != widget.controller) {
+      _updateSubscription();
+    }
+  }
+
+  void _updateSubscription() {
+    if (!mounted) return;
+
+    final config = widget.controller.config ?? EmbedScope.configOf(context);
+    final routeObserver = config?.routeObserver;
+    final route = ModalRoute.of(context);
+
+    if (routeObserver != _routeObserver) {
+      _routeObserver?.unsubscribe(this);
+      _routeObserver = routeObserver;
+      if (routeObserver != null && route != null) {
+        routeObserver.subscribe(this, route);
+      }
+    }
+
+    widget.driver.updateFocusGroup(route);
+  }
+
+  @override
+  void dispose() {
+    _routeObserver?.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPushNext() {
+    widget.driver.setRouteCovered(true);
+  }
+
+  @override
+  void didPopNext() {
+    widget.driver.setRouteCovered(false);
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox();
 }

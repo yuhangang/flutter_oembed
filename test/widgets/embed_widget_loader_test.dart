@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_provider_config.dart';
@@ -45,6 +46,41 @@ void main() {
 
       await tester.pump();
       expect(find.byType(EmbedWebView), findsOneWidget);
+    });
+
+    testWidgets('binds an externally supplied controller', (tester) async {
+      final param = SocialEmbedParam(
+        url: 'https://vimeo.com/22439234',
+        embedType: EmbedType.vimeo,
+      );
+      final data = const EmbedData(
+        type: 'video',
+        html:
+            '<iframe src="https://player.vimeo.com/video/22439234?api=1"></iframe>',
+      );
+      final controller = EmbedController(param: param);
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWidgetLoader(
+                param: param,
+                preloadedData: data,
+                controller: controller,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+        expect(
+          tester.widget<EmbedWebView>(find.byType(EmbedWebView)).controller,
+          same(controller),
+        );
+      } finally {
+        controller.dispose();
+      }
     });
 
     testWidgets('shows TikTokEmbedPlayer for TikTok v1', (tester) async {

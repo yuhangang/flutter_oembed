@@ -3,9 +3,12 @@ import 'package:webview_flutter_platform_interface/webview_flutter_platform_inte
 
 class FakeWebViewPlatform extends WebViewPlatform {
   FakePlatformWebViewController? lastCreatedController;
+  final List<FakePlatformWebViewController> createdControllers =
+      <FakePlatformWebViewController>[];
 
   void reset() {
     lastCreatedController = null;
+    createdControllers.clear();
   }
 
   @override
@@ -21,6 +24,7 @@ class FakeWebViewPlatform extends WebViewPlatform {
   ) {
     final controller = FakePlatformWebViewController(params);
     lastCreatedController = controller;
+    createdControllers.add(controller);
     return controller;
   }
 
@@ -64,6 +68,7 @@ class FakePlatformWebViewController extends PlatformWebViewController {
   String? lastLoadedHtml;
   String? lastBaseUrl;
   LoadRequestParams? lastRequest;
+  final List<String> javaScriptCalls = <String>[];
 
   @override
   Future<void> addJavaScriptChannel(
@@ -88,7 +93,9 @@ class FakePlatformWebViewController extends PlatformWebViewController {
   Future<void> reload() async {}
 
   @override
-  Future<void> runJavaScript(String javaScript) async {}
+  Future<void> runJavaScript(String javaScript) async {
+    javaScriptCalls.add(javaScript);
+  }
 
   @override
   Future<Object> runJavaScriptReturningResult(String javaScript) async => '0';

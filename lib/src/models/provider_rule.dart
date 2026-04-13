@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_oembed/flutter_oembed.dart';
 import 'package:flutter_oembed/src/core/provider_strategy.dart';
-import 'package:flutter_oembed/src/models/base_embed_params.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 
 /// Internal cache for compiled [RegExp] objects to avoid redundant parsing.
@@ -20,6 +20,7 @@ class EmbedProviderContext {
   final EmbedProviderStrategy strategy;
   final String providerName;
   final String? iframeUrl;
+  final EmbedType? embedType;
 
   const EmbedProviderContext({
     required this.url,
@@ -34,6 +35,7 @@ class EmbedProviderContext {
     this.proxyUrl,
     this.embedParams,
     this.iframeUrl,
+    this.embedType,
   });
 }
 

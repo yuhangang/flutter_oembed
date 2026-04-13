@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:flutter_oembed/src/core/embed_cache_provider.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
@@ -7,15 +7,16 @@ import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
-class MockCacheManager extends Mock implements BaseCacheManager {}
+class MockCacheProvider extends Mock implements EmbedCacheProvider {}
 
 void main() {
   group('EmbedScope', () {
-    late MockCacheManager mockCacheManager;
+    late MockCacheProvider mockCacheProvider;
+    late EmbedConfig configWithCacheProvider;
 
     setUp(() {
-      mockCacheManager = MockCacheManager();
-      EmbedScope.cacheManager = mockCacheManager;
+      mockCacheProvider = MockCacheProvider();
+      configWithCacheProvider = EmbedConfig(cacheProvider: mockCacheProvider);
       registerFallbackValue(Uri.parse('https://example.com'));
     });
 
@@ -42,6 +43,28 @@ void main() {
       expect(capturedStyle, equals(config.style));
     });
 
+    testWidgets('reuseWebViewsOf reflects scope setting', (tester) async {
+      late bool reuseWebViews;
+
+      await tester.pumpWidget(
+        EmbedScope(
+          config: const EmbedConfig(),
+          reuseWebViews: true,
+          child: Builder(
+            builder: (context) {
+              reuseWebViews = EmbedScope.reuseWebViewsOf(
+                context,
+                listen: false,
+              );
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+
+      expect(reuseWebViews, isTrue);
+    });
+
     test('updateShouldNotify', () {
       const config1 = EmbedConfig(facebookAppId: '1');
       const config2 = EmbedConfig(facebookAppId: '2');
@@ -54,25 +77,28 @@ void main() {
       expect(scope1.updateShouldNotify(scope3), isTrue);
     });
 
-    test('clearCache delegates to cache manager', () async {
-      when(() => mockCacheManager.emptyCache()).thenAnswer((_) async {});
+    test('clearCache delegates to the configured cache provider', () async {
+      when(() => mockCacheProvider.emptyCache()).thenAnswer((_) async {});
 
-      await EmbedScope.clearCache();
-      verify(() => mockCacheManager.emptyCache()).called(1);
+      await EmbedScope.clearCache(config: configWithCacheProvider);
+      verify(() => mockCacheProvider.emptyCache()).called(1);
     });
 
-    test('evictCacheForUrl removes the resolved cache entry', () async {
-      when(() => mockCacheManager.removeFile(any())).thenAnswer((_) async {});
+    test(
+        'evictCacheForUrl removes the resolved entry from the configured cache provider',
+        () async {
+      when(() => mockCacheProvider.removeFile(any())).thenAnswer((_) async {});
 
       final didEvict = await EmbedScope.evictCacheForUrl(
         'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        config: configWithCacheProvider,
         embedType: EmbedType.youtube,
         width: 640,
       );
 
       expect(didEvict, isTrue);
       verify(
-        () => mockCacheManager.removeFile(
+        () => mockCacheProvider.removeFile(
           any(that: contains('https://www.youtube.com/oembed')),
         ),
       ).called(1);
@@ -82,10 +108,11 @@ void main() {
         () async {
       final didEvict = await EmbedScope.evictCacheForUrl(
         'https://example.com/unknown',
+        config: configWithCacheProvider,
       );
 
       expect(didEvict, isFalse);
-      verifyNever(() => mockCacheManager.removeFile(any()));
+      verifyNever(() => mockCacheProvider.removeFile(any()));
     });
   });
 }

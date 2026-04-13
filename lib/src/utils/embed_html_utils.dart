@@ -86,29 +86,37 @@ String buildTikTokHtmlDocument(
   required double maxWidth,
   bool scrollable = false,
 }) {
+  // TODO: Fix extra padding for tiktok oembed
   final scrollStyles = !scrollable ? 'overflow: hidden;' : '';
   return '''
 <!DOCTYPE html><html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width height=device-height">
+  <meta name="viewport" content="height=device-height">
   <style>
     html, body {
       margin: 0;
       padding: 0;
-      padding-bottom: 24px;
       $scrollStyles
     }
     blockquote.tiktok-embed {
       margin: 0;
       padding: 0;
-      width: 100% !important;
       max-width: ${maxWidth}px !important;
+      min-width: auto !important;
+      width: 100%;
     }
+    .embed-container {
+    width: 100vw;
+    display: block;
+    margin: 0;
+    padding: 0;
+  }
+    
   </style>
 </head>
 <body>
-  <div style="display: flex; justify-content: center;">
+  <div>
     $embedHtml
   </div>
   <script>
@@ -122,6 +130,56 @@ String buildTikTokHtmlDocument(
       setTimeout(function() { clearInterval(checkTikTok); }, 5000);
     })();
   </script>
+  $resizeObserverScript
+</body>
+</html>
+''';
+}
+
+/// HTML wrapper for the TikTok Player v1 iframe host page.
+String buildTikTokPlayerHtmlDocument(
+  String iframeSrc, {
+  required double maxWidth,
+  bool scrollable = false,
+}) {
+  final scrollStyles = !scrollable ? 'overflow: hidden;' : '';
+  return '''
+<!DOCTYPE html><html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      background: transparent;
+      $scrollStyles
+    }
+    #player-shell {
+      width: 100%;
+      max-width: ${maxWidth}px;
+      margin: 0 auto;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      min-height: 100vh;
+      display: block;
+      border: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="player-shell">
+    <iframe
+      id="tiktok-player"
+      src="$iframeSrc"
+      allow="autoplay; fullscreen"
+      referrerpolicy="strict-origin-when-cross-origin"
+      scrolling="no">
+    </iframe>
+  </div>
   $resizeObserverScript
 </body>
 </html>
@@ -336,13 +394,13 @@ $_errorBridgeScript
   (function() {
     const reportHeight = () => {
        if (window.HeightChannel) {
-         const height = Math.max(
+         const height = Math.ceil(Math.max(
            document.body.scrollHeight, 
            document.body.offsetHeight, 
            document.documentElement.clientHeight, 
            document.documentElement.scrollHeight, 
            document.documentElement.offsetHeight
-         );
+         ));
          window.HeightChannel.postMessage(height.toString());
        }
     };

@@ -24,6 +24,7 @@ class EmbedDataLoader extends StatefulWidget {
   final EmbedCacheConfig? cacheConfig;
   final EmbedConstraints? embedConstraints;
   final bool scrollable;
+  final Object? reuseKey;
   final Widget Function(BuildContext context, Widget child)? webViewBuilder;
 
   const EmbedDataLoader({
@@ -36,6 +37,7 @@ class EmbedDataLoader extends StatefulWidget {
     this.cacheConfig,
     this.embedConstraints,
     this.scrollable = false,
+    this.reuseKey,
     this.webViewBuilder,
   });
 
@@ -194,6 +196,7 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
                 style: widget.style,
                 embedConstraints: widget.embedConstraints,
                 scrollable: widget.scrollable,
+                reuseKey: widget.reuseKey,
                 webViewBuilder: widget.webViewBuilder,
               );
             }

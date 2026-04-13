@@ -123,7 +123,19 @@ void main() {
       expect(listenerCalled, isTrue);
     });
 
-    test('setHeight ignores tiny height deltas', () {
+    test('setHeight ignores tiny downward height deltas', () {
+      final controller = EmbedController(param: testParam);
+      int notifications = 0;
+      controller.addListener(() => notifications++);
+
+      controller.setHeight(101.0);
+      controller.setHeight(100.0);
+
+      expect(controller.height, 101.0);
+      expect(notifications, 1);
+    });
+
+    test('setHeight accepts tiny upward adjustments to avoid clipping', () {
       final controller = EmbedController(param: testParam);
       int notifications = 0;
       controller.addListener(() => notifications++);
@@ -131,8 +143,8 @@ void main() {
       controller.setHeight(100.0);
       controller.setHeight(101.0);
 
-      expect(controller.height, 100.0);
-      expect(notifications, 1);
+      expect(controller.height, 101.0);
+      expect(notifications, 2);
     });
 
     test('setLoadingState updates state and notifies listeners', () {
@@ -386,16 +398,17 @@ void main() {
       await driver.initEmbedWebview(
         backgroundColor: Colors.white,
         embedData: null,
-        embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ?playsinline=1',
+        embedUrl:
+            'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?playsinline=1',
         maxWidth: 400,
       );
 
       verify(() => mockWebViewController.loadRequest(
             Uri.parse(
-              'https://www.youtube.com/embed/dQw4w9WgXcQ?playsinline=1',
+              'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?playsinline=1',
             ),
             headers: const <String, String>{
-              'Referer': 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+              'Referer': 'https://www.youtube-nocookie.com',
             },
             method: LoadRequestMethod.get,
             body: null,
@@ -501,9 +514,18 @@ void main() {
         webViewController: mockWebViewController,
       );
 
+      await driver.initEmbedWebview(
+        backgroundColor: Colors.white,
+        embedData: null,
+        embedUrl: 'https://www.tiktok.com/embed/v3/123',
+        maxWidth: 400,
+      );
+      controller.setLoadingState(EmbedLoadingState.loaded);
+
       await driver.pauseMedias();
-      verify(() => mockWebViewController.runJavaScript(any()))
-          .called(1); // mute script
+      verify(() => mockWebViewController.runJavaScript(
+            any(that: contains('"type":"pause"')),
+          )).called(1);
 
       final videoParam = SocialEmbedParam(
         url: 'https://www.youtube.com/watch?v=123',
@@ -514,9 +536,61 @@ void main() {
         webViewController: mockWebViewController,
       );
 
+      await videoDriver.initEmbedWebview(
+        backgroundColor: Colors.white,
+        embedData: null,
+        embedUrl: 'https://www.youtube.com/embed/123',
+        maxWidth: 400,
+      );
+      videoController.setLoadingState(EmbedLoadingState.loaded);
+
       await videoDriver.pauseMedias();
       verify(() => mockWebViewController.runJavaScript(any()))
           .called(greaterThan(0));
+    });
+
+    test('public media control API delegates through bound driver', () async {
+      final tiktokParam = SocialEmbedParam(
+        url: 'https://www.tiktok.com/@user/video/123',
+        embedType: EmbedType.tiktok_v1,
+      );
+      final controller = EmbedController(param: tiktokParam);
+      final driver = EmbedWebViewDriver(
+        controller: controller,
+        webViewController: mockWebViewController,
+      );
+
+      await driver.initEmbedWebview(
+        backgroundColor: Colors.white,
+        embedData: null,
+        embedUrl: 'https://www.tiktok.com/player/v1/123',
+        maxWidth: 400,
+      );
+      controller.setLoadingState(EmbedLoadingState.loaded);
+
+      await controller.pauseMedia();
+      await controller.resumeMedia();
+      await controller.muteMedia();
+      await controller.unmuteMedia();
+      await controller.seekMediaTo(const Duration(seconds: 8));
+
+      verify(() => mockWebViewController.runJavaScript(
+            any(that: contains('"type":"pause"')),
+          )).called(1);
+      verify(() => mockWebViewController.runJavaScript(
+            any(that: contains('"type":"play"')),
+          )).called(1);
+      verify(() => mockWebViewController.runJavaScript(
+            any(that: contains('"type":"mute"')),
+          )).called(1);
+      verify(() => mockWebViewController.runJavaScript(
+            any(that: contains('"type":"unMute"')),
+          )).called(1);
+      verify(() => mockWebViewController.runJavaScript(
+            any(
+                that:
+                    allOf(contains('"type":"seekTo"'), contains('"value":8'))),
+          )).called(1);
     });
 
     test('updateEmbedPostHeight success handles new height', () async {
@@ -587,6 +661,45 @@ void main() {
 
       captureChannel(const JavaScriptMessage(message: '600'));
       expect(controller.height, 600.0);
+    });
+
+    test('ignores generic cross-origin script errors after load', () async {
+      final tiktokParam = SocialEmbedParam(
+        url: 'https://www.tiktok.com/@user/video/123',
+        embedType: EmbedType.tiktok_v1,
+      );
+      final controller = EmbedController(param: tiktokParam);
+      final driver = EmbedWebViewDriver(
+        controller: controller,
+        webViewController: mockWebViewController,
+      );
+
+      await driver.initEmbedWebview(
+        backgroundColor: Colors.white,
+        embedData:
+            const EmbedData(html: 'https://www.tiktok.com/player/v1/123'),
+        embedUrl: null,
+        maxWidth: 400,
+      );
+
+      controller.setLoadingState(EmbedLoadingState.loaded);
+
+      final errorChannel =
+          verify(() => mockWebViewController.addJavaScriptChannel(
+                'ErrorChannel',
+                onMessageReceived: captureAny(named: 'onMessageReceived'),
+              )).captured.last as void Function(JavaScriptMessage);
+
+      errorChannel(const JavaScriptMessage(
+        message: 'JS_ERROR: Script error. at :0',
+      ));
+
+      expect(controller.loadingState, EmbedLoadingState.loaded);
+
+      await controller.pauseMedia();
+      verify(() => mockWebViewController.runJavaScript(
+            any(that: contains('"type":"pause"')),
+          )).called(1);
     });
 
     test('updateEmbedPostHeight handles errors gracefully', () async {
@@ -765,10 +878,10 @@ void main() {
       // Wait for any async handling (it's async in NavigationDelegate callback)
       await Future.delayed(Duration.zero);
 
-      // Verify mute script (via TikTokProviderStrategy calling controller.muteAudioWidget)
+      // Verify TikTok page-finish still applies top-level mute and pause.
       verify(() => mockWebViewController.runJavaScript(
               any(that: contains("document.querySelectorAll('video, audio')"))))
-          .called(1);
+          .called(2);
     });
   });
 }

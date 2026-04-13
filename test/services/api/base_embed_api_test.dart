@@ -1,9 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:file/file.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_oembed/src/core/embed_cache_provider.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
@@ -24,19 +23,10 @@ import 'package:mocktail/mocktail.dart';
 
 class MockHttpClient extends Mock implements http.Client {}
 
-class MockCacheManager extends Mock implements BaseCacheManager {}
-
-class MockFileInfo extends Mock implements FileInfo {}
-
-class MockFile extends Mock implements File {}
+class MockCacheProvider extends Mock implements EmbedCacheProvider {}
 
 class TestEmbedApi extends GenericEmbedApi {
-  const TestEmbedApi(super.endpoint, {this.mockCacheManager, super.headers});
-
-  final BaseCacheManager? mockCacheManager;
-
-  @override
-  BaseCacheManager get cacheManager => mockCacheManager ?? super.cacheManager;
+  const TestEmbedApi(super.endpoint, {super.headers});
 
   @override
   EmbedData oembedResponseModifier(EmbedData response) {
@@ -49,11 +39,11 @@ void main() {
     const endpoint = 'https://example.com/oembed';
     const contentUrl = 'https://example.com/post/123';
     late MockHttpClient mockClient;
-    late MockCacheManager mockCache;
+    late MockCacheProvider mockCache;
 
     setUp(() {
       mockClient = MockHttpClient();
-      mockCache = MockCacheManager();
+      mockCache = MockCacheProvider();
       registerFallbackValue(Uri.parse('https://example.com'));
       registerFallbackValue(Uint8List(0));
       registerFallbackValue(const Duration(seconds: 1));
@@ -114,7 +104,7 @@ void main() {
     group('getEmbedData()', () {
       test('should fetch data from the network when the cache is disabled',
           () async {
-        final api = TestEmbedApi(endpoint, mockCacheManager: mockCache);
+        const api = TestEmbedApi(endpoint);
         final expectedData = {
           'version': '1.0',
           'type': 'rich',
@@ -127,6 +117,7 @@ void main() {
 
         final result = await api.getEmbedData(
           contentUrl,
+          cacheProvider: mockCache,
           cacheConfig: const EmbedCacheConfig(enabled: false),
           httpClient: mockClient,
         );
@@ -135,78 +126,67 @@ void main() {
         expect(result.title, equals('Modified')); // Check modifier
         verify(() => mockClient.get(any(), headers: any(named: 'headers')))
             .called(1);
-        verifyNever(() => mockCache.getFileFromCache(any<String>(),
-            ignoreMemCache: any(named: 'ignoreMemCache')));
+        verifyNever(() => mockCache.getFileFromCache(any<String>()));
       });
 
       test('should fetch data from the cache when it is available', () async {
-        final api = TestEmbedApi(endpoint, mockCacheManager: mockCache);
+        const api = TestEmbedApi(endpoint);
         final expectedData = {
           'version': '1.0',
           'type': 'rich',
           'html': '<div>Cached</div>',
         };
 
-        final mockFileInfo = MockFileInfo();
-        final mockFile = MockFile();
-
-        when(() => mockCache.getFileFromCache(any<String>(),
-                ignoreMemCache: any(named: 'ignoreMemCache')))
-            .thenAnswer((_) async => mockFileInfo);
-        when(() => mockFileInfo.file).thenReturn(mockFile);
-        when(() => mockFile.readAsBytes())
-            .thenAnswer((_) async => utf8.encode(jsonEncode(expectedData)));
+        when(() => mockCache.getFileFromCache(any<String>())).thenAnswer(
+            (_) async =>
+                Uint8List.fromList(utf8.encode(jsonEncode(expectedData))));
 
         final result = await api.getEmbedData(
           contentUrl,
+          cacheProvider: mockCache,
           cacheConfig: const EmbedCacheConfig(enabled: true),
           httpClient: mockClient,
         );
 
         expect(result.html, equals('<div>Cached</div>'));
-        verify(() => mockCache.getFileFromCache(any<String>(),
-            ignoreMemCache: any(named: 'ignoreMemCache'))).called(1);
+        verify(() => mockCache.getFileFromCache(any<String>())).called(1);
         verifyNever(
             () => mockClient.get(any(), headers: any(named: 'headers')));
       });
 
       test('should save successfully fetched network data to the cache',
           () async {
-        final api = TestEmbedApi(endpoint, mockCacheManager: mockCache);
+        const api = TestEmbedApi(endpoint);
         final expectedData = {
           'version': '1.0',
           'type': 'rich',
           'html': '<div>Test</div>',
         };
 
-        when(() => mockCache.getFileFromCache(any<String>(),
-                ignoreMemCache: any(named: 'ignoreMemCache')))
+        when(() => mockCache.getFileFromCache(any<String>()))
             .thenAnswer((_) async => null);
         when(() => mockClient.get(any(), headers: any(named: 'headers')))
             .thenAnswer(
                 (_) async => http.Response(jsonEncode(expectedData), 200));
         when(() => mockCache.putFile(any<String>(), any<Uint8List>(),
-                maxAge: any(named: 'maxAge'),
-                fileExtension: any(named: 'fileExtension')))
-            .thenAnswer((_) async => MockFile());
+            maxAge: any(named: 'maxAge'))).thenAnswer((_) async {});
 
         await api.getEmbedData(
           contentUrl,
+          cacheProvider: mockCache,
           cacheConfig: const EmbedCacheConfig(enabled: true),
           httpClient: mockClient,
         );
 
         verify(() => mockCache.putFile(any<String>(), any<Uint8List>(),
-            maxAge: any(named: 'maxAge'),
-            fileExtension: any(named: 'fileExtension'))).called(1);
+            maxAge: any(named: 'maxAge'))).called(1);
       });
 
       test('should throw an EmbedDataNotFoundException on an error response',
           () async {
-        final api = TestEmbedApi(endpoint, mockCacheManager: mockCache);
+        const api = TestEmbedApi(endpoint);
 
-        when(() => mockCache.getFileFromCache(any<String>(),
-                ignoreMemCache: any(named: 'ignoreMemCache')))
+        when(() => mockCache.getFileFromCache(any<String>()))
             .thenAnswer((_) async => null);
         when(() => mockClient.get(any(), headers: any(named: 'headers')))
             .thenAnswer((_) async => http.Response('Not Found', 404));
@@ -214,6 +194,7 @@ void main() {
         expect(
           () => api.getEmbedData(
             contentUrl,
+            cacheProvider: mockCache,
             cacheConfig: const EmbedCacheConfig(enabled: true),
             httpClient: mockClient,
           ),
@@ -224,30 +205,27 @@ void main() {
 
     group('getCachedResult()', () {
       test('should return null when a cache error occurs', () async {
-        final api = TestEmbedApi(endpoint, mockCacheManager: mockCache);
-        when(() => mockCache.getFileFromCache(any<String>(),
-                ignoreMemCache: any(named: 'ignoreMemCache')))
+        const api = TestEmbedApi(endpoint);
+        when(() => mockCache.getFileFromCache(any<String>()))
             .thenThrow(Exception('Cache error'));
 
-        final result =
-            await api.getCachedResult(Uri.parse('https://example.com'));
+        final result = await api.getCachedResult(
+          Uri.parse('https://example.com'),
+          cacheProvider: mockCache,
+        );
         expect(result, isNull);
       });
 
       test('should return null when the cached file bytes are empty', () async {
-        final api = TestEmbedApi(endpoint, mockCacheManager: mockCache);
-        final mockFileInfo = MockFileInfo();
-        final mockFile = MockFile();
+        const api = TestEmbedApi(endpoint);
 
-        when(() => mockCache.getFileFromCache(any<String>(),
-                ignoreMemCache: any(named: 'ignoreMemCache')))
-            .thenAnswer((_) async => mockFileInfo);
-        when(() => mockFileInfo.file).thenReturn(mockFile);
-        when(() => mockFile.readAsBytes())
+        when(() => mockCache.getFileFromCache(any<String>()))
             .thenAnswer((_) async => Uint8List(0));
 
-        final result =
-            await api.getCachedResult(Uri.parse('https://example.com'));
+        final result = await api.getCachedResult(
+          Uri.parse('https://example.com'),
+          cacheProvider: mockCache,
+        );
         expect(result, isNull);
       });
     });
@@ -255,31 +233,32 @@ void main() {
     group('setCachedResult()', () {
       test('should handle and swallow errors when saving to cache fails',
           () async {
-        final api = TestEmbedApi(endpoint, mockCacheManager: mockCache);
+        const api = TestEmbedApi(endpoint);
         when(() => mockCache.putFile(any<String>(), any<Uint8List>(),
-                maxAge: any(named: 'maxAge'),
-                fileExtension: any(named: 'fileExtension')))
-            .thenThrow(Exception('Cache error'));
+            maxAge: any(named: 'maxAge'))).thenThrow(Exception('Cache error'));
 
         await api.setCachedResult(
-            Uri.parse('https://example.com'), const EmbedData(html: ''));
+          Uri.parse('https://example.com'),
+          const EmbedData(html: ''),
+          cacheProvider: mockCache,
+        );
         // No crash means it's handled
       });
 
       test('should use a 7-day TTL when no specific TTL is provided', () async {
-        final api = TestEmbedApi(endpoint, mockCacheManager: mockCache);
+        const api = TestEmbedApi(endpoint);
 
         when(() => mockCache.putFile(any<String>(), any<Uint8List>(),
-                maxAge: any(named: 'maxAge'),
-                fileExtension: any(named: 'fileExtension')))
-            .thenAnswer((_) async => MockFile());
+            maxAge: any(named: 'maxAge'))).thenAnswer((_) async {});
 
         await api.setCachedResult(
-            Uri.parse('https://example.com'), const EmbedData(html: 'test'));
+          Uri.parse('https://example.com'),
+          const EmbedData(html: 'test'),
+          cacheProvider: mockCache,
+        );
 
         verify(() => mockCache.putFile(any<String>(), any<Uint8List>(),
-            maxAge: const Duration(days: 7),
-            fileExtension: any(named: 'fileExtension'))).called(1);
+            maxAge: const Duration(days: 7))).called(1);
       });
     });
 
