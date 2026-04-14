@@ -75,10 +75,6 @@ class EmbedCard extends StatelessWidget {
   /// Custom query parameters to pass to the OEmbed API (for supported providers).
   final Map<String, String>? queryParameters;
   final BaseEmbedParams? embedParams;
-
-  /// Optional identity used with [EmbedScope.reuseWebViews] to reuse a cached
-  /// platform WebView when the same embed remounts later in the same scope.
-  final Object? reuseKey;
   final Widget Function(BuildContext context, Widget child)? webViewBuilder;
 
   const EmbedCard({
@@ -96,7 +92,6 @@ class EmbedCard extends StatelessWidget {
     this.controller,
     this.queryParameters,
     this.embedParams,
-    this.reuseKey,
     this.webViewBuilder,
   }) : assert(
           embedConstraints == null || embedHeight == null,
@@ -123,7 +118,6 @@ class EmbedCard extends StatelessWidget {
     EmbedController? controller,
     Map<String, String>? queryParameters,
     BaseEmbedParams? embedParams,
-    Object? reuseKey,
     Widget Function(BuildContext context, Widget child)? webViewBuilder,
   }) {
     return EmbedCard(
@@ -141,7 +135,6 @@ class EmbedCard extends StatelessWidget {
       controller: controller,
       queryParameters: queryParameters,
       embedParams: embedParams,
-      reuseKey: reuseKey,
       webViewBuilder: webViewBuilder,
     );
   }
@@ -162,16 +155,16 @@ class EmbedCard extends StatelessWidget {
           ? EmbedConstraints(preferredHeight: embedHeight)
           : null);
 
+  EmbedConfig? _resolveEffectiveConfig(EmbedConfig? scopeConfig) {
+    if (onLinkTap == null) return scopeConfig;
+    return (scopeConfig ?? const EmbedConfig()).copyWith(onLinkTap: onLinkTap);
+  }
+
   @override
   Widget build(BuildContext context) {
     final param = _buildParam();
     final scopeConfig = EmbedScope.configOf(context);
-
-    // Merge per-widget onLinkTap into the effective config so it reaches the
-    // WebView's NavigationDelegate. Without this, onLinkTap was silently ignored.
-    final effectiveConfig = onLinkTap != null
-        ? (scopeConfig ?? const EmbedConfig()).copyWith(onLinkTap: onLinkTap)
-        : scopeConfig;
+    final effectiveConfig = _resolveEffectiveConfig(scopeConfig);
 
     final style = this.style ?? effectiveConfig?.style;
     final scrollable = this.scrollable ?? effectiveConfig?.scrollable ?? false;
@@ -190,7 +183,6 @@ class EmbedCard extends StatelessWidget {
           cacheConfig: cacheConfig,
           embedConstraints: _effectiveEmbedConstraints,
           scrollable: scrollable,
-          reuseKey: reuseKey,
           webViewBuilder: webViewBuilder,
         );
       },

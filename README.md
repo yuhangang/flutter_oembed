@@ -98,6 +98,7 @@ EmbedScope(
     pauseOnRouteCover: true,
     routeObserver: embedRouteObserver,
   ),
+  maxReusedWebViews: 8,
   child: MyApp(),
 )
 ```
@@ -232,6 +233,7 @@ EmbedConfig(
   useDynamicDiscovery: true, // Enables searching the official oEmbed registry if no local provider matches
   pauseOnRouteCover: true, // Pauses supported media when a new page or bottom sheet covers the route
   routeObserver: embedRouteObserver,
+  heightUpdateDeltaThreshold: 2, // Ignores tiny downward height shifts to reduce jitter
   providers: EmbedProviderConfig(
     providerRenderModes: {
       'YouTube': EmbedRenderMode.iframe,
@@ -277,6 +279,10 @@ EmbedScope(
 
 You can also provide your own `EmbedCacheProvider` implementation in
 `EmbedConfig` when you need a custom cache backend per scope or test.
+
+When `reuseWebViews: true` is enabled on `EmbedScope`, released WebViews are
+kept in a bounded LRU-style cache. Use `maxReusedWebViews` to tune how many
+detached controllers a scope may retain before older entries are evicted.
 
 ### Customizable Strings
 

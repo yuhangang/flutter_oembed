@@ -1,18 +1,18 @@
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
+import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
 import 'package:flutter_oembed/src/models/embed_constant.dart';
 import 'package:flutter_oembed/src/models/embed_constraints.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_strings.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
-import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -29,7 +29,6 @@ class EmbedWebView extends StatefulWidget {
   final EmbedController controller;
   final EmbedStyle? style;
   final bool scrollable;
-  final Object? reuseKey;
   final Widget Function(BuildContext context, Widget child)? webViewBuilder;
 
   const EmbedWebView.data({
@@ -42,7 +41,6 @@ class EmbedWebView extends StatefulWidget {
     required this.controller,
     this.style,
     this.scrollable = false,
-    this.reuseKey,
     this.webViewBuilder,
   })  : assert(
           embedConstraints == null || embedHeight == null,
@@ -60,7 +58,6 @@ class EmbedWebView extends StatefulWidget {
     required this.controller,
     this.style,
     this.scrollable = false,
-    this.reuseKey,
     this.webViewBuilder,
   })  : assert(
           embedConstraints == null || embedHeight == null,
@@ -79,28 +76,18 @@ class _EmbedViewState extends State<EmbedWebView> {
   static const _defaultContentFallbackHeight = 320.0;
 
   late EmbedWebViewDriver _driver;
-  Object? _reuseScopeToken;
-  bool _reuseWebViewsEnabled = false;
-
-  _EmbedWebViewReuseSignature get _reuseSignature =>
-      _EmbedWebViewReuseSignature(
-        param: widget.param,
-        data: widget.data,
-        url: widget.url,
-      );
 
   @override
   void initState() {
     super.initState();
-    _captureReuseScope(listen: false);
     _driver = _createDriver();
+    _scheduleVisibilityCheck();
     _scheduleInit();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _captureReuseScope();
   }
 
   @override
@@ -113,34 +100,38 @@ class _EmbedViewState extends State<EmbedWebView> {
         oldWidget.url != widget.url ||
         oldWidget.maxWidth != widget.maxWidth ||
         oldWidget.scrollable != widget.scrollable ||
-        oldWidget.param != widget.param ||
-        oldWidget.reuseKey != widget.reuseKey;
+        oldWidget.param != widget.param;
 
     if (shouldRefresh) {
-      _driver.dispose();
+      if (widget.controller.boundDriver != null) {
+        widget.controller.unbindDriver();
+        _driver.dispose();
+      }
       _driver = _createDriver();
       _scheduleInit(forceReload: true);
     }
   }
 
   EmbedWebViewDriver _createDriver() {
-    final reusedController = widget.reuseKey != null && _reuseWebViewsEnabled
-        ? EmbedScope.takeReusedWebViewControllerFromToken(
-            _reuseScopeToken,
-            reuseKey: widget.reuseKey!,
-            signature: _reuseSignature,
-          )
-        : null;
-    return EmbedWebViewDriver(
-      controller: widget.controller,
-      webViewController: reusedController,
-    );
-  }
+    final existing = widget.controller.boundDriver;
+    final controllerParam = widget.controller.param;
+    if (existing is EmbedWebViewDriver) {
+      if (existing.controller.param == controllerParam) {
+        return existing;
+      }
+      // Parameters mismatch: unbind and dispose the old driver.
+      widget.controller.unbindDriver();
+      existing.dispose();
+    }
 
-  void _captureReuseScope({bool listen = true}) {
-    _reuseScopeToken = EmbedScope.reuseScopeTokenOf(context, listen: listen);
-    _reuseWebViewsEnabled = _reuseScopeToken != null &&
-        EmbedScope.reuseWebViewsOf(context, listen: listen);
+    final driver = EmbedWebViewDriver(
+      controller: widget.controller,
+    );
+    widget.controller.bindDriver(
+      driver,
+      onDispose: () => driver.dispose(),
+    );
+    return driver;
   }
 
   void _scheduleInit({bool forceReload = false}) {
@@ -158,19 +149,15 @@ class _EmbedViewState extends State<EmbedWebView> {
     });
   }
 
+  void _scheduleVisibilityCheck() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      VisibilityDetectorController.instance.notifyNow();
+    });
+  }
+
   @override
   void dispose() {
-    var preserveWebView = false;
-    if (widget.reuseKey != null && _reuseWebViewsEnabled) {
-      EmbedScope.releaseReusedWebViewControllerToToken(
-        _reuseScopeToken,
-        reuseKey: widget.reuseKey!,
-        signature: _reuseSignature,
-        controller: _driver.webViewController,
-      );
-      preserveWebView = true;
-    }
-    _driver.dispose(preserveWebView: preserveWebView);
     super.dispose();
   }
 
@@ -245,6 +232,8 @@ class _EmbedViewState extends State<EmbedWebView> {
     return AnimatedBuilder(
       animation: widget.controller,
       builder: (context, child) {
+        _ensureDriverIsCurrent();
+        final effectiveParam = widget.controller.param;
         final config = widget.controller.config ?? EmbedScope.configOf(context);
         final style = widget.style ?? config?.style;
         final strings = config?.strings ?? const EmbedStrings();
@@ -320,7 +309,9 @@ class _EmbedViewState extends State<EmbedWebView> {
         }
 
         return VisibilityDetector(
-          key: ValueKey(widget.param),
+          key: ValueKey(
+            'embed_webview_${widget.controller.embedRevision}_${effectiveParam.key}',
+          ),
           onVisibilityChanged: (info) {
             widget.controller.updateVisibility(
               info.visibleFraction > 0,
@@ -333,30 +324,19 @@ class _EmbedViewState extends State<EmbedWebView> {
       },
     );
   }
-}
 
-@immutable
-class _EmbedWebViewReuseSignature {
-  const _EmbedWebViewReuseSignature({
-    required this.param,
-    required this.data,
-    required this.url,
-  });
+  void _ensureDriverIsCurrent() {
+    final controllerDriver = widget.controller.boundDriver;
+    final controllerParam = widget.controller.param;
+    final isStaleDriver = !identical(controllerDriver, _driver) ||
+        _driver.controller.param != controllerParam;
 
-  final SocialEmbedParam param;
-  final EmbedData? data;
-  final String? url;
+    if (!isStaleDriver) return;
 
-  @override
-  bool operator ==(Object other) {
-    return other is _EmbedWebViewReuseSignature &&
-        other.param == param &&
-        other.data == data &&
-        other.url == url;
+    _driver = _createDriver();
+    _scheduleVisibilityCheck();
+    _scheduleInit(forceReload: true);
   }
-
-  @override
-  int get hashCode => Object.hash(param, data, url);
 }
 
 class _EmbedWebviewObserver extends StatefulWidget {

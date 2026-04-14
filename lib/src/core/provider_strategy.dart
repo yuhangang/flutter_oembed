@@ -20,12 +20,6 @@ abstract class EmbedProviderStrategy {
   /// If null, the default browser User-Agent will be used.
   String? get userAgent => null;
 
-  /// Whether the provider manages its own loading-state signal (e.g. via a
-  /// JavaScript channel callback). When `true`, [EmbedWebViewDriver] will
-  /// wait for the provider signal before falling back to height-based
-  /// detection, rather than aggressively setting an error state.
-  bool get deferLoadingState => false;
-
   /// Custom JavaScript to run when the page starts loading.
   Future<void> onPageStarted(WebViewController controller) async {}
 

@@ -104,7 +104,7 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
         embedType == EmbedType.instagram ||
         embedType == EmbedType.threads ||
         embedType == EmbedType.soundcloud ||
-        embedType?.isTikTok == true;
+        embedType == EmbedType.tiktok_v1;
 
     final supportsConstraints =
         embedType == EmbedType.spotify ||
@@ -114,7 +114,7 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
     final supportsMediaControls =
         embedType == EmbedType.youtube ||
         embedType == EmbedType.vimeo ||
-        embedType?.isTikTok == true;
+        embedType == EmbedType.tiktok_v1;
 
     return Scaffold(
       appBar: AppBar(
@@ -428,7 +428,7 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
       return settings.metaParams;
     }
     if (type == EmbedType.soundcloud) return settings.soundCloudParams;
-    if (type?.isTikTok == true) return settings.tiktokParams;
+    if (type == EmbedType.tiktok_v1) return settings.tiktokParams;
     return null;
   }
 }

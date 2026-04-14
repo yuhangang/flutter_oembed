@@ -158,9 +158,6 @@ class XProviderStrategy extends GenericEmbedProviderStrategy {
   const XProviderStrategy();
 
   @override
-  bool get deferLoadingState => true;
-
-  @override
   String buildHtmlDocument(
     String embedHtml, {
     required EmbedType type,
@@ -186,7 +183,9 @@ class XProviderStrategy extends GenericEmbedProviderStrategy {
   }) async {
     await controller.addJavaScriptChannel(
       'OnTwitterLoaded',
-      onMessageReceived: (_) => onTwitterLoaded?.call(),
+      onMessageReceived: (_) {
+        onTwitterLoaded?.call();
+      },
     );
   }
 

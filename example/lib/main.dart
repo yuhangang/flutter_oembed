@@ -33,7 +33,6 @@ class _MyAppState extends State<MyApp> {
         builder: (context, _) {
           final settings = _settingsController.settings;
           return EmbedScope(
-            reuseWebViews: true,
             config: EmbedConfig(
               locale: settings.locale,
               brightness: settings.brightness,

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_constant.dart';
 import 'package:flutter_oembed/src/models/embed_constraints.dart';
+import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_provider_config.dart';
 import 'package:flutter_oembed/src/models/embed_strings.dart';
 import 'package:flutter_oembed/src/core/embed_cache_provider.dart';
@@ -95,6 +96,17 @@ void main() {
         isTrue,
       );
     });
+
+    test('matchRule memoizes provider resolution by URL', () {
+      const config = EmbedProviderConfig();
+      const url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+
+      final first = config.matchRule(url);
+      final second = config.matchRule(url);
+
+      expect(first, isNotNull);
+      expect(identical(first, second), isTrue);
+    });
   });
 
   group('EmbedConfig', () {
@@ -124,6 +136,7 @@ void main() {
         updated.strings.loadingSemanticsLabel,
         equals('Memuat kandungan'),
       );
+      expect(updated.heightUpdateDeltaThreshold, equals(2.0));
     });
 
     test('defaults use shared embed constants', () {
@@ -132,9 +145,24 @@ void main() {
 
       expect(config.loadTimeout, equals(kDefaultEmbedLoadTimeout));
       expect(
+        config.heightUpdateDeltaThreshold,
+        equals(kDefaultHeightUpdateDeltaThreshold),
+      );
+      expect(
         style.maxScrollableHeight,
         equals(kDefaultMaxScrollableEmbedHeight),
       );
+    });
+
+    test('runtimeEquals includes callback identity', () {
+      void handleTap(String url, EmbedData? data) {}
+
+      final first = EmbedConfig(onLinkTap: handleTap);
+      final second = first.copyWith(onLinkTap: handleTap);
+      final third = EmbedConfig(onLinkTap: (url, data) {});
+
+      expect(first.runtimeEquals(second), isTrue);
+      expect(first.runtimeEquals(third), isFalse);
     });
   });
 

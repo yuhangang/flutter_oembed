@@ -109,20 +109,10 @@ class TikTokEmbedPlayer extends StatefulWidget {
 class _TikTokEmbedPlayerState extends State<TikTokEmbedPlayer> {
   late EmbedController _controller;
   bool _isControllerInternal = false;
-  late final SocialEmbedParam _param;
 
   @override
   void initState() {
     super.initState();
-    final videoId = _extractTikTokVideoId(widget.videoIdOrUrl);
-
-    // We construct a mock URL for the param, even if we are fetching by ID.
-    final mockUrl = 'https://www.tiktok.com/@user/video/$videoId';
-
-    _param = SocialEmbedParam(
-      url: mockUrl,
-      embedType: EmbedType.tiktok_v1,
-    );
   }
 
   @override
@@ -134,34 +124,40 @@ class _TikTokEmbedPlayerState extends State<TikTokEmbedPlayer> {
   @override
   void didUpdateWidget(TikTokEmbedPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
+    final needsControllerRefresh = oldWidget.controller != widget.controller;
+    if (needsControllerRefresh) {
       if (_isControllerInternal) {
         _controller.dispose();
       }
-
-      if (widget.controller != null) {
-        _controller = widget.controller!;
-        _isControllerInternal = false;
-      } else {
-        _controller = EmbedController(
-          param: _param,
-          config: EmbedScope.configOf(context),
-        );
-        _isControllerInternal = true;
-      }
     }
+
+    _initControllerIfNeeded(forceReplace: needsControllerRefresh);
   }
 
-  void _initControllerIfNeeded() {
+  void _initControllerIfNeeded({bool forceReplace = false}) {
+    final config = EmbedScope.configOf(context);
+    final param = _buildParam();
+
     if (widget.controller != null) {
       _controller = widget.controller!;
       _isControllerInternal = false;
-    } else {
-      _controller = EmbedController(
-        param: _param,
-        config: EmbedScope.configOf(context),
+      _controller.synchronize(
+        param: param,
+        config: config,
       );
-      _isControllerInternal = true;
+    } else {
+      if (!_isControllerInternal || forceReplace) {
+        _controller = EmbedController(
+          param: param,
+          config: config,
+        );
+        _isControllerInternal = true;
+      } else {
+        _controller.synchronize(
+          param: param,
+          config: config,
+        );
+      }
     }
   }
 
@@ -189,6 +185,15 @@ class _TikTokEmbedPlayerState extends State<TikTokEmbedPlayer> {
       return input;
     }
     return input; // Fallback
+  }
+
+  SocialEmbedParam _buildParam() {
+    final videoId = _extractTikTokVideoId(widget.videoIdOrUrl);
+    return SocialEmbedParam(
+      url: 'https://www.tiktok.com/@user/video/$videoId',
+      embedType: EmbedType.tiktok_v1,
+      embedParams: widget.embedParams,
+    );
   }
 
   String _buildPlayerUrl(String videoId, {EmbedConfig? config}) {
@@ -235,10 +240,11 @@ class _TikTokEmbedPlayerState extends State<TikTokEmbedPlayer> {
     // Using AspectRatio since the native player often requires fixed bounds
     return EmbedSurface(
       style: style,
-      footerUrl: _param.url,
+      footerUrl: _buildParam().url,
       childBuilder: (context) {
+        final param = _buildParam();
         final player = EmbedWebView.data(
-          param: _param,
+          param: param,
           data: EmbedData(html: playerUrl),
           maxWidth: widget.maxWidth ?? double.infinity,
           controller: _controller,

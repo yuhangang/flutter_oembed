@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_oembed/src/core/embed_scope.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/tiktok_embed_params.dart';
 import 'package:flutter_oembed/src/utils/embed_matchers.dart';
 import 'package:flutter_oembed/src/widgets/embed_card.dart';
 import 'package:flutter_oembed/src/widgets/embed_renderer.dart';
+import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_oembed/src/widgets/embed_widget_loader.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
+
+void _stableOnLinkTap(String url, EmbedData? data) {}
 
 class FakeWebViewPlatform extends WebViewPlatform {
   FakePlatformWebViewController? lastCreatedController;
@@ -162,17 +168,6 @@ void main() {
 
     expect(widget.url, testUrl);
     expect(widget.embedType, isNull);
-  });
-
-  testWidgets('EmbedCard.url factory forwards reuseKey', (tester) async {
-    const reuseKey = 'feed-item-42';
-
-    final widget = EmbedCard.url(
-      'https://twitter.com/x/status/123',
-      reuseKey: reuseKey,
-    );
-
-    expect(widget.reuseKey, reuseKey);
   });
 
   testWidgets('EmbedCard.url factory forwards controller', (tester) async {
@@ -398,6 +393,89 @@ void main() {
     );
   });
 
+  testWidgets(
+      'embed params updates refresh the webview and external controller even with scope cache',
+      (tester) async {
+    final controller = EmbedController(
+      param: SocialEmbedParam(
+        url: 'https://www.tiktok.com/@user/video/123',
+        embedType: EmbedType.tiktok_v1,
+      ),
+    );
+    final config = const EmbedConfig(cache: EmbedCacheConfig(enabled: true));
+
+    try {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: EmbedScope(
+            config: config,
+            child: EmbedCard(
+              url: 'https://www.tiktok.com/@user/video/123',
+              embedType: EmbedType.tiktok_v1,
+              controller: controller,
+              embedParams: const TikTokEmbedParams(
+                autoplay: false,
+                controls: true,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+
+      expect(
+        fakePlatform.lastCreatedController?.lastLoadedHtml,
+        contains('autoplay=0'),
+      );
+      expect(
+        controller.param.embedParams,
+        const TikTokEmbedParams(
+          autoplay: false,
+          controls: true,
+        ),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: EmbedScope(
+            config: config,
+            child: EmbedCard(
+              url: 'https://www.tiktok.com/@user/video/123',
+              embedType: EmbedType.tiktok_v1,
+              controller: controller,
+              embedParams: const TikTokEmbedParams(
+                autoplay: true,
+                controls: false,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+
+      expect(
+        fakePlatform.lastCreatedController?.lastLoadedHtml,
+        contains('autoplay=1'),
+      );
+      expect(
+        fakePlatform.lastCreatedController?.lastLoadedHtml,
+        contains('controls=0'),
+      );
+      expect(
+        controller.param.embedParams,
+        const TikTokEmbedParams(
+          autoplay: true,
+          controls: false,
+        ),
+      );
+      expect(controller.loadingState, EmbedLoadingState.loading);
+    } finally {
+      controller.dispose();
+    }
+  });
+
   testWidgets('EmbedCard.url factory and overrides', (tester) async {
     const style = EmbedStyle(maxScrollableHeight: 400);
     const cache = EmbedCacheConfig(enabled: false);
@@ -412,7 +490,6 @@ void main() {
             scrollable: true,
             cacheConfig: cache,
             embedConstraints: embedConstraints,
-            reuseKey: 'youtube-player',
           ),
         ),
       ),
@@ -424,7 +501,6 @@ void main() {
     expect(loader.scrollable, isTrue);
     expect(loader.cacheConfig, equals(cache));
     expect(loader.embedConstraints, equals(embedConstraints));
-    expect(loader.reuseKey, 'youtube-player');
   });
 
   testWidgets('legacy embedHeight maps to preferredHeight constraint', (
@@ -447,5 +523,41 @@ void main() {
       loader.embedConstraints,
       equals(const EmbedConstraints(preferredHeight: 232)),
     );
+  });
+
+  testWidgets(
+      'rebuild with the same onLinkTap callback preserves the loader controller',
+      (tester) async {
+    final data = const EmbedData(
+      html: '<div id="stable-callback">stable</div>',
+      providerUrl: 'https://www.youtube.com',
+    );
+
+    Widget buildCard() {
+      return MaterialApp(
+        home: EmbedScope(
+          config: const EmbedConfig(),
+          child: EmbedCard(
+            url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            preloadedData: data,
+            onLinkTap: _stableOnLinkTap,
+          ),
+        ),
+      );
+    }
+
+    await tester.pumpWidget(buildCard());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    final firstController =
+        tester.widget<EmbedWebView>(find.byType(EmbedWebView)).controller;
+
+    await tester.pumpWidget(buildCard());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    final secondController =
+        tester.widget<EmbedWebView>(find.byType(EmbedWebView)).controller;
+
+    expect(secondController, same(firstController));
   });
 }

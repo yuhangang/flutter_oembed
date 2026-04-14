@@ -9,11 +9,9 @@ import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 
 class EmbedController extends ChangeNotifier {
-  static const _heightUpdateDeltaThreshold = 2.0;
-
-  final SocialEmbedParam param;
-  final EmbedConfig? config;
-  final EmbedData? preloadedData;
+  SocialEmbedParam param;
+  EmbedConfig? config;
+  EmbedData? preloadedData;
 
   EmbedLoadingState loadingState = EmbedLoadingState.loading;
   bool didRetry = false;
@@ -21,12 +19,19 @@ class EmbedController extends ChangeNotifier {
   bool isVisible = true;
   Object? lastError;
   bool _isDisposed = false;
+  int _embedRevision = 0;
   Timer? _timeoutTimer;
   Future<void> Function()? _pauseMediaHandler;
   Future<void> Function()? _resumeMediaHandler;
   Future<void> Function()? _muteMediaHandler;
   Future<void> Function()? _unmuteMediaHandler;
   Future<void> Function(Duration position)? _seekMediaHandler;
+
+  /// Internal slot used by [EmbedWebView] to persist a driver across remounts.
+  Object? _boundDriver;
+  void Function()? _onDriverDispose;
+  int get embedRevision => _embedRevision;
+
   EmbedLogger get _logger => config?.logger ?? const EmbedLogger.disabled();
 
   EmbedController({
@@ -39,6 +44,9 @@ class EmbedController extends ChangeNotifier {
   void dispose() {
     if (_isDisposed) return;
     _isDisposed = true;
+    _onDriverDispose?.call();
+    _onDriverDispose = null;
+    _boundDriver = null;
     _unbindMediaControls();
     cancelLoadTimeout();
     super.dispose();
@@ -52,13 +60,52 @@ class EmbedController extends ChangeNotifier {
     if (_isDisposed) return;
     if (!newHeight.isFinite || newHeight <= 0) return;
     final currentHeight = height;
+    final deltaThreshold = config?.heightUpdateDeltaThreshold ??
+        kDefaultHeightUpdateDeltaThreshold;
     final shouldUpdate = currentHeight == null ||
         newHeight > currentHeight ||
-        (currentHeight - newHeight).abs() >= _heightUpdateDeltaThreshold;
+        (currentHeight - newHeight).abs() >= deltaThreshold;
     if (shouldUpdate) {
       height = newHeight;
       notifyListeners();
     }
+  }
+
+  void updateConfig(EmbedConfig? value) {
+    if (_isDisposed || EmbedConfig.runtimeEqualsNullable(config, value)) {
+      return;
+    }
+    config = value;
+    notifyListeners();
+  }
+
+  void synchronize({
+    required SocialEmbedParam param,
+    EmbedConfig? config,
+    EmbedData? preloadedData,
+  }) {
+    if (_isDisposed) return;
+
+    final paramChanged = this.param != param;
+    final preloadedDataChanged = this.preloadedData != preloadedData;
+    final configChanged =
+        !EmbedConfig.runtimeEqualsNullable(this.config, config);
+
+    if (!paramChanged && !preloadedDataChanged && !configChanged) {
+      return;
+    }
+
+    this.param = param;
+    this.preloadedData = preloadedData;
+    this.config = config;
+
+    if (paramChanged || preloadedDataChanged) {
+      _disposeBoundDriver();
+      _embedRevision++;
+      _resetRuntimeStateForReload();
+    }
+
+    notifyListeners();
   }
 
   void updateVisibility(
@@ -99,6 +146,7 @@ class EmbedController extends ChangeNotifier {
   }
 
   void startLoadTimeout() {
+    if (_isDisposed) return;
     _timeoutTimer?.cancel();
     final timeout = config?.loadTimeout ?? kDefaultEmbedLoadTimeout;
     _timeoutTimer = Timer(timeout, () {
@@ -173,5 +221,37 @@ class EmbedController extends ChangeNotifier {
     _muteMediaHandler = null;
     _unmuteMediaHandler = null;
     _seekMediaHandler = null;
+  }
+
+  /// Internal: Gets the currently bound driver (usually an EmbedWebViewDriver).
+  Object? get boundDriver => _boundDriver;
+
+  /// Internal: Binds a driver to this controller for persistence.
+  void bindDriver(Object driver, {required void Function() onDispose}) {
+    if (_isDisposed) return;
+    _onDriverDispose?.call();
+    _boundDriver = driver;
+    _onDriverDispose = onDispose;
+  }
+
+  /// Internal: Unbinds the current driver without necessarily disposing it.
+  void unbindDriver() {
+    _boundDriver = null;
+    _onDriverDispose = null;
+  }
+
+  void _resetRuntimeStateForReload() {
+    cancelLoadTimeout();
+    _unbindMediaControls();
+    loadingState = EmbedLoadingState.loading;
+    didRetry = false;
+    height = null;
+    lastError = null;
+  }
+
+  void _disposeBoundDriver() {
+    _onDriverDispose?.call();
+    _onDriverDispose = null;
+    _boundDriver = null;
   }
 }

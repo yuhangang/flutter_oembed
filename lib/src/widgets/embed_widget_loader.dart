@@ -25,7 +25,6 @@ class EmbedWidgetLoader extends StatefulWidget {
     this.cacheConfig,
     this.embedConstraints,
     this.scrollable = false,
-    this.reuseKey,
     this.webViewBuilder,
   });
 
@@ -40,7 +39,6 @@ class EmbedWidgetLoader extends StatefulWidget {
   final EmbedCacheConfig? cacheConfig;
   final EmbedConstraints? embedConstraints;
   final bool scrollable;
-  final Object? reuseKey;
   final Widget Function(BuildContext context, Widget child)? webViewBuilder;
 
   @override
@@ -68,7 +66,7 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
     // no explicit config is provided.
     if (widget.config != null) return;
     final config = EmbedScope.configOf(context);
-    if (config != _scopeConfig) {
+    if (!EmbedConfig.runtimeEqualsNullable(config, _scopeConfig)) {
       _scopeConfig = config;
       _replaceController(config: config);
     }
@@ -77,10 +75,16 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
   @override
   void didUpdateWidget(covariant EmbedWidgetLoader oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final nextConfig = widget.config ?? EmbedScope.configOf(context);
+    final configChanged =
+        !EmbedConfig.runtimeEqualsNullable(oldWidget.config, widget.config) ||
+            !EmbedConfig.runtimeEqualsNullable(_scopeConfig, nextConfig);
+
     if (oldWidget.param != widget.param ||
         oldWidget.preloadedData != widget.preloadedData ||
-        !identical(oldWidget.config, widget.config)) {
-      _scopeConfig = widget.config ?? EmbedScope.configOf(context);
+        oldWidget.controller != widget.controller ||
+        configChanged) {
+      _scopeConfig = nextConfig;
       _replaceController(config: _scopeConfig);
     }
   }
@@ -89,6 +93,11 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
     required EmbedConfig? config,
   }) {
     if (widget.controller != null) {
+      widget.controller!.synchronize(
+        param: widget.param,
+        config: config,
+        preloadedData: widget.preloadedData,
+      );
       return widget.controller!;
     }
     return EmbedController(
@@ -149,7 +158,6 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
                 style: style,
                 embedConstraints: widget.embedConstraints,
                 scrollable: widget.scrollable,
-                reuseKey: widget.reuseKey,
                 webViewBuilder: widget.webViewBuilder,
               );
             }
@@ -178,7 +186,6 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
                   style: style,
                   embedConstraints: widget.embedConstraints,
                   scrollable: widget.scrollable,
-                  reuseKey: widget.reuseKey,
                   webViewBuilder: widget.webViewBuilder,
                 ),
               OEmbedRenderer() => EmbedDataLoader(
@@ -189,7 +196,6 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
                   cacheConfig: widget.cacheConfig,
                   embedConstraints: widget.embedConstraints,
                   scrollable: widget.scrollable,
-                  reuseKey: widget.reuseKey,
                   webViewBuilder: widget.webViewBuilder,
                   loaderParam: EmbedLoaderParam(
                     url: widget.param.url,

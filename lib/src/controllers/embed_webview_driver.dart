@@ -18,7 +18,6 @@ import 'package:webview_flutter/webview_flutter.dart';
 /// from the high-level [EmbedController] state.
 class EmbedWebViewDriver {
   static const _initialRenderDelay = Duration(milliseconds: 300);
-  static const _deferredSignalWait = Duration(seconds: 2);
   static const _integrityRetryDelay = Duration(milliseconds: 700);
   static const _postLoadShiftDelay = Duration(milliseconds: 500);
 
@@ -27,6 +26,7 @@ class EmbedWebViewDriver {
   late final EmbedNavigationHandler _navigationHandler;
   static final _focusCoordinator = _EmbedFocusCoordinator();
   static final Object _defaultFocusGroup = Object();
+  static const _twitterLoadedFallbackDelay = Duration(seconds: 2);
 
   EmbedProviderStrategy _strategy = const GenericEmbedProviderStrategy();
   Object _focusGroupKey = _defaultFocusGroup;
@@ -34,6 +34,8 @@ class EmbedWebViewDriver {
   bool _isFocused = false;
   bool _isRouteCovered = false;
   bool _isDisposed = false;
+  Timer? _twitterLoadedFallbackTimer;
+  bool _awaitingTwitterLoadedEvent = false;
 
   EmbedLogger get _logger =>
       controller.config?.logger ?? const EmbedLogger.disabled();
@@ -42,6 +44,12 @@ class EmbedWebViewDriver {
     required this.controller,
     WebViewController? webViewController,
   }) : webViewController = webViewController ?? generateWebViewController() {
+    _strategy = EmbedService.resolveRule(
+          controller.param.url,
+          config: controller.config,
+        )?.strategy ??
+        const GenericEmbedProviderStrategy();
+
     controller.bindMediaControls(
       pause: () => pauseMedias(),
       resume: () => resumeMedias(),
@@ -58,6 +66,7 @@ class EmbedWebViewDriver {
   void dispose({bool preserveWebView = false}) {
     if (_isDisposed) return;
     _isDisposed = true;
+    _cancelTwitterLoadedFallback();
     controller.cancelLoadTimeout();
     controller.unbindMediaControls();
     _focusCoordinator.detach(this, groupKey: _focusGroupKey);
@@ -78,18 +87,6 @@ class EmbedWebViewDriver {
 
     if (covered) {
       await pauseMedias(reason: 'route_covered');
-    } else {
-      if (!_isFocused || _visibleFraction <= 0) return;
-      try {
-        await resumeMedias(reason: 'route_exposed');
-      } catch (error, stackTrace) {
-        _logger.debug(
-          'Failed to resume media after route uncover',
-          data: {'url': controller.param.url},
-          error: error,
-          stackTrace: stackTrace,
-        );
-      }
     }
   }
 
@@ -98,14 +95,6 @@ class EmbedWebViewDriver {
     final normalized = visibleFraction.clamp(0.0, 1.0).toDouble();
     if ((normalized - _visibleFraction).abs() < 0.01) return;
     _visibleFraction = normalized;
-
-    _logger.debug(
-      'Embed visibility changed',
-      data: {
-        'url': controller.param.url,
-        'visibleFraction': normalized,
-      },
-    );
 
     _focusCoordinator.updateVisibility(
       this,
@@ -124,16 +113,17 @@ class EmbedWebViewDriver {
     bool forceReload = false,
   }) async {
     if (_isDisposed) return;
-    // Resolve strategy first
-    final rule = EmbedService.resolveRule(
-      controller.param.url,
-      config: controller.config,
-    );
-    _strategy = rule?.strategy ?? const GenericEmbedProviderStrategy();
+    _strategy = EmbedService.resolveRule(
+          controller.param.url,
+          config: controller.config,
+        )?.strategy ??
+        const GenericEmbedProviderStrategy();
 
     if (!forceReload &&
         controller.loadingState == EmbedLoadingState.loaded &&
-        (controller.height != null || controller.param.embedType.isTikTok)) {
+        (controller.height != null ||
+            controller.param.embedType == EmbedType.tiktok_v1)) {
+      _logger.debug('Embed already loaded, skipping initEmbedWebview');
       return;
     }
 
@@ -185,13 +175,7 @@ class EmbedWebViewDriver {
     await _strategy.onWebViewCreated(
       webViewController,
       onTwitterLoaded: () async {
-        await updateEmbedPostHeight();
-        if (controller.loadingState != EmbedLoadingState.loaded &&
-            controller.height != null &&
-            controller.height! > 0) {
-          controller.cancelLoadTimeout();
-          controller.setLoadingState(EmbedLoadingState.loaded);
-        }
+        await _handleTwitterLoaded();
       },
     );
     if (_isDisposed) return;
@@ -252,11 +236,12 @@ class EmbedWebViewDriver {
         trustedMainFrameUrls: trustedMainFrameUrls,
         loadingStateGetter: () => controller.loadingState,
         onPageStarted: (url) async {
+          _cancelTwitterLoadedFallback();
           await _strategy.onPageStarted(webViewController);
         },
         onPageFinished: () async {
           await _strategy.onPageFinished(webViewController);
-          await _handleEmbedPageFinished();
+          await _handleEmbedPageFinishedWithFallback();
         },
         onWebResourceError: (error) {
           if (error.isForMainFrame == true) {
@@ -346,6 +331,39 @@ class EmbedWebViewDriver {
     }
   }
 
+  Future<void> _handleEmbedPageFinishedWithFallback() async {
+    if (_usesTwitterLoadedFallback) {
+      _awaitingTwitterLoadedEvent = true;
+      _twitterLoadedFallbackTimer?.cancel();
+      _twitterLoadedFallbackTimer = Timer(
+        _twitterLoadedFallbackDelay,
+        () {
+          if (_isDisposed || !_awaitingTwitterLoadedEvent) return;
+          _awaitingTwitterLoadedEvent = false;
+          unawaited(_handleEmbedPageFinished());
+        },
+      );
+      return;
+    }
+
+    await _handleEmbedPageFinished();
+  }
+
+  Future<void> _handleTwitterLoaded() async {
+    if (_isDisposed || !_awaitingTwitterLoadedEvent) return;
+    _cancelTwitterLoadedFallback();
+    await _handleEmbedPageFinished();
+  }
+
+  void _cancelTwitterLoadedFallback() {
+    _awaitingTwitterLoadedEvent = false;
+    _twitterLoadedFallbackTimer?.cancel();
+    _twitterLoadedFallbackTimer = null;
+  }
+
+  bool get _usesTwitterLoadedFallback =>
+      controller.param.embedType == EmbedType.x;
+
   Future<void> _handleEmbedPageFinished() async {
     // 1. URL Safety Check: If we end up on an error page or unexpected blank page, trigger error
     final url = await webViewController.currentUrl();
@@ -368,47 +386,23 @@ class EmbedWebViewDriver {
     if (!await _delayWhileActive(_initialRenderDelay)) return;
 
     if (controller.loadingState != EmbedLoadingState.loaded) {
-      if (_strategy.deferLoadingState) {
-        // ----- Deferred path (e.g. X/Twitter) -----
-        // The provider has its own "loaded" signal (e.g. OnTwitterLoaded JS
-        // channel). Wait up to 2 seconds for it to fire. If the signal
-        // arrives, the callback will have already set state to loaded.
-        if (!await _delayWhileActive(_deferredSignalWait)) return;
-        if (controller.loadingState == EmbedLoadingState.loaded) return;
+      // 3. Initial height check
+      await updateEmbedPostHeight();
+      if (_isDisposed) return;
 
-        // Fallback: signal didn't arrive in time – use height-based detection
-        await updateEmbedPostHeight();
-        if (_isDisposed) return;
-
-        if (controller.height != null && controller.height! > 0) {
-          controller.setLoadingState(EmbedLoadingState.loaded);
-        } else {
-          _logger.warning(
-            'Deferred embed load: signal not received and height is 0',
-            data: {'url': controller.param.url},
-          );
-          controller.setLoadingState(
-            EmbedLoadingState.error,
-            error: StateError(
-              'Deferred embed load did not report a valid height for ${controller.param.url}.',
-            ),
-          );
-        }
-        return;
-      } else {
-        // 3. Initial height check
-        await updateEmbedPostHeight();
-        if (_isDisposed) return;
+      if (controller.height != null && controller.height! > 1.0) {
+        controller.cancelLoadTimeout();
+        controller.setLoadingState(EmbedLoadingState.loaded);
       }
+    }
 
-      // ----- Generic path -----
-      // 4. Post-Load Integrity Check: If height is still effectively 0 after small delay,
-      // it might be a silent failure (e.g. script crashed before rendering anything)
-      if (controller.height == null || controller.height! <= 1.0) {
-        if (!await _delayWhileActive(_integrityRetryDelay)) return;
-        await updateEmbedPostHeight();
-        if (_isDisposed) return;
-      }
+    // ----- Generic path -----
+    // 4. Post-Load Integrity Check: If height is still effectively 0 after small delay,
+    // it might be a silent failure (e.g. script crashed before rendering anything)
+    if (controller.height == null || controller.height! <= 1.0) {
+      if (!await _delayWhileActive(_integrityRetryDelay)) return;
+      await updateEmbedPostHeight();
+      if (_isDisposed) return;
 
       if (controller.height != null && controller.height! > 0) {
         controller.cancelLoadTimeout();
@@ -425,12 +419,12 @@ class EmbedWebViewDriver {
           ),
         );
       }
-
-      // Final short delay to catch any immediate post-load shifts
-      if (!await _delayWhileActive(_postLoadShiftDelay)) return;
-
-      await updateEmbedPostHeight();
     }
+
+    // Final short delay to catch any immediate post-load shifts
+    if (!await _delayWhileActive(_postLoadShiftDelay)) return;
+
+    await updateEmbedPostHeight();
   }
 
   Future<void> updateEmbedPostHeight() async {
@@ -550,14 +544,8 @@ class EmbedWebViewDriver {
       return;
     }
 
-    if (focused) {
-      if (!_isRouteCovered && _visibleFraction > 0) {
-        unawaited(resumeMedias(reason: reason));
-      }
-    } else {
-      if (wasFocused || forcePause || _visibleFraction <= 0) {
-        unawaited(pauseMedias(reason: reason));
-      }
+    if (!focused || forcePause || _visibleFraction <= 0) {
+      unawaited(pauseMedias(reason: reason));
     }
   }
 
