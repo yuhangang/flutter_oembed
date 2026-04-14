@@ -9,6 +9,7 @@ import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/models/embed_loader_param.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_oembed/src/models/embed_strings.dart';
+import 'package:flutter_oembed/src/models/embed_webview_controls.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter/material.dart';
@@ -24,7 +25,11 @@ class EmbedDataLoader extends StatefulWidget {
   final EmbedCacheConfig? cacheConfig;
   final EmbedConstraints? embedConstraints;
   final bool scrollable;
-  final Widget Function(BuildContext context, Widget child)? webViewBuilder;
+  final Widget Function(
+    BuildContext context,
+    EmbedWebViewControls controls,
+    Widget child,
+  )? webViewBuilder;
 
   const EmbedDataLoader({
     super.key,

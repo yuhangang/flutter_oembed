@@ -86,14 +86,17 @@ class EmbedConfig extends Equatable {
   ///
   /// The built-in policy always allows sub-frame/bootstrap document loads,
   /// blocks unexpected main-frame redirects while the embed is still loading,
-  /// and routes post-load external navigations out of the WebView.
+  /// and only routes post-load external navigations out of the WebView when
+  /// they follow a recent user tap captured inside the embed. A Flutter-side
+  /// pointer listener is also used as a coarse fallback when a provider does
+  /// not expose a tappable anchor href to JavaScript.
   final FutureOr<NavigationDecision>? Function(NavigationRequest)?
       onNavigationRequest;
 
   /// A simpler callback for handling link clicks.
   ///
   /// If provided, this is called when the default navigation policy intercepts
-  /// an external main-frame navigation after the embed has loaded.
+  /// a user-initiated external main-frame navigation after the embed has loaded.
   ///
   /// Leaving this null makes the package attempt to open the URL via
   /// `url_launcher` using the platform's external browser or app.

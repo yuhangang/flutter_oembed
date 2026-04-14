@@ -12,6 +12,7 @@ import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_strings.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/models/embed_webview_controls.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -29,7 +30,11 @@ class EmbedWebView extends StatefulWidget {
   final EmbedController controller;
   final EmbedStyle? style;
   final bool scrollable;
-  final Widget Function(BuildContext context, Widget child)? webViewBuilder;
+  final Widget Function(
+    BuildContext context,
+    EmbedWebViewControls controls,
+    Widget child,
+  )? webViewBuilder;
 
   const EmbedWebView.data({
     super.key,
@@ -192,9 +197,13 @@ class _EmbedViewState extends State<EmbedWebView> {
     return Semantics(
       container: true,
       label: strings.contentSemanticsLabel,
-      child: WebViewWidget(
-        controller: _driver.webViewController,
-        gestureRecognizers: gestureRecognizers,
+      child: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (_) => _driver.recordUserInteraction(),
+        child: WebViewWidget(
+          controller: _driver.webViewController,
+          gestureRecognizers: gestureRecognizers,
+        ),
       ),
     );
   }
@@ -232,7 +241,6 @@ class _EmbedViewState extends State<EmbedWebView> {
     return AnimatedBuilder(
       animation: widget.controller,
       builder: (context, child) {
-        _ensureDriverIsCurrent();
         final effectiveParam = widget.controller.param;
         final config = widget.controller.config ?? EmbedScope.configOf(context);
         final style = widget.style ?? config?.style;
@@ -286,11 +294,10 @@ class _EmbedViewState extends State<EmbedWebView> {
                       widget.controller.setLoadingState(
                         EmbedLoadingState.loading,
                       );
-                      if (loadingState == EmbedLoadingState.error) {
+                      if (loadingState == EmbedLoadingState.error ||
+                          loadingState == EmbedLoadingState.noConnection) {
                         widget.controller.setDidRetry();
                         _driver.refresh();
-                      } else {
-                        _driver.webViewController.reload();
                       }
                     },
                     child: style?.errorBuilder?.call(
@@ -305,7 +312,21 @@ class _EmbedViewState extends State<EmbedWebView> {
         );
 
         if (effectiveWebViewBuilder != null) {
-          webViewContainer = effectiveWebViewBuilder(context, webViewContainer);
+          final controls = EmbedWebViewControls(
+            controller: _driver.webViewController,
+            onReload: () => _driver.refresh(),
+            onUpdateHeight: () => _driver.updateEmbedPostHeight(),
+            onPause: () => widget.controller.pauseMedia(),
+            onResume: () => widget.controller.resumeMedia(),
+            onMute: () => widget.controller.muteMedia(),
+            onUnmute: () => widget.controller.unmuteMedia(),
+            onSeekTo: (position) => widget.controller.seekMediaTo(position),
+          );
+          webViewContainer = effectiveWebViewBuilder(
+            context,
+            controls,
+            webViewContainer,
+          );
         }
 
         return VisibilityDetector(
@@ -323,19 +344,6 @@ class _EmbedViewState extends State<EmbedWebView> {
         );
       },
     );
-  }
-
-  void _ensureDriverIsCurrent() {
-    final controllerDriver = widget.controller.boundDriver;
-    final controllerParam = widget.controller.param;
-    final isStaleDriver = !identical(controllerDriver, _driver) ||
-        _driver.controller.param != controllerParam;
-
-    if (!isStaleDriver) return;
-
-    _driver = _createDriver();
-    _scheduleVisibilityCheck();
-    _scheduleInit(forceReload: true);
   }
 }
 
@@ -355,6 +363,7 @@ class _EmbedWebviewObserver extends StatefulWidget {
 class _EmbedWebviewObserverState extends State<_EmbedWebviewObserver>
     with RouteAware {
   RouteObserver<ModalRoute<dynamic>>? _routeObserver;
+  bool _pauseOnRouteCover = false;
 
   @override
   void didChangeDependencies() {
@@ -375,8 +384,11 @@ class _EmbedWebviewObserverState extends State<_EmbedWebviewObserver>
     if (!mounted) return;
 
     final config = widget.controller.config ?? EmbedScope.configOf(context);
-    final routeObserver = config?.routeObserver;
+    final pauseOnRouteCover = config?.pauseOnRouteCover ?? false;
+    final routeObserver = pauseOnRouteCover ? config?.routeObserver : null;
     final route = ModalRoute.of(context);
+    final wasPauseOnRouteCover = _pauseOnRouteCover;
+    _pauseOnRouteCover = pauseOnRouteCover;
 
     if (routeObserver != _routeObserver) {
       _routeObserver?.unsubscribe(this);
@@ -384,6 +396,10 @@ class _EmbedWebviewObserverState extends State<_EmbedWebviewObserver>
       if (routeObserver != null && route != null) {
         routeObserver.subscribe(this, route);
       }
+    }
+
+    if (wasPauseOnRouteCover && !pauseOnRouteCover) {
+      widget.driver.setRouteCovered(false);
     }
 
     widget.driver.updateFocusGroup(route);
@@ -397,11 +413,13 @@ class _EmbedWebviewObserverState extends State<_EmbedWebviewObserver>
 
   @override
   void didPushNext() {
+    if (!_pauseOnRouteCover) return;
     widget.driver.setRouteCovered(true);
   }
 
   @override
   void didPopNext() {
+    if (!_pauseOnRouteCover) return;
     widget.driver.setRouteCovered(false);
   }
 

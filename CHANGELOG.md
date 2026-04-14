@@ -10,7 +10,10 @@
 
 ### Improvements
 
-* **Navigation**: Hardened WebView navigation handling so sub-frame/bootstrap loads still work, unexpected startup redirects are blocked, and post-load external links or custom schemes are handed off outside the WebView.
+* **Navigation**: Hardened WebView navigation handling so sub-frame/bootstrap loads still work, unexpected startup redirects are blocked, and post-load external links or custom schemes are only handed off outside the WebView after a recent user tap, with a Flutter-side touch fallback when href-specific capture is unavailable.
+* **WebView controls**: Fixed `EmbedWebViewControls` so `onSeekTo` is exposed through a public `seekTo` method.
+* **Retry handling**: Fixed WebView retry from `noConnection` state so it restarts the load timeout instead of reloading without a guard.
+* **Visibility and route-cover behavior**: Synced navigation visibility blocking with `VisibilityDetector` updates and made route-cover pausing honor `EmbedConfig.pauseOnRouteCover`.
 * **YouTube**: Fixed iframe-mode YouTube embeds in the HTML, Markdown, and Quill example integrations by aligning the embed host, origin, and referer used inside mobile WebViews.
 * **TikTok**: Added an opt-in mechanism to use the specialized v1 player via `TikTokEmbedParams.useV1Player` in `EmbedCard`. Standard oEmbed remains the default for better out-of-the-box compatibility.
 * **TikTok**: Switched TikTok `player/v1` media control to the documented host-to-player message contract and exposed best-effort `EmbedController` media control methods for attached embeds.

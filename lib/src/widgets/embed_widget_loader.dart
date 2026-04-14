@@ -10,6 +10,7 @@ import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_renderer.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
 import 'package:flutter_oembed/src/services/embed_service.dart';
+import 'package:flutter_oembed/src/models/embed_webview_controls.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_data_loader.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
@@ -39,7 +40,11 @@ class EmbedWidgetLoader extends StatefulWidget {
   final EmbedCacheConfig? cacheConfig;
   final EmbedConstraints? embedConstraints;
   final bool scrollable;
-  final Widget Function(BuildContext context, Widget child)? webViewBuilder;
+  final Widget Function(
+    BuildContext context,
+    EmbedWebViewControls controls,
+    Widget child,
+  )? webViewBuilder;
 
   @override
   State<EmbedWidgetLoader> createState() => _EmbedWidgetLoaderState();

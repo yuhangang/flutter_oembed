@@ -130,7 +130,8 @@ EmbedCard(
 
 - `about:blank`, `data:`, `blob:`, and sub-frame navigations stay inside the WebView so provider scripts and nested iframes can initialize correctly.
 - Unexpected main-frame redirects are blocked while the embed is still loading to avoid auto-redirect hijacks.
-- Once loaded, external main-frame navigations are prevented inside the WebView and handed off to the host app instead.
+- Once loaded, external main-frame navigations are prevented inside the WebView and only handed off to the host app when they follow a recent user tap captured inside the embed. The package prefers href-specific JavaScript capture and falls back to a coarse Flutter-side pointer signal when needed.
+- Passive post-load redirects, ad hops, and background deep-link attempts are blocked instead of being auto-launched.
 - If you do not provide `onLinkTap`, the package attempts to open intercepted links with the platform's external browser or native app via `url_launcher`.
 - If you provide `onLinkTap`, your callback becomes responsible for deciding what to do with that intercepted URL.
 

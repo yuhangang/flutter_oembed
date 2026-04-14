@@ -20,6 +20,26 @@ class EmbedWebViewDriver {
   static const _initialRenderDelay = Duration(milliseconds: 300);
   static const _integrityRetryDelay = Duration(milliseconds: 700);
   static const _postLoadShiftDelay = Duration(milliseconds: 500);
+  static const _navigationIntentTrackingScript = '''
+(() => {
+  if (window.__flutterOEmbedNavigationIntentBound) {
+    return;
+  }
+  window.__flutterOEmbedNavigationIntentBound = true;
+  document.addEventListener('click', function(event) {
+    let node = event.target;
+    while (node) {
+      if (node.tagName === 'A' && node.href) {
+        if (window.NavigationIntentChannel) {
+          NavigationIntentChannel.postMessage(node.href);
+        }
+        return;
+      }
+      node = node.parentElement;
+    }
+  }, true);
+})();
+''';
 
   final EmbedController controller;
   final WebViewController webViewController;
@@ -93,6 +113,7 @@ class EmbedWebViewDriver {
   void updateVisibilityFraction(double visibleFraction) {
     if (_isDisposed) return;
     final normalized = visibleFraction.clamp(0.0, 1.0).toDouble();
+    _navigationHandler.isVisible = normalized > 0;
     if ((normalized - _visibleFraction).abs() < 0.01) return;
     _visibleFraction = normalized;
 
@@ -101,6 +122,12 @@ class EmbedWebViewDriver {
       groupKey: _focusGroupKey,
       visibleFraction: normalized,
     );
+  }
+
+  void recordUserInteraction() {
+    if (_isDisposed) return;
+    _logger.debug('Recording user interaction');
+    _navigationHandler.recordUserInteraction();
   }
 
   /// Initialises and loads the WebView.
@@ -224,6 +251,14 @@ class EmbedWebViewDriver {
     );
     if (_isDisposed) return;
 
+    await webViewController.addJavaScriptChannel(
+      'NavigationIntentChannel',
+      onMessageReceived: (JavaScriptMessage message) {
+        _navigationHandler.recordUserNavigationIntent(message.message);
+      },
+    );
+    if (_isDisposed) return;
+
     final baseUrl = embedData?.providerUrl;
     final trustedMainFrameUrls = <String>[
       if (resolvedData?.url case final url? when url.isNotEmpty) url,
@@ -240,6 +275,7 @@ class EmbedWebViewDriver {
           await _strategy.onPageStarted(webViewController);
         },
         onPageFinished: () async {
+          await _installNavigationIntentTracking();
           await _strategy.onPageFinished(webViewController);
           await _handleEmbedPageFinishedWithFallback();
         },
@@ -446,6 +482,21 @@ class EmbedWebViewDriver {
       _logger.debug(
         'Failed to read embed height',
         data: {'url': controller.param.url},
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  Future<void> _installNavigationIntentTracking() async {
+    try {
+      await webViewController.runJavaScript(_navigationIntentTrackingScript);
+    } catch (error, stackTrace) {
+      _logger.debug(
+        'Failed to install navigation intent tracking',
+        data: {
+          'url': controller.param.url,
+        },
         error: error,
         stackTrace: stackTrace,
       );
@@ -757,3 +808,11 @@ void resetEmbedFocusCoordinatorForTests() {
   EmbedWebViewDriver._focusCoordinator._visibleFractionsByGroup.clear();
   EmbedWebViewDriver._focusCoordinator._focusedByGroup.clear();
 }
+
+@visibleForTesting
+bool embedDriverHasRecentUserInteraction(EmbedWebViewDriver driver) =>
+    driver._navigationHandler.hasRecentUserInteractionForTesting;
+
+@visibleForTesting
+bool embedDriverNavigationIsVisible(EmbedWebViewDriver driver) =>
+    driver._navigationHandler.isVisible;

@@ -8,6 +8,7 @@ import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/models/embed_webview_controls.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_surface.dart';
 import 'package:flutter_oembed/src/widgets/embed_widget_loader.dart';
@@ -75,7 +76,11 @@ class EmbedCard extends StatelessWidget {
   /// Custom query parameters to pass to the OEmbed API (for supported providers).
   final Map<String, String>? queryParameters;
   final BaseEmbedParams? embedParams;
-  final Widget Function(BuildContext context, Widget child)? webViewBuilder;
+  final Widget Function(
+    BuildContext context,
+    EmbedWebViewControls controls,
+    Widget child,
+  )? webViewBuilder;
 
   const EmbedCard({
     super.key,
@@ -118,7 +123,11 @@ class EmbedCard extends StatelessWidget {
     EmbedController? controller,
     Map<String, String>? queryParameters,
     BaseEmbedParams? embedParams,
-    Widget Function(BuildContext context, Widget child)? webViewBuilder,
+    Widget Function(
+      BuildContext context,
+      EmbedWebViewControls controls,
+      Widget child,
+    )? webViewBuilder,
   }) {
     return EmbedCard(
       key: key,

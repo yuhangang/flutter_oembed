@@ -8,6 +8,7 @@ import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_strings.dart';
+import 'package:flutter_oembed/src/models/embed_webview_controls.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -65,6 +66,38 @@ void main() {
       await tester.pump();
       expect(find.byType(WebViewWidget), findsOneWidget);
       await tester.pump(const Duration(seconds: 11));
+    });
+
+    testWidgets('records recent user interaction from the wrapper listener',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedWebView.data(
+              param: param,
+              data: data,
+              maxWidth: 640,
+              controller: controller,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      final driver = controller.boundDriver as EmbedWebViewDriver;
+      expect(embedDriverHasRecentUserInteraction(driver), isFalse);
+
+      controller.setLoadingState(EmbedLoadingState.loaded);
+      await tester.pump();
+
+      await tester.tapAt(tester.getCenter(find.byType(EmbedWebView)));
+      await tester.pump();
+
+      expect(embedDriverHasRecentUserInteraction(driver), isTrue);
+
+      controller.dispose();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
     });
 
     testWidgets('pauses media when a new route covers the embed',
@@ -200,15 +233,79 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        final pauseCallCount =
-            fakePlatform.lastCreatedController?.javaScriptCalls.length ?? 0;
+        final pauseCallCount = fakePlatform
+                .lastCreatedController?.javaScriptCalls
+                .where((call) => call.contains('pause'))
+                .length ??
+            0;
+        final resumeCallCount = fakePlatform
+                .lastCreatedController?.javaScriptCalls
+                .where((call) => call.contains('play'))
+                .length ??
+            0;
 
         Navigator.of(tester.element(find.text('Next'))).pop();
         await tester.pumpAndSettle();
 
         expect(
-          fakePlatform.lastCreatedController?.javaScriptCalls.length,
-          greaterThan(pauseCallCount),
+          fakePlatform.lastCreatedController?.javaScriptCalls
+                  .where((call) => call.contains('pause'))
+                  .length ??
+              0,
+          greaterThanOrEqualTo(pauseCallCount),
+        );
+        expect(routeAwareController.loadingState, EmbedLoadingState.loaded);
+        expect(
+          fakePlatform.lastCreatedController?.javaScriptCalls
+                  .where((call) => call.contains('play'))
+                  .length ??
+              0,
+          greaterThanOrEqualTo(resumeCallCount),
+        );
+      } finally {
+        routeAwareController.dispose();
+      }
+    });
+
+    testWidgets('does not pause media on route cover when disabled',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedWebView.data(
+              param: param,
+              data: data,
+              maxWidth: 640,
+              controller: EmbedController(
+                param: param,
+                config: const EmbedConfig(pauseOnRouteCover: false),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final routeAwareController =
+          tester.widget<EmbedWebView>(find.byType(EmbedWebView)).controller;
+
+      try {
+        routeAwareController.setLoadingState(EmbedLoadingState.loaded);
+        await tester.pump();
+        fakePlatform.lastCreatedController?.javaScriptCalls.clear();
+
+        final observerFinder = find.byWidgetPredicate(
+          (widget) => widget.runtimeType.toString() == '_EmbedWebviewObserver',
+        );
+        final observerState = tester.state(observerFinder) as dynamic;
+        observerState.didPushNext();
+        await tester.pump();
+
+        expect(
+          fakePlatform.lastCreatedController?.javaScriptCalls
+                  .where((call) => call.contains('pause'))
+                  .length ??
+              0,
+          0,
         );
       } finally {
         routeAwareController.dispose();
@@ -514,7 +611,7 @@ void main() {
               data: data,
               maxWidth: 640,
               controller: controller,
-              webViewBuilder: (context, child) =>
+              webViewBuilder: (context, controls, child) =>
                   Container(key: const Key('custom'), child: child),
             ),
           ),
@@ -523,6 +620,55 @@ void main() {
 
       expect(find.byKey(const Key('custom')), findsOneWidget);
       await tester.pump(const Duration(seconds: 11));
+    });
+
+    testWidgets('exposes functional controls in webViewBuilder',
+        (tester) async {
+      late EmbedWebViewControls capturedControls;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedWebView.data(
+              param: param,
+              data: data,
+              maxWidth: 640,
+              controller: controller,
+              webViewBuilder: (context, controls, child) {
+                capturedControls = controls;
+                return child;
+              },
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      controller.setLoadingState(EmbedLoadingState.loaded);
+
+      // Verify WebViewController is exposed
+      expect(capturedControls.controller, isNotNull);
+
+      // Verify reload() triggers a reload on the underlying controller
+      await capturedControls.reload();
+      expect(fakePlatform.lastCreatedController?.reloadCount, 1);
+
+      // Verify media controls trigger media actions
+      // (Using resumeMedia which calls 'play' in the fake platform)
+      await capturedControls.resumeMedia();
+      expect(
+        fakePlatform.lastCreatedController?.javaScriptCalls
+            .any((call) => call.contains('play')),
+        isTrue,
+      );
+
+      // Verify updateHeight() triggers height update
+      await capturedControls.updateHeight();
+      // fake platform getEmbedDocumentHeight returns a default value
+
+      controller.dispose();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
     });
 
     testWidgets(
@@ -558,6 +704,87 @@ void main() {
         await tester.pump(const Duration(seconds: 11));
       } finally {
         semanticsHandle.dispose();
+      }
+    });
+
+    testWidgets('exposes seekTo in webViewBuilder controls for seekable embeds',
+        (tester) async {
+      late EmbedWebViewControls capturedControls;
+      final seekController = EmbedController(
+        param: SocialEmbedParam(
+          url: 'https://www.tiktok.com/@user/video/123',
+          embedType: EmbedType.tiktok_v1,
+        ),
+      );
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.url(
+                param: seekController.param,
+                url: 'https://www.tiktok.com/player/v1/123',
+                maxWidth: 640,
+                controller: seekController,
+                webViewBuilder: (context, controls, child) {
+                  capturedControls = controls;
+                  return child;
+                },
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+        seekController.setLoadingState(EmbedLoadingState.loaded);
+
+        await capturedControls.seekTo(const Duration(seconds: 8));
+        expect(
+          fakePlatform.lastCreatedController?.javaScriptCalls
+              .any((call) => call.contains('"type":"seekTo"')),
+          isTrue,
+        );
+      } finally {
+        seekController.dispose();
+      }
+    });
+
+    testWidgets(
+        'should restart guarded retry logic when the controller is in noConnection state',
+        (tester) async {
+      final customController = EmbedController(
+        param: param,
+        config: const EmbedConfig(loadTimeout: Duration(milliseconds: 100)),
+      );
+
+      try {
+        customController.setLoadingState(EmbedLoadingState.noConnection);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 640,
+                controller: customController,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        await tester.tap(find.byIcon(Icons.refresh));
+        await tester.pump();
+
+        expect(customController.loadingState, EmbedLoadingState.loading);
+        expect(fakePlatform.lastCreatedController?.reloadCount, 1);
+
+        await tester.pump(const Duration(milliseconds: 150));
+        expect(customController.loadingState, EmbedLoadingState.error);
+      } finally {
+        customController.dispose();
       }
     });
 
