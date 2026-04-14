@@ -53,11 +53,6 @@ extension EmbedWebviewControllerUtils on WebViewController {
     await runJavaScript(_resumeMediaElementsScript);
   }
 
-  /// Seeks top-level media elements to the requested position in seconds.
-  Future<void> seekMediaElementsTo(double seconds) async {
-    await runJavaScript(_buildSeekMediaElementsScript(seconds));
-  }
-
   /// Sends a JSON string message to matching iframe players via postMessage.
   Future<void> postJsonStringMessageToIframes({
     required List<String> srcFragments,
@@ -107,12 +102,6 @@ document.querySelectorAll('video, audio').forEach(media => {
 const _resumeMediaElementsScript = """
 document.querySelectorAll('video, audio').forEach(media => {
   try { media.play?.(); } catch (e) {}
-});
-""";
-
-String _buildSeekMediaElementsScript(double seconds) => """
-document.querySelectorAll('video, audio').forEach(media => {
-  try { media.currentTime = $seconds; } catch (e) {}
 });
 """;
 

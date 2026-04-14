@@ -650,7 +650,6 @@ void main() {
       await controller.resumeMedia();
       await controller.muteMedia();
       await controller.unmuteMedia();
-      await controller.seekMediaTo(const Duration(seconds: 8));
 
       verify(() => mockWebViewController.runJavaScript(
             any(that: contains('"type":"pause"')),
@@ -663,11 +662,6 @@ void main() {
           )).called(1);
       verify(() => mockWebViewController.runJavaScript(
             any(that: contains('"type":"unMute"')),
-          )).called(1);
-      verify(() => mockWebViewController.runJavaScript(
-            any(
-                that:
-                    allOf(contains('"type":"seekTo"'), contains('"value":8'))),
           )).called(1);
     });
 

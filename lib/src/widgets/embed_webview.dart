@@ -17,7 +17,24 @@ import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-class EmbedWebView extends StatefulWidget {
+/// Renders embedded social media content in a platform WebView.
+///
+/// This is a thin stateless wrapper around [_EmbedWebViewCore]. It uses a
+/// [ListenableBuilder] to observe the [controller] and keys the inner widget
+/// on a composite [ValueKey] that captures all content-affecting inputs:
+///
+///  * Controller identity (via [identityHashCode])
+///  * [EmbedController.embedRevision] (bumped by [EmbedController.synchronize])
+///  * [param], [data], [url], [maxWidth], [scrollable]
+///
+/// When any of these change, Flutter tears down the old [_EmbedWebViewCore]
+/// state and creates a fresh one — giving a clean [State.initState] with no
+/// need for [State.didUpdateWidget] or manual staleness detection.
+///
+/// Display-only props ([style], [webViewBuilder], [embedConstraints]) are
+/// intentionally excluded from the key so they can change without a full
+/// WebView teardown.
+class EmbedWebView extends StatelessWidget {
   final SocialEmbedParam param;
   final EmbedData? data;
   final String? url;
@@ -71,16 +88,93 @@ class EmbedWebView extends StatefulWidget {
         data = null;
 
   @override
-  State<EmbedWebView> createState() => _EmbedViewState();
+  Widget build(BuildContext context) {
+    // ListenableBuilder rebuilds when controller notifies (e.g. synchronize).
+    // The composite ValueKey on the inner widget causes a full state reset
+    // whenever the controller identity, embed revision, or content-affecting
+    // props change — eliminating the need for didUpdateWidget or staleness
+    // detection entirely.
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        return _EmbedWebViewCore(
+          key: ValueKey((
+            identityHashCode(controller),
+            controller.embedRevision,
+            param,
+            data,
+            url,
+            maxWidth,
+            scrollable,
+          )),
+          param: param,
+          data: data,
+          url: url,
+          maxWidth: maxWidth,
+          embedConstraints: embedConstraints,
+          // ignore: deprecated_member_use_from_same_package
+          embedHeight: embedHeight,
+          controller: controller,
+          style: style,
+          scrollable: scrollable,
+          webViewBuilder: webViewBuilder,
+        );
+      },
+    );
+  }
 }
 
-class _EmbedViewState extends State<EmbedWebView> {
+/// Internal stateful widget that owns the [EmbedWebViewDriver] lifecycle.
+///
+/// Keyed by the outer [EmbedWebView] on content-affecting props, so a prop
+/// change destroys this state and creates a fresh one. This keeps the
+/// lifecycle simple: [initState] creates the driver, [dispose] is a no-op
+/// (the driver is owned by the controller for cross-mount persistence).
+class _EmbedWebViewCore extends StatefulWidget {
+  final SocialEmbedParam param;
+  final EmbedData? data;
+  final String? url;
+  final double maxWidth;
+  final EmbedConstraints? embedConstraints;
+  final double? embedHeight;
+  final EmbedController controller;
+  final EmbedStyle? style;
+  final bool scrollable;
+  final Widget Function(
+    BuildContext context,
+    EmbedWebViewControls controls,
+    Widget child,
+  )? webViewBuilder;
+
+  const _EmbedWebViewCore({
+    super.key,
+    required this.param,
+    required this.data,
+    required this.url,
+    required this.maxWidth,
+    this.embedConstraints,
+    this.embedHeight,
+    required this.controller,
+    this.style,
+    this.scrollable = false,
+    this.webViewBuilder,
+  });
+
+  @override
+  State<_EmbedWebViewCore> createState() => _EmbedWebViewCoreState();
+}
+
+class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
   static const _defaultVideoAspectRatio = 16 / 9;
   static const _defaultSpotifyHeight = 152.0;
   static const _defaultSoundCloudHeight = 166.0;
   static const _defaultContentFallbackHeight = 320.0;
 
-  late EmbedWebViewDriver _driver;
+  /// The driver is created once in [initState] and never reassigned.
+  /// When content-affecting props change, [EmbedWebView] generates a new key
+  /// for the core widget, causing Flutter to destroy this state and create a
+  /// fresh one with a new driver.
+  late final EmbedWebViewDriver _driver;
 
   @override
   void initState() {
@@ -91,30 +185,8 @@ class _EmbedViewState extends State<EmbedWebView> {
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-  }
-
-  @override
-  void didUpdateWidget(covariant EmbedWebView oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    final controllerChanged = oldWidget.controller != widget.controller;
-    final shouldRefresh = controllerChanged ||
-        oldWidget.data != widget.data ||
-        oldWidget.url != widget.url ||
-        oldWidget.maxWidth != widget.maxWidth ||
-        oldWidget.scrollable != widget.scrollable ||
-        oldWidget.param != widget.param;
-
-    if (shouldRefresh) {
-      if (widget.controller.boundDriver != null) {
-        widget.controller.unbindDriver();
-        _driver.dispose();
-      }
-      _driver = _createDriver();
-      _scheduleInit(forceReload: true);
-    }
+  void dispose() {
+    super.dispose();
   }
 
   EmbedWebViewDriver _createDriver() {
@@ -139,7 +211,7 @@ class _EmbedViewState extends State<EmbedWebView> {
     return driver;
   }
 
-  void _scheduleInit({bool forceReload = false}) {
+  void _scheduleInit() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final bg = Theme.of(context).scaffoldBackgroundColor;
@@ -149,7 +221,7 @@ class _EmbedViewState extends State<EmbedWebView> {
         embedUrl: widget.url,
         maxWidth: widget.maxWidth,
         scrollable: widget.scrollable,
-        forceReload: forceReload,
+        forceReload: true,
       );
     });
   }
@@ -159,11 +231,6 @@ class _EmbedViewState extends State<EmbedWebView> {
       if (!mounted) return;
       VisibilityDetectorController.instance.notifyNow();
     });
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   Widget _buildLoadingOverlay(
@@ -320,7 +387,6 @@ class _EmbedViewState extends State<EmbedWebView> {
             onResume: () => widget.controller.resumeMedia(),
             onMute: () => widget.controller.muteMedia(),
             onUnmute: () => widget.controller.unmuteMedia(),
-            onSeekTo: (position) => widget.controller.seekMediaTo(position),
           );
           webViewContainer = effectiveWebViewBuilder(
             context,

@@ -26,9 +26,6 @@ class EmbedWebViewControls {
   /// Callback to unmute any paused media in the embed.
   final Future<void> Function() _onUnmute;
 
-  /// Callback to seek active media to a specific position.
-  final Future<void> Function(Duration position) _onSeekTo;
-
   const EmbedWebViewControls({
     required this.controller,
     required Future<void> Function() onReload,
@@ -37,14 +34,12 @@ class EmbedWebViewControls {
     required Future<void> Function() onResume,
     required Future<void> Function() onMute,
     required Future<void> Function() onUnmute,
-    required Future<void> Function(Duration position) onSeekTo,
   })  : _onReload = onReload,
         _onUpdateHeight = onUpdateHeight,
         _onPause = onPause,
         _onResume = onResume,
         _onMute = onMute,
-        _onUnmute = onUnmute,
-        _onSeekTo = onSeekTo;
+        _onUnmute = onUnmute;
 
   /// Reloads the embed content.
   Future<void> reload() => _onReload();
@@ -72,10 +67,4 @@ class EmbedWebViewControls {
 
   /// Requests the embed to unmute any paused media playback.
   Future<void> unmuteMedia() => _onUnmute();
-
-  /// Requests the embed to seek active media to [position].
-  ///
-  /// This is a best-effort call as not all providers support programmatic
-  /// seeking.
-  Future<void> seekTo(Duration position) => _onSeekTo(position);
 }

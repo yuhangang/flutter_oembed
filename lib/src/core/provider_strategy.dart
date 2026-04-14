@@ -95,14 +95,6 @@ class EmbedMediaStrategy {
   Future<void> unmuteMedia(WebViewController controller) async {
     await controller.unmuteMediaElements();
   }
-
-  /// Seek media to a position in seconds when the provider supports it.
-  Future<void> seekMediaTo(
-    WebViewController controller,
-    Duration position,
-  ) async {
-    await controller.seekMediaElementsTo(position.inMilliseconds / 1000);
-  }
 }
 
 /// A generic strategy that applies standard oEmbed behaviors.

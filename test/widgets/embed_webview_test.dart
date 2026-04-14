@@ -707,48 +707,6 @@ void main() {
       }
     });
 
-    testWidgets('exposes seekTo in webViewBuilder controls for seekable embeds',
-        (tester) async {
-      late EmbedWebViewControls capturedControls;
-      final seekController = EmbedController(
-        param: SocialEmbedParam(
-          url: 'https://www.tiktok.com/@user/video/123',
-          embedType: EmbedType.tiktok_v1,
-        ),
-      );
-
-      try {
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: EmbedWebView.url(
-                param: seekController.param,
-                url: 'https://www.tiktok.com/player/v1/123',
-                maxWidth: 640,
-                controller: seekController,
-                webViewBuilder: (context, controls, child) {
-                  capturedControls = controls;
-                  return child;
-                },
-              ),
-            ),
-          ),
-        );
-
-        await tester.pump();
-        seekController.setLoadingState(EmbedLoadingState.loaded);
-
-        await capturedControls.seekTo(const Duration(seconds: 8));
-        expect(
-          fakePlatform.lastCreatedController?.javaScriptCalls
-              .any((call) => call.contains('"type":"seekTo"')),
-          isTrue,
-        );
-      } finally {
-        seekController.dispose();
-      }
-    });
-
     testWidgets(
         'should restart guarded retry logic when the controller is in noConnection state',
         (tester) async {

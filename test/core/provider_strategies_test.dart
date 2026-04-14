@@ -104,13 +104,6 @@ void main() {
       expect(scripts, hasLength(2));
       expect(scripts[1], contains('"type":"unMute"'));
 
-      scripts.clear();
-      await strategy.mediaStrategy!
-          .seekMediaTo(mockController, const Duration(seconds: 15));
-      expect(scripts, hasLength(2));
-      expect(scripts[1], contains('"type":"seekTo"'));
-      expect(scripts[1], contains('"value":15'));
-
       // Verify renderer resolution
       final renderer = strategy.resolveRenderer(defaultContext);
       expect(renderer, isA<OEmbedRenderer>());

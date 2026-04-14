@@ -54,7 +54,7 @@ dependencies:
 - When the covered route becomes visible again, the package also makes a best-effort resume attempt for providers that expose controllable players. Autoplay policies may still block resume until the user interacts again.
 - When multiple embeds are visible in the same route, the package treats the highest-visibility embed as focused and attempts to keep non-focused embeds paused.
 - Provider media-control support is not uniform. YouTube, Vimeo, and TikTok's `player/v1` path are the most reliable. Meta-style embeds may still be best-effort only.
-- `EmbedController` exposes best-effort `pauseMedia()`, `resumeMedia()`, `muteMedia()`, `unmuteMedia()`, and `seekMediaTo(...)` methods once an embed is attached. TikTok `player/v1` is the most complete implementation of that API in the current package.
+- `EmbedController` exposes best-effort `pauseMedia()`, `resumeMedia()`, `muteMedia()`, and `unmuteMedia()` methods once an embed is attached. TikTok `player/v1` is the most complete implementation of that API in the current package.
 - To drive those controls from your own UI, pass the same `EmbedController` into `EmbedCard(controller: ...)`, `YoutubeEmbedPlayer`, or `TikTokEmbedPlayer` so the rendered embed can bind to it.
 
 ### Brightness Support Matrix
@@ -317,7 +317,6 @@ await controller.pauseMedia();
 await controller.resumeMedia();
 await controller.muteMedia();
 await controller.unmuteMedia();
-await controller.seekMediaTo(const Duration(seconds: 15));
 ```
 
 These calls are no-ops until the controller is bound to a rendered embed. Other

@@ -25,7 +25,6 @@ class EmbedController extends ChangeNotifier {
   Future<void> Function()? _resumeMediaHandler;
   Future<void> Function()? _muteMediaHandler;
   Future<void> Function()? _unmuteMediaHandler;
-  Future<void> Function(Duration position)? _seekMediaHandler;
 
   /// Internal slot used by [EmbedWebView] to persist a driver across remounts.
   Object? _boundDriver;
@@ -189,25 +188,17 @@ class EmbedController extends ChangeNotifier {
     await _unmuteMediaHandler?.call();
   }
 
-  /// Best-effort request to seek media for the attached embed.
-  Future<void> seekMediaTo(Duration position) async {
-    if (_isDisposed) return;
-    await _seekMediaHandler?.call(position);
-  }
-
   void bindMediaControls({
     required Future<void> Function() pause,
     required Future<void> Function() resume,
     required Future<void> Function() mute,
     required Future<void> Function() unmute,
-    required Future<void> Function(Duration position) seekTo,
   }) {
     if (_isDisposed) return;
     _pauseMediaHandler = pause;
     _resumeMediaHandler = resume;
     _muteMediaHandler = mute;
     _unmuteMediaHandler = unmute;
-    _seekMediaHandler = seekTo;
   }
 
   void unbindMediaControls() {
@@ -220,7 +211,6 @@ class EmbedController extends ChangeNotifier {
     _resumeMediaHandler = null;
     _muteMediaHandler = null;
     _unmuteMediaHandler = null;
-    _seekMediaHandler = null;
   }
 
   /// Internal: Gets the currently bound driver (usually an EmbedWebViewDriver).

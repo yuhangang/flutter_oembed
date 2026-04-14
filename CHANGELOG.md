@@ -1,3 +1,24 @@
+## 1.0.1-alpha.3
+
+### Improvements
+
+* **Navigation**: Hardened WebView navigation handling so sub-frame/bootstrap loads still work, unexpected startup redirects are blocked, and post-load external links or custom schemes are only handed off outside the WebView after a recent user tap, with a Flutter-side touch fallback when href-specific capture is unavailable.
+* **WebView controls**: Fixed `EmbedWebViewControls` so `onSeekTo` is exposed through a public `seekTo` method.
+* **Retry handling**: Fixed WebView retry from `noConnection` state so it restarts the load timeout instead of reloading without a guard.
+* **Visibility and route-cover behavior**: Synced navigation visibility blocking with `VisibilityDetector` updates and made route-cover pausing honor `EmbedConfig.pauseOnRouteCover`.
+* **WebView lifecycle**: Simplified `EmbedWebView` lifecycle management by keying the internal state on content-affecting inputs and always forcing a reload when the WebView remounts.
+* **EmbedController**: Added `EmbedConfig.heightUpdateDeltaThreshold` to tune how aggressively tiny downward WebView height changes are ignored.
+* **EmbedController**: Fixed external-controller embeds so changing `embedParams` resets the controller and forces the WebView to reload even when cache configuration is supplied from `EmbedScope`.
+* **Maintenance**: Refactored internal media control constants in `provider_strategies.dart` into their respective strategy classes for better namespacing and readability.
+
+
+## [Unreleased]
+
+### Breaking Changes
+- Removed `seekTo` functionality from WebView entirely.
+- Removed `EmbedController.seekMediaTo(Duration position)`.
+- Removed `EmbedWebViewControls.seekTo(Duration position)`.
+
 ## 1.0.1-alpha.2
 
 ### Features
@@ -8,20 +29,16 @@
 * **Focused media arbitration**: Added route-scoped focus coordination so when multiple embeds are visible on the same page, the highest-visibility embed is treated as focused and non-focused embeds are actively paused.
 * **Media-control diagnostics**: Added structured logging for pause/resume requests, focus changes, and route-cover media events.
 
+
 ### Improvements
 
-* **Navigation**: Hardened WebView navigation handling so sub-frame/bootstrap loads still work, unexpected startup redirects are blocked, and post-load external links or custom schemes are only handed off outside the WebView after a recent user tap, with a Flutter-side touch fallback when href-specific capture is unavailable.
-* **WebView controls**: Fixed `EmbedWebViewControls` so `onSeekTo` is exposed through a public `seekTo` method.
-* **Retry handling**: Fixed WebView retry from `noConnection` state so it restarts the load timeout instead of reloading without a guard.
-* **Visibility and route-cover behavior**: Synced navigation visibility blocking with `VisibilityDetector` updates and made route-cover pausing honor `EmbedConfig.pauseOnRouteCover`.
 * **YouTube**: Fixed iframe-mode YouTube embeds in the HTML, Markdown, and Quill example integrations by aligning the embed host, origin, and referer used inside mobile WebViews.
 * **TikTok**: Added an opt-in mechanism to use the specialized v1 player via `TikTokEmbedParams.useV1Player` in `EmbedCard`. Standard oEmbed remains the default for better out-of-the-box compatibility.
 * **TikTok**: Switched TikTok `player/v1` media control to the documented host-to-player message contract and exposed best-effort `EmbedController` media control methods for attached embeds.
 * **EmbedController**: Added `EmbedCard.controller` so app-level media control UIs can target the actual rendered embed instance, including Vimeo and TikTok `player/v1` in the example app.
-* **EmbedController**: Added `EmbedConfig.heightUpdateDeltaThreshold` to tune how aggressively tiny downward WebView height changes are ignored.
-* **EmbedController**: Fixed external-controller embeds so changing `embedParams` resets the controller and forces the WebView to reload even when cache configuration is supplied from `EmbedScope`.
 * **Custom Providers**: Expanded the example app's custom-provider integration to include additional manual oEmbed registration recipes, including CodePen, Pinterest, Bluesky Social, Flickr, Tumblr, TED, and audio.com.
 * **Sizing**: Fixed a WebView sizing edge case where provider-reported aspect ratios could override later measured DOM height, causing slight bottom clipping on providers such as Pinterest.
+
 
 ## 1.0.1-alpha
 

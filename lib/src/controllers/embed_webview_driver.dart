@@ -20,6 +20,9 @@ class EmbedWebViewDriver {
   static const _initialRenderDelay = Duration(milliseconds: 300);
   static const _integrityRetryDelay = Duration(milliseconds: 700);
   static const _postLoadShiftDelay = Duration(milliseconds: 500);
+
+  // TODO: determine if this is still needed as now we have use Listener to handling use interaction with webview
+  /*
   static const _navigationIntentTrackingScript = '''
 (() => {
   if (window.__flutterOEmbedNavigationIntentBound) {
@@ -40,6 +43,7 @@ class EmbedWebViewDriver {
   }, true);
 })();
 ''';
+ */
 
   final EmbedController controller;
   final WebViewController webViewController;
@@ -75,7 +79,6 @@ class EmbedWebViewDriver {
       resume: () => resumeMedias(),
       mute: () => muteMedias(),
       unmute: () => unmuteMedias(),
-      seekTo: seekMediaTo,
     );
     _navigationHandler = EmbedNavigationHandler(
       param: controller.param,
@@ -275,7 +278,6 @@ class EmbedWebViewDriver {
           await _strategy.onPageStarted(webViewController);
         },
         onPageFinished: () async {
-          await _installNavigationIntentTracking();
           await _strategy.onPageFinished(webViewController);
           await _handleEmbedPageFinishedWithFallback();
         },
@@ -488,21 +490,6 @@ class EmbedWebViewDriver {
     }
   }
 
-  Future<void> _installNavigationIntentTracking() async {
-    try {
-      await webViewController.runJavaScript(_navigationIntentTrackingScript);
-    } catch (error, stackTrace) {
-      _logger.debug(
-        'Failed to install navigation intent tracking',
-        data: {
-          'url': controller.param.url,
-        },
-        error: error,
-        stackTrace: stackTrace,
-      );
-    }
-  }
-
   Future<void> pauseMedias({String reason = 'manual'}) async {
     await _controlMedia(
       action: _MediaControlAction.pause,
@@ -528,17 +515,6 @@ class EmbedWebViewDriver {
     await _controlMedia(
       action: _MediaControlAction.unmute,
       reason: reason,
-    );
-  }
-
-  Future<void> seekMediaTo(
-    Duration position, {
-    String reason = 'manual',
-  }) async {
-    await _controlMedia(
-      action: _MediaControlAction.seek,
-      reason: reason,
-      position: position,
     );
   }
 
@@ -633,11 +609,6 @@ class EmbedWebViewDriver {
           await _strategy.mediaStrategy?.muteMedia(webViewController);
         case _MediaControlAction.unmute:
           await _strategy.mediaStrategy?.unmuteMedia(webViewController);
-        case _MediaControlAction.seek:
-          await _strategy.mediaStrategy?.seekMediaTo(
-            webViewController,
-            position ?? Duration.zero,
-          );
       }
     } catch (error, stackTrace) {
       _logger.warning(
@@ -695,7 +666,7 @@ class EmbedWebViewDriver {
   }
 }
 
-enum _MediaControlAction { pause, resume, mute, unmute, seek }
+enum _MediaControlAction { pause, resume, mute, unmute }
 
 class _EmbedFocusCoordinator {
   final Map<Object, Map<EmbedWebViewDriver, double>> _visibleFractionsByGroup =

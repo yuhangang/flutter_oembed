@@ -391,39 +391,6 @@ void main() {
                 expect(controller.height, equals(300.0));
                 expect(controller.loadingState, EmbedLoadingState.loaded);
               }));
-
-      test(
-          'installs navigation intent tracking script on page finish',
-          () => fakeAsync((async) {
-                NavigationDelegate? capturedDelegate;
-                when(() => mockWebViewController.setNavigationDelegate(any()))
-                    .thenAnswer((inv) {
-                  capturedDelegate = inv.positionalArguments.first;
-                  return Future.value();
-                });
-
-                final driver = EmbedWebViewDriver(
-                  controller: controller,
-                  webViewController: mockWebViewController,
-                );
-                driver.initEmbedWebview(
-                  backgroundColor: Colors.white,
-                  embedData: const EmbedData(html: '<div></div>'),
-                  embedUrl: null,
-                  maxWidth: 640,
-                );
-
-                async.flushMicrotasks();
-
-                capturedDelegate!.onPageFinished!('https://example.com');
-                async.flushMicrotasks();
-
-                verify(() => mockWebViewController.runJavaScript(
-                      any(
-                        that: contains('NavigationIntentChannel.postMessage'),
-                      ),
-                    )).called(greaterThanOrEqualTo(1));
-              }));
     });
 
     group('updateEmbedPostHeight()', () {
