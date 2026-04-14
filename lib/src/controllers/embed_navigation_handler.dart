@@ -17,9 +17,13 @@ class EmbedNavigationHandler {
     'data',
     'javascript',
   };
+  static const Duration _userNavigationIntentWindow = Duration(
+    milliseconds: 1500,
+  );
 
   final SocialEmbedParam param;
   final EmbedConfig? config;
+  final DateTime Function() _now;
 
   /// Resolved scaffold background color — captured at build time to avoid
   /// using [BuildContext] across async gaps.
@@ -30,12 +34,15 @@ class EmbedNavigationHandler {
 
   /// The OEmbed data being displayed, passed to link-click callbacks for analysis.
   EmbedData? oembedData;
+  DateTime? _lastUserInteractionAt;
+  _UserNavigationIntent? _lastUserNavigationIntent;
 
   EmbedNavigationHandler({
     required this.param,
     required this.config,
     this.backgroundColor,
-  });
+    DateTime Function()? now,
+  }) : _now = now ?? DateTime.now;
 
   /// Returns the [NavigationDelegate] for the WebView.
   ///
@@ -83,6 +90,11 @@ class EmbedNavigationHandler {
         onWebResourceError?.call(error);
       },
       onNavigationRequest: (request) async {
+        logger.debug('WebView navigation request', data: {
+          'url': param.url,
+          'targetUrl': request.url,
+          'isMainFrame': request.isMainFrame,
+        });
         // 1. Custom config override (full control)
         if (config?.onNavigationRequest != null) {
           final decision = await config!.onNavigationRequest!(request);
@@ -108,22 +120,6 @@ class EmbedNavigationHandler {
             'url': param.url,
             'targetUrl': requestUrl,
           });
-          return NavigationDecision.navigate;
-        }
-
-        // 4. Provider-specific internal navigation
-        final provider = config?.providers.effectiveProviders.firstWhereOrNull(
-          (r) => r.matches(param.url),
-        );
-        if (provider?.shouldAllowNavigation?.call(requestUrl) ?? false) {
-          logger.debug(
-            'Provider allowed internal navigation',
-            data: {
-              'url': param.url,
-              'provider': provider?.providerName,
-              'targetUrl': requestUrl,
-            },
-          );
           return NavigationDecision.navigate;
         }
 
@@ -164,6 +160,8 @@ class EmbedNavigationHandler {
           return NavigationDecision.prevent;
         }
 
+        final recentIntent = _takeRecentUserNavigationIntent();
+
         // 7. Ignore hidden/background navigations.
         if (!isVisible) {
           logger
@@ -174,7 +172,8 @@ class EmbedNavigationHandler {
           return NavigationDecision.prevent;
         }
 
-        // 8. Hand custom schemes and external main-frame links to the host app.
+        // 8. Block passive post-load redirects. External launches require a
+        // recent user tap captured from inside the document.
         if (uri == null || uri.scheme.isEmpty) {
           logger.warning('Blocked malformed navigation request', data: {
             'url': param.url,
@@ -183,9 +182,40 @@ class EmbedNavigationHandler {
           return NavigationDecision.prevent;
         }
 
+        if (recentIntent == null && !_consumeRecentUserInteraction()) {
+          // 4. Provider-specific internal navigation
+          final provider =
+              config?.providers.effectiveProviders.firstWhereOrNull(
+            (r) => r.matches(param.url),
+          );
+          if (provider?.shouldAllowNavigation?.call(requestUrl) ?? false) {
+            logger.debug(
+              'Provider allowed internal navigation',
+              data: {
+                'url': param.url,
+                'provider': provider?.providerName,
+                'targetUrl': requestUrl,
+              },
+            );
+            return NavigationDecision.navigate;
+          } else {
+            logger.warning(
+              'Blocked external main-frame navigation without recent user intent',
+              data: {
+                'url': param.url,
+                'targetUrl': requestUrl,
+              },
+            );
+            return NavigationDecision.prevent;
+          }
+        }
+
+        final externalUrl = recentIntent?.url ?? requestUrl;
+        final externalUri = Uri.tryParse(externalUrl) ?? uri;
+
         await _handleExternalNavigation(
-          uri,
-          callbackUrl: _callbackUrlFor(requestUrl),
+          externalUri,
+          callbackUrl: _callbackUrlFor(externalUrl),
           logger: logger,
         );
 
@@ -205,6 +235,49 @@ class EmbedNavigationHandler {
 
     final scheme = uri?.scheme.toLowerCase();
     return scheme != null && _alwaysAllowedSchemes.contains(scheme);
+  }
+
+  void recordUserNavigationIntent(String url) {
+    if (url.isEmpty) return;
+    _lastUserInteractionAt = _now();
+    _lastUserNavigationIntent = _UserNavigationIntent(
+      url: url,
+      recordedAt: _now(),
+    );
+  }
+
+  void recordUserInteraction() {
+    _lastUserInteractionAt = _now();
+  }
+
+  _UserNavigationIntent? _takeRecentUserNavigationIntent() {
+    final intent = _lastUserNavigationIntent;
+    _lastUserNavigationIntent = null;
+    if (intent == null) {
+      return null;
+    }
+
+    if (_now().difference(intent.recordedAt) > _userNavigationIntentWindow) {
+      return null;
+    }
+
+    return intent;
+  }
+
+  bool _consumeRecentUserInteraction() {
+    final interactionAt = _lastUserInteractionAt;
+    _lastUserInteractionAt = null;
+    if (interactionAt == null) {
+      return false;
+    }
+
+    return _now().difference(interactionAt) <= _userNavigationIntentWindow;
+  }
+
+  bool get hasRecentUserInteractionForTesting {
+    final interactionAt = _lastUserInteractionAt;
+    return interactionAt != null &&
+        _now().difference(interactionAt) <= _userNavigationIntentWindow;
   }
 
   bool _urlsMatch(String first, String second) {
@@ -300,4 +373,14 @@ class EmbedNavigationHandler {
       );
     }
   }
+}
+
+class _UserNavigationIntent {
+  final String url;
+  final DateTime recordedAt;
+
+  const _UserNavigationIntent({
+    required this.url,
+    required this.recordedAt,
+  });
 }

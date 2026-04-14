@@ -165,7 +165,7 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
           color: _scColor,
         ),
       );
-    } else if (widget.embedType.isTikTok) {
+    } else if (widget.embedType == EmbedType.tiktok_v1) {
       controller.updateTikTok(
         TikTokEmbedParams(
           controls: _tkControls,

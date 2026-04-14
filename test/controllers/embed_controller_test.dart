@@ -4,6 +4,7 @@ import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/youtube_embed_params.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -135,6 +136,23 @@ void main() {
       expect(notifications, 1);
     });
 
+    test('setHeight honors configured downward delta threshold', () {
+      final controller = EmbedController(
+        param: testParam,
+        config: const EmbedConfig(heightUpdateDeltaThreshold: 5),
+      );
+      int notifications = 0;
+      controller.addListener(() => notifications++);
+
+      controller.setHeight(100.0);
+      controller.setHeight(96.0);
+      expect(controller.height, 100.0);
+
+      controller.setHeight(95.0);
+      expect(controller.height, 95.0);
+      expect(notifications, 2);
+    });
+
     test('setHeight accepts tiny upward adjustments to avoid clipping', () {
       final controller = EmbedController(param: testParam);
       int notifications = 0;
@@ -244,6 +262,66 @@ void main() {
 
       expect(callbackCalled, isTrue);
       expect(controller.isVisible, isFalse);
+    });
+
+    test('synchronize resets runtime state when params change', () {
+      final initialParam = SocialEmbedParam(
+        url: 'https://www.youtube.com/watch?v=old',
+        embedType: EmbedType.youtube,
+      );
+      final nextParam = SocialEmbedParam(
+        url: 'https://www.youtube.com/watch?v=old',
+        embedType: EmbedType.youtube,
+        embedParams: const YoutubeEmbedParams(autoplay: true),
+      );
+      final controller = EmbedController(
+        param: initialParam,
+        config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
+      );
+
+      controller.setHeight(240);
+      controller.setDidRetry();
+      controller.setLoadingState(
+        EmbedLoadingState.error,
+        error: StateError('stale'),
+      );
+
+      controller.synchronize(
+        param: nextParam,
+        config: const EmbedConfig(loadTimeout: Duration(seconds: 8)),
+      );
+
+      expect(controller.param, equals(nextParam));
+      expect(controller.config?.loadTimeout, const Duration(seconds: 8));
+      expect(controller.loadingState, EmbedLoadingState.loading);
+      expect(controller.height, isNull);
+      expect(controller.didRetry, isFalse);
+      expect(controller.lastError, isNull);
+    });
+
+    test('synchronize disposes the bound driver and bumps embed revision', () {
+      final initialParam = SocialEmbedParam(
+        url: 'https://www.youtube.com/watch?v=old',
+        embedType: EmbedType.youtube,
+      );
+      final nextParam = SocialEmbedParam(
+        url: 'https://www.youtube.com/watch?v=new',
+        embedType: EmbedType.youtube,
+      );
+      final controller = EmbedController(param: initialParam);
+
+      var disposeCalls = 0;
+      final driver = Object();
+      controller.bindDriver(
+        driver,
+        onDispose: () => disposeCalls++,
+      );
+
+      controller.synchronize(param: nextParam);
+
+      expect(disposeCalls, 1);
+      expect(controller.boundDriver, isNull);
+      expect(controller.embedRevision, 1);
     });
 
     test('setHeight ignores non-finite values', () {
@@ -572,7 +650,6 @@ void main() {
       await controller.resumeMedia();
       await controller.muteMedia();
       await controller.unmuteMedia();
-      await controller.seekMediaTo(const Duration(seconds: 8));
 
       verify(() => mockWebViewController.runJavaScript(
             any(that: contains('"type":"pause"')),
@@ -585,11 +662,6 @@ void main() {
           )).called(1);
       verify(() => mockWebViewController.runJavaScript(
             any(that: contains('"type":"unMute"')),
-          )).called(1);
-      verify(() => mockWebViewController.runJavaScript(
-            any(
-                that:
-                    allOf(contains('"type":"seekTo"'), contains('"value":8'))),
           )).called(1);
     });
 
@@ -799,14 +871,69 @@ void main() {
                   'OnTwitterLoaded',
                   onMessageReceived: captureAny(named: 'onMessageReceived'),
                 )).captured.last as void Function(JavaScriptMessage);
+        final capturedOnPageFinished =
+            verify(() => mockPlatformNavigationDelegate.setOnPageFinished(
+                  captureAny(),
+                )).captured.last as void Function(String);
 
+        when(() => mockWebViewController.currentUrl())
+            .thenAnswer((_) async => 'https://twitter.com');
         when(() => mockWebViewController.runJavaScriptReturningResult(any()))
             .thenAnswer((_) async => '400');
+
+        capturedOnPageFinished('https://twitter.com');
+        async.flushMicrotasks();
 
         capturedOnTwitterLoaded(const JavaScriptMessage(message: 'loaded'));
         async.flushMicrotasks();
 
         // Wait for first rendering delay (300ms)
+        async.elapse(const Duration(milliseconds: 305));
+        async.flushMicrotasks();
+
+        expect(controller.height, 400.0);
+        expect(controller.loadingState, EmbedLoadingState.loaded);
+      });
+    });
+
+    test('Twitter falls back to default page-finished handling after 2 seconds',
+        () async {
+      fakeAsync((async) {
+        final xParam = SocialEmbedParam(
+          url: 'https://twitter.com/user/status/1',
+        );
+        final controller = EmbedController(param: xParam);
+        final driver = EmbedWebViewDriver(
+          controller: controller,
+          webViewController: mockWebViewController,
+        );
+
+        driver.initEmbedWebview(
+          backgroundColor: Colors.white,
+          embedData: null,
+          embedUrl: 'url',
+          maxWidth: 400,
+        );
+        async.flushMicrotasks();
+
+        final capturedOnPageFinished =
+            verify(() => mockPlatformNavigationDelegate.setOnPageFinished(
+                  captureAny(),
+                )).captured.last as void Function(String);
+
+        when(() => mockWebViewController.currentUrl())
+            .thenAnswer((_) async => 'https://twitter.com');
+        when(() => mockWebViewController.runJavaScriptReturningResult(any()))
+            .thenAnswer((_) async => '400');
+
+        capturedOnPageFinished('https://twitter.com');
+        async.flushMicrotasks();
+
+        expect(controller.loadingState, EmbedLoadingState.loading);
+
+        async.elapse(const Duration(seconds: 2));
+        async.flushMicrotasks();
+
         async.elapse(const Duration(milliseconds: 305));
         async.flushMicrotasks();
 

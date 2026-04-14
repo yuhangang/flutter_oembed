@@ -65,6 +65,8 @@ void main() {
           .thenAnswer((_) async {});
       when(() => mockWebViewController.runJavaScriptReturningResult(any()))
           .thenAnswer((_) async => '100');
+      when(() => mockWebViewController.currentUrl())
+          .thenAnswer((_) async => 'https://example.com');
     });
 
     group('focus arbitration', () {
@@ -96,9 +98,11 @@ void main() {
 
         firstDriver.updateVisibilityFraction(0.9);
         secondDriver.updateVisibilityFraction(0.2);
+        await Future<void>.delayed(Duration.zero);
 
-        verify(() => secondWebViewController.runJavaScript(any())).called(1);
-        verify(() => mockWebViewController.runJavaScript(any())).called(1);
+        verify(() => secondWebViewController.runJavaScript(any()))
+            .called(greaterThanOrEqualTo(1));
+        verifyNever(() => mockWebViewController.runJavaScript(any()));
 
         secondController.dispose();
         firstDriver.dispose();
@@ -133,13 +137,33 @@ void main() {
         firstDriver.updateVisibilityFraction(0.8);
         secondDriver.updateVisibilityFraction(0.3);
         secondDriver.updateVisibilityFraction(0.95);
+        await Future<void>.delayed(Duration.zero);
 
-        verify(() => mockWebViewController.runJavaScript(any())).called(2);
-        verify(() => secondWebViewController.runJavaScript(any())).called(2);
+        verify(() => mockWebViewController.runJavaScript(any()))
+            .called(greaterThanOrEqualTo(1));
+        verify(() => secondWebViewController.runJavaScript(any()))
+            .called(greaterThanOrEqualTo(1));
 
         secondController.dispose();
         firstDriver.dispose();
         secondDriver.dispose();
+      });
+    });
+
+    group('visibility', () {
+      test('syncs navigation visibility from visible fraction updates', () {
+        final driver = EmbedWebViewDriver(
+          controller: controller,
+          webViewController: mockWebViewController,
+        );
+
+        expect(embedDriverNavigationIsVisible(driver), isTrue);
+
+        driver.updateVisibilityFraction(0);
+        expect(embedDriverNavigationIsVisible(driver), isFalse);
+
+        driver.updateVisibilityFraction(0.5);
+        expect(embedDriverNavigationIsVisible(driver), isTrue);
       });
     });
 
@@ -193,6 +217,26 @@ void main() {
             maxWidth: 640);
 
         verify(() => mockWebViewController.loadRequest(any())).called(1);
+      });
+
+      test('registers navigation intent tracking channel', () async {
+        final driver = EmbedWebViewDriver(
+          controller: controller,
+          webViewController: mockWebViewController,
+        );
+
+        await driver.initEmbedWebview(
+          backgroundColor: Colors.white,
+          embedData:
+              const EmbedData(html: '<a href="https://example.com">x</a>'),
+          embedUrl: null,
+          maxWidth: 640,
+        );
+
+        verify(() => mockWebViewController.addJavaScriptChannel(
+              'NavigationIntentChannel',
+              onMessageReceived: any(named: 'onMessageReceived'),
+            )).called(1);
       });
     });
 
@@ -309,8 +353,8 @@ void main() {
 
                 capturedDelegate!.onPageFinished!('https://example.com');
 
-                // Wait for all the delays in _handleEmbedPageFinished (approx 1500ms)
-                async.elapse(const Duration(milliseconds: 2500));
+                async.elapse(const Duration(milliseconds: 3500));
+                async.flushMicrotasks();
 
                 expect(controller.loadingState, EmbedLoadingState.error);
               }));

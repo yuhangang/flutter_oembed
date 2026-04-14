@@ -8,7 +8,7 @@ class MockWebViewController extends Mock implements WebViewController {}
 void main() {
   group('EmbedWebviewControllerUtils', () {
     test(
-        'media element helpers run JavaScript for mute, pause, resume, unmute, and seek',
+        'media element helpers run JavaScript for mute, pause, resume, and unmute',
         () async {
       final controller = MockWebViewController();
       when(() => controller.runJavaScript(any())).thenAnswer((_) async {});
@@ -23,9 +23,6 @@ void main() {
       verify(() => controller.runJavaScript(any())).called(1);
 
       await controller.unmuteMediaElements();
-      verify(() => controller.runJavaScript(any())).called(1);
-
-      await controller.seekMediaElementsTo(42);
       verify(() => controller.runJavaScript(any())).called(1);
     });
 
@@ -62,14 +59,12 @@ void main() {
 
       await controller.postJavaScriptMessageToIframes(
         srcFragments: const ['tiktok.com/player/'],
-        messageExpression:
-            '{"type":"seekTo","value":42,"x-tiktok-player":true}',
+        messageExpression: '{"type":"pause","x-tiktok-player":true}',
       );
 
       expect(scripts, hasLength(1));
       expect(scripts.single, contains('tiktok.com/player/'));
-      expect(scripts.single, contains('"type":"seekTo"'));
-      expect(scripts.single, contains('"value":42'));
+      expect(scripts.single, contains('"type":"pause"'));
       expect(scripts.single, contains('"x-tiktok-player":true'));
     });
 

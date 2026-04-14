@@ -86,14 +86,17 @@ class EmbedConfig extends Equatable {
   ///
   /// The built-in policy always allows sub-frame/bootstrap document loads,
   /// blocks unexpected main-frame redirects while the embed is still loading,
-  /// and routes post-load external navigations out of the WebView.
+  /// and only routes post-load external navigations out of the WebView when
+  /// they follow a recent user tap captured inside the embed. A Flutter-side
+  /// pointer listener is also used as a coarse fallback when a provider does
+  /// not expose a tappable anchor href to JavaScript.
   final FutureOr<NavigationDecision>? Function(NavigationRequest)?
       onNavigationRequest;
 
   /// A simpler callback for handling link clicks.
   ///
   /// If provided, this is called when the default navigation policy intercepts
-  /// an external main-frame navigation after the embed has loaded.
+  /// a user-initiated external main-frame navigation after the embed has loaded.
   ///
   /// Leaving this null makes the package attempt to open the URL via
   /// `url_launcher` using the platform's external browser or app.
@@ -108,6 +111,15 @@ class EmbedConfig extends Equatable {
   /// Timeout duration for the WebView to finish loading before showing an error.
   /// Defaults to [kDefaultEmbedLoadTimeout].
   final Duration loadTimeout;
+
+  /// Minimum downward height change required before the controller notifies.
+  ///
+  /// Small DOM measurement fluctuations are common while WebViews settle. This
+  /// threshold prevents visual jitter from tiny downward adjustments while
+  /// still allowing immediate growth to avoid clipping.
+  ///
+  /// Defaults to [kDefaultHeightUpdateDeltaThreshold].
+  final double heightUpdateDeltaThreshold;
 
   /// Whether the WebView should be scrollable internally.
   /// Defaults to `false`.
@@ -157,6 +169,7 @@ class EmbedConfig extends Equatable {
     this.onLinkTap,
     this.useDynamicDiscovery = false,
     this.loadTimeout = kDefaultEmbedLoadTimeout,
+    this.heightUpdateDeltaThreshold = kDefaultHeightUpdateDeltaThreshold,
     this.scrollable = false,
     this.lazyLoad = false,
     this.pauseOnRouteCover = false,
@@ -188,6 +201,7 @@ class EmbedConfig extends Equatable {
         strings,
         useDynamicDiscovery,
         loadTimeout,
+        heightUpdateDeltaThreshold,
         scrollable,
         lazyLoad,
         pauseOnRouteCover,
@@ -200,6 +214,42 @@ class EmbedConfig extends Equatable {
       providers.useDynamicDiscovery == useDynamicDiscovery
           ? providers
           : providers.copyWith(useDynamicDiscovery: useDynamicDiscovery);
+
+  /// Returns `true` when all runtime-relevant fields match.
+  ///
+  /// Unlike [props], this comparison includes callback and client identities so
+  /// widgets can distinguish a genuinely new runtime configuration from a fresh
+  /// `copyWith` allocation with the same values.
+  bool runtimeEquals(EmbedConfig? other) {
+    if (identical(this, other)) return true;
+    if (other == null) return false;
+    return providers == other.providers &&
+        cache == other.cache &&
+        cacheProvider == other.cacheProvider &&
+        style == other.style &&
+        facebookAppId == other.facebookAppId &&
+        facebookClientToken == other.facebookClientToken &&
+        proxyUrl == other.proxyUrl &&
+        locale == other.locale &&
+        brightness == other.brightness &&
+        strings == other.strings &&
+        identical(onNavigationRequest, other.onNavigationRequest) &&
+        identical(onLinkTap, other.onLinkTap) &&
+        useDynamicDiscovery == other.useDynamicDiscovery &&
+        loadTimeout == other.loadTimeout &&
+        heightUpdateDeltaThreshold == other.heightUpdateDeltaThreshold &&
+        scrollable == other.scrollable &&
+        lazyLoad == other.lazyLoad &&
+        pauseOnRouteCover == other.pauseOnRouteCover &&
+        routeObserver == other.routeObserver &&
+        logger == other.logger &&
+        identical(httpClient, other.httpClient);
+  }
+
+  static bool runtimeEqualsNullable(EmbedConfig? a, EmbedConfig? b) {
+    if (identical(a, b)) return true;
+    return a?.runtimeEquals(b) ?? false;
+  }
 
   /// Returns a copy with the given fields replaced.
   EmbedConfig copyWith({
@@ -218,6 +268,7 @@ class EmbedConfig extends Equatable {
     void Function(String url, EmbedData? data)? onLinkTap,
     bool? useDynamicDiscovery,
     Duration? loadTimeout,
+    double? heightUpdateDeltaThreshold,
     bool? scrollable,
     bool? lazyLoad,
     bool? pauseOnRouteCover,
@@ -240,6 +291,8 @@ class EmbedConfig extends Equatable {
       onLinkTap: onLinkTap ?? this.onLinkTap,
       useDynamicDiscovery: useDynamicDiscovery ?? this.useDynamicDiscovery,
       loadTimeout: loadTimeout ?? this.loadTimeout,
+      heightUpdateDeltaThreshold:
+          heightUpdateDeltaThreshold ?? this.heightUpdateDeltaThreshold,
       scrollable: scrollable ?? this.scrollable,
       lazyLoad: lazyLoad ?? this.lazyLoad,
       pauseOnRouteCover: pauseOnRouteCover ?? this.pauseOnRouteCover,

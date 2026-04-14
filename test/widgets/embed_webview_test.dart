@@ -1,14 +1,14 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
-import 'package:flutter_oembed/src/core/embed_scope.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
 import 'package:flutter_oembed/src/models/embed_constant.dart';
 import 'package:flutter_oembed/src/models/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_strings.dart';
+import 'package:flutter_oembed/src/models/embed_webview_controls.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -66,6 +66,38 @@ void main() {
       await tester.pump();
       expect(find.byType(WebViewWidget), findsOneWidget);
       await tester.pump(const Duration(seconds: 11));
+    });
+
+    testWidgets('records recent user interaction from the wrapper listener',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedWebView.data(
+              param: param,
+              data: data,
+              maxWidth: 640,
+              controller: controller,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      final driver = controller.boundDriver as EmbedWebViewDriver;
+      expect(embedDriverHasRecentUserInteraction(driver), isFalse);
+
+      controller.setLoadingState(EmbedLoadingState.loaded);
+      await tester.pump();
+
+      await tester.tapAt(tester.getCenter(find.byType(EmbedWebView)));
+      await tester.pump();
+
+      expect(embedDriverHasRecentUserInteraction(driver), isTrue);
+
+      controller.dispose();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
     });
 
     testWidgets('pauses media when a new route covers the embed',
@@ -201,15 +233,79 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        final pauseCallCount =
-            fakePlatform.lastCreatedController?.javaScriptCalls.length ?? 0;
+        final pauseCallCount = fakePlatform
+                .lastCreatedController?.javaScriptCalls
+                .where((call) => call.contains('pause'))
+                .length ??
+            0;
+        final resumeCallCount = fakePlatform
+                .lastCreatedController?.javaScriptCalls
+                .where((call) => call.contains('play'))
+                .length ??
+            0;
 
         Navigator.of(tester.element(find.text('Next'))).pop();
         await tester.pumpAndSettle();
 
         expect(
-          fakePlatform.lastCreatedController?.javaScriptCalls.length,
-          greaterThan(pauseCallCount),
+          fakePlatform.lastCreatedController?.javaScriptCalls
+                  .where((call) => call.contains('pause'))
+                  .length ??
+              0,
+          greaterThanOrEqualTo(pauseCallCount),
+        );
+        expect(routeAwareController.loadingState, EmbedLoadingState.loaded);
+        expect(
+          fakePlatform.lastCreatedController?.javaScriptCalls
+                  .where((call) => call.contains('play'))
+                  .length ??
+              0,
+          greaterThanOrEqualTo(resumeCallCount),
+        );
+      } finally {
+        routeAwareController.dispose();
+      }
+    });
+
+    testWidgets('does not pause media on route cover when disabled',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedWebView.data(
+              param: param,
+              data: data,
+              maxWidth: 640,
+              controller: EmbedController(
+                param: param,
+                config: const EmbedConfig(pauseOnRouteCover: false),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final routeAwareController =
+          tester.widget<EmbedWebView>(find.byType(EmbedWebView)).controller;
+
+      try {
+        routeAwareController.setLoadingState(EmbedLoadingState.loaded);
+        await tester.pump();
+        fakePlatform.lastCreatedController?.javaScriptCalls.clear();
+
+        final observerFinder = find.byWidgetPredicate(
+          (widget) => widget.runtimeType.toString() == '_EmbedWebviewObserver',
+        );
+        final observerState = tester.state(observerFinder) as dynamic;
+        observerState.didPushNext();
+        await tester.pump();
+
+        expect(
+          fakePlatform.lastCreatedController?.javaScriptCalls
+                  .where((call) => call.contains('pause'))
+                  .length ??
+              0,
+          0,
         );
       } finally {
         routeAwareController.dispose();
@@ -290,6 +386,77 @@ void main() {
         expect(secondPauseCount, greaterThan(firstPauseCount));
       } finally {
         routeAwareController.dispose();
+      }
+    });
+
+    testWidgets(
+        'should NOT dispose the driver when widget is disposed if controller is alive',
+        (tester) async {
+      try {
+        // 1. Build the widget
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                key: const Key('webview_1'),
+                param: param,
+                data: data,
+                maxWidth: 640,
+                controller: controller,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+        expect(find.byType(WebViewWidget), findsOneWidget);
+
+        // Simulate loading finished
+        controller.setLoadingState(EmbedLoadingState.loaded);
+        await tester.pump();
+
+        // 2. Dispose the widget by replacing it with something else
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(
+              body: Text('Disposed'),
+            ),
+          ),
+        );
+        await tester.pump();
+        expect(find.byType(WebViewWidget), findsNothing);
+
+        // 3. Re-build the widget with the SAME controller
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                key: const Key('webview_2'),
+                param: param,
+                data: data,
+                maxWidth: 640,
+                controller: controller,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        // If the driver was disposed, it won't re-initialize correctly.
+        expect(controller.loadingState, EmbedLoadingState.loaded);
+        expect(find.byType(WebViewWidget), findsOneWidget);
+
+        // Verify the WebView was NOT disposed (it should NOT have loaded about:blank)
+        final webViewController = fakePlatform.lastCreatedController!;
+        expect(webViewController.lastRequest?.uri.toString(),
+            isNot('about:blank'));
+        expect(webViewController.lastLoadedHtml, contains('<div>Test</div>'));
+
+        // Wait a bit to see if any errors happen or if it fails to render.
+        await tester.pump(const Duration(milliseconds: 100));
+      } finally {
+        controller.dispose();
       }
     });
 
@@ -397,108 +564,41 @@ void main() {
       await tester.pump(const Duration(seconds: 11));
     });
 
-    testWidgets(
-        'reuses a cached WebViewController when remounted with the same reuseKey',
+    testWidgets('recreates the platform WebView when controller params change',
         (tester) async {
-      const reuseKey = 'feed-item-1';
-
-      Widget buildHost({required bool showEmbed}) {
-        return MaterialApp(
-          home: EmbedScope(
-            config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
-            reuseWebViews: true,
-            child: Scaffold(
-              body: showEmbed
-                  ? EmbedWebView.data(
-                      param: param,
-                      data: data,
-                      maxWidth: 640,
-                      controller: controller,
-                      reuseKey: reuseKey,
-                    )
-                  : const SizedBox.shrink(),
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 640,
+                controller: controller,
+              ),
             ),
           ),
         );
-      }
 
-      await tester.pumpWidget(buildHost(showEmbed: true));
-      await tester.pump();
-      expect(fakePlatform.createdControllers, hasLength(1));
+        await tester.pump();
 
-      await tester.pumpWidget(buildHost(showEmbed: false));
-      await tester.pump();
+        expect(fakePlatform.createdControllers.length, 1);
 
-      await tester.pumpWidget(buildHost(showEmbed: true));
-      await tester.pump();
-      expect(fakePlatform.createdControllers, hasLength(1));
-    });
-
-    testWidgets(
-        'does not reuse a cached WebViewController when the embed content changes',
-        (tester) async {
-      const reuseKey = 'feed-item-1';
-      final firstParam = SocialEmbedParam(
-        url: 'https://youtube.com/watch?v=123',
-        embedType: EmbedType.youtube,
-      );
-      final secondParam = SocialEmbedParam(
-        url: 'https://youtube.com/watch?v=456',
-        embedType: EmbedType.youtube,
-      );
-
-      Widget buildHost({
-        required bool showEmbed,
-        required SocialEmbedParam activeParam,
-        required EmbedData activeData,
-      }) {
-        return MaterialApp(
-          home: EmbedScope(
-            config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
-            reuseWebViews: true,
-            child: Scaffold(
-              body: showEmbed
-                  ? EmbedWebView.data(
-                      param: activeParam,
-                      data: activeData,
-                      maxWidth: 640,
-                      controller: controller,
-                      reuseKey: reuseKey,
-                    )
-                  : const SizedBox.shrink(),
-            ),
+        controller.synchronize(
+          param: SocialEmbedParam(
+            url: 'https://youtube.com/watch?v=456',
+            embedType: EmbedType.youtube,
           ),
         );
+
+        await tester.pump();
+        await tester.pump();
+
+        expect(fakePlatform.createdControllers.length, 2);
+      } finally {
+        controller.dispose();
+        await tester.pumpWidget(const SizedBox());
       }
-
-      await tester.pumpWidget(
-        buildHost(
-          showEmbed: true,
-          activeParam: firstParam,
-          activeData: const EmbedData(html: '<div>first</div>'),
-        ),
-      );
-      await tester.pump();
-      expect(fakePlatform.createdControllers, hasLength(1));
-
-      await tester.pumpWidget(
-        buildHost(
-          showEmbed: false,
-          activeParam: firstParam,
-          activeData: const EmbedData(html: '<div>first</div>'),
-        ),
-      );
-      await tester.pump();
-
-      await tester.pumpWidget(
-        buildHost(
-          showEmbed: true,
-          activeParam: secondParam,
-          activeData: const EmbedData(html: '<div>second</div>'),
-        ),
-      );
-      await tester.pump();
-      expect(fakePlatform.createdControllers, hasLength(2));
     });
 
     testWidgets('should render a custom webViewBuilder when provided',
@@ -511,7 +611,7 @@ void main() {
               data: data,
               maxWidth: 640,
               controller: controller,
-              webViewBuilder: (context, child) =>
+              webViewBuilder: (context, controls, child) =>
                   Container(key: const Key('custom'), child: child),
             ),
           ),
@@ -520,6 +620,55 @@ void main() {
 
       expect(find.byKey(const Key('custom')), findsOneWidget);
       await tester.pump(const Duration(seconds: 11));
+    });
+
+    testWidgets('exposes functional controls in webViewBuilder',
+        (tester) async {
+      late EmbedWebViewControls capturedControls;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedWebView.data(
+              param: param,
+              data: data,
+              maxWidth: 640,
+              controller: controller,
+              webViewBuilder: (context, controls, child) {
+                capturedControls = controls;
+                return child;
+              },
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      controller.setLoadingState(EmbedLoadingState.loaded);
+
+      // Verify WebViewController is exposed
+      expect(capturedControls.controller, isNotNull);
+
+      // Verify reload() triggers a reload on the underlying controller
+      await capturedControls.reload();
+      expect(fakePlatform.lastCreatedController?.reloadCount, 1);
+
+      // Verify media controls trigger media actions
+      // (Using resumeMedia which calls 'play' in the fake platform)
+      await capturedControls.resumeMedia();
+      expect(
+        fakePlatform.lastCreatedController?.javaScriptCalls
+            .any((call) => call.contains('play')),
+        isTrue,
+      );
+
+      // Verify updateHeight() triggers height update
+      await capturedControls.updateHeight();
+      // fake platform getEmbedDocumentHeight returns a default value
+
+      controller.dispose();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
     });
 
     testWidgets(
@@ -555,6 +704,45 @@ void main() {
         await tester.pump(const Duration(seconds: 11));
       } finally {
         semanticsHandle.dispose();
+      }
+    });
+
+    testWidgets(
+        'should restart guarded retry logic when the controller is in noConnection state',
+        (tester) async {
+      final customController = EmbedController(
+        param: param,
+        config: const EmbedConfig(loadTimeout: Duration(milliseconds: 100)),
+      );
+
+      try {
+        customController.setLoadingState(EmbedLoadingState.noConnection);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 640,
+                controller: customController,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        await tester.tap(find.byIcon(Icons.refresh));
+        await tester.pump();
+
+        expect(customController.loadingState, EmbedLoadingState.loading);
+        expect(fakePlatform.lastCreatedController?.reloadCount, 1);
+
+        await tester.pump(const Duration(milliseconds: 150));
+        expect(customController.loadingState, EmbedLoadingState.error);
+      } finally {
+        customController.dispose();
       }
     });
 

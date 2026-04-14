@@ -123,6 +123,28 @@ class EmbedProviderConfig extends Equatable {
     _effectiveProvidersCache[this] = result;
     return result;
   }
+
+  /// Memoized rule lookup for repeated resolutions against the same config.
+  EmbedProviderRule? matchRule(String url) {
+    final cache = _matchedRuleCache[this] ??= <String, Object?>{};
+    if (cache.containsKey(url)) {
+      final cached = cache[url];
+      return identical(cached, _noMatchedRuleSentinel)
+          ? null
+          : cached as EmbedProviderRule;
+    }
+
+    EmbedProviderRule? result;
+    for (final rule in effectiveProviders) {
+      if (rule.matches(url)) {
+        result = rule;
+        break;
+      }
+    }
+
+    cache[url] = result ?? _noMatchedRuleSentinel;
+    return result;
+  }
 }
 
 /// Instance-level cache for [EmbedProviderConfig.effectiveProviders].
@@ -130,6 +152,8 @@ class EmbedProviderConfig extends Equatable {
 /// Uses [Expando] so the cached list is garbage-collected together with the
 /// [EmbedProviderConfig] instance, and `const` constructability is preserved.
 final Expando<List<EmbedProviderRule>> _effectiveProvidersCache = Expando();
+final Expando<Map<String, Object?>> _matchedRuleCache = Expando();
+final Object _noMatchedRuleSentinel = Object();
 
 /// Determines how embed content is rendered.
 enum EmbedRenderMode {

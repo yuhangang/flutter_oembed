@@ -152,9 +152,7 @@ class EmbedService {
 
     // 1. Check EmbedProviderConfig rules first
     if (config != null) {
-      rule = config.resolvedProviders.effectiveProviders.firstWhereOrNull(
-        (r) => r.matches(url),
-      );
+      rule = config.resolvedProviders.matchRule(url);
     } else {
       // Fallback for when no config is provided
       rule = kDefaultEmbedProviders.firstWhereOrNull(

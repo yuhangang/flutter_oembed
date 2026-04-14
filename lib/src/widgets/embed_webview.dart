@@ -1,22 +1,40 @@
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
+import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
 import 'package:flutter_oembed/src/models/embed_constant.dart';
 import 'package:flutter_oembed/src/models/embed_constraints.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/embed_strings.dart';
 import 'package:flutter_oembed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/models/embed_webview_controls.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
-import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-class EmbedWebView extends StatefulWidget {
+/// Renders embedded social media content in a platform WebView.
+///
+/// This is a thin stateless wrapper around [_EmbedWebViewCore]. It uses a
+/// [ListenableBuilder] to observe the [controller] and keys the inner widget
+/// on a composite [ValueKey] that captures all content-affecting inputs:
+///
+///  * Controller identity (via [identityHashCode])
+///  * [EmbedController.embedRevision] (bumped by [EmbedController.synchronize])
+///  * [param], [data], [url], [maxWidth], [scrollable]
+///
+/// When any of these change, Flutter tears down the old [_EmbedWebViewCore]
+/// state and creates a fresh one — giving a clean [State.initState] with no
+/// need for [State.didUpdateWidget] or manual staleness detection.
+///
+/// Display-only props ([style], [webViewBuilder], [embedConstraints]) are
+/// intentionally excluded from the key so they can change without a full
+/// WebView teardown.
+class EmbedWebView extends StatelessWidget {
   final SocialEmbedParam param;
   final EmbedData? data;
   final String? url;
@@ -29,8 +47,11 @@ class EmbedWebView extends StatefulWidget {
   final EmbedController controller;
   final EmbedStyle? style;
   final bool scrollable;
-  final Object? reuseKey;
-  final Widget Function(BuildContext context, Widget child)? webViewBuilder;
+  final Widget Function(
+    BuildContext context,
+    EmbedWebViewControls controls,
+    Widget child,
+  )? webViewBuilder;
 
   const EmbedWebView.data({
     super.key,
@@ -42,7 +63,6 @@ class EmbedWebView extends StatefulWidget {
     required this.controller,
     this.style,
     this.scrollable = false,
-    this.reuseKey,
     this.webViewBuilder,
   })  : assert(
           embedConstraints == null || embedHeight == null,
@@ -60,7 +80,6 @@ class EmbedWebView extends StatefulWidget {
     required this.controller,
     this.style,
     this.scrollable = false,
-    this.reuseKey,
     this.webViewBuilder,
   })  : assert(
           embedConstraints == null || embedHeight == null,
@@ -69,81 +88,130 @@ class EmbedWebView extends StatefulWidget {
         data = null;
 
   @override
-  State<EmbedWebView> createState() => _EmbedViewState();
+  Widget build(BuildContext context) {
+    // ListenableBuilder rebuilds when controller notifies (e.g. synchronize).
+    // The composite ValueKey on the inner widget causes a full state reset
+    // whenever the controller identity, embed revision, or content-affecting
+    // props change — eliminating the need for didUpdateWidget or staleness
+    // detection entirely.
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        return _EmbedWebViewCore(
+          key: ValueKey((
+            identityHashCode(controller),
+            controller.embedRevision,
+            param,
+            data,
+            url,
+            maxWidth,
+            scrollable,
+          )),
+          param: param,
+          data: data,
+          url: url,
+          maxWidth: maxWidth,
+          embedConstraints: embedConstraints,
+          // ignore: deprecated_member_use_from_same_package
+          embedHeight: embedHeight,
+          controller: controller,
+          style: style,
+          scrollable: scrollable,
+          webViewBuilder: webViewBuilder,
+        );
+      },
+    );
+  }
 }
 
-class _EmbedViewState extends State<EmbedWebView> {
+/// Internal stateful widget that owns the [EmbedWebViewDriver] lifecycle.
+///
+/// Keyed by the outer [EmbedWebView] on content-affecting props, so a prop
+/// change destroys this state and creates a fresh one. This keeps the
+/// lifecycle simple: [initState] creates the driver, [dispose] is a no-op
+/// (the driver is owned by the controller for cross-mount persistence).
+class _EmbedWebViewCore extends StatefulWidget {
+  final SocialEmbedParam param;
+  final EmbedData? data;
+  final String? url;
+  final double maxWidth;
+  final EmbedConstraints? embedConstraints;
+  final double? embedHeight;
+  final EmbedController controller;
+  final EmbedStyle? style;
+  final bool scrollable;
+  final Widget Function(
+    BuildContext context,
+    EmbedWebViewControls controls,
+    Widget child,
+  )? webViewBuilder;
+
+  const _EmbedWebViewCore({
+    super.key,
+    required this.param,
+    required this.data,
+    required this.url,
+    required this.maxWidth,
+    this.embedConstraints,
+    this.embedHeight,
+    required this.controller,
+    this.style,
+    this.scrollable = false,
+    this.webViewBuilder,
+  });
+
+  @override
+  State<_EmbedWebViewCore> createState() => _EmbedWebViewCoreState();
+}
+
+class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
   static const _defaultVideoAspectRatio = 16 / 9;
   static const _defaultSpotifyHeight = 152.0;
   static const _defaultSoundCloudHeight = 166.0;
   static const _defaultContentFallbackHeight = 320.0;
 
-  late EmbedWebViewDriver _driver;
-  Object? _reuseScopeToken;
-  bool _reuseWebViewsEnabled = false;
-
-  _EmbedWebViewReuseSignature get _reuseSignature =>
-      _EmbedWebViewReuseSignature(
-        param: widget.param,
-        data: widget.data,
-        url: widget.url,
-      );
+  /// The driver is created once in [initState] and never reassigned.
+  /// When content-affecting props change, [EmbedWebView] generates a new key
+  /// for the core widget, causing Flutter to destroy this state and create a
+  /// fresh one with a new driver.
+  late final EmbedWebViewDriver _driver;
 
   @override
   void initState() {
     super.initState();
-    _captureReuseScope(listen: false);
     _driver = _createDriver();
+    _scheduleVisibilityCheck();
     _scheduleInit();
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _captureReuseScope();
-  }
-
-  @override
-  void didUpdateWidget(covariant EmbedWebView oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    final controllerChanged = oldWidget.controller != widget.controller;
-    final shouldRefresh = controllerChanged ||
-        oldWidget.data != widget.data ||
-        oldWidget.url != widget.url ||
-        oldWidget.maxWidth != widget.maxWidth ||
-        oldWidget.scrollable != widget.scrollable ||
-        oldWidget.param != widget.param ||
-        oldWidget.reuseKey != widget.reuseKey;
-
-    if (shouldRefresh) {
-      _driver.dispose();
-      _driver = _createDriver();
-      _scheduleInit(forceReload: true);
-    }
+  void dispose() {
+    super.dispose();
   }
 
   EmbedWebViewDriver _createDriver() {
-    final reusedController = widget.reuseKey != null && _reuseWebViewsEnabled
-        ? EmbedScope.takeReusedWebViewControllerFromToken(
-            _reuseScopeToken,
-            reuseKey: widget.reuseKey!,
-            signature: _reuseSignature,
-          )
-        : null;
-    return EmbedWebViewDriver(
+    final existing = widget.controller.boundDriver;
+    final controllerParam = widget.controller.param;
+    if (existing is EmbedWebViewDriver) {
+      if (existing.controller.param == controllerParam) {
+        return existing;
+      }
+      // Parameters mismatch: unbind and dispose the old driver.
+      widget.controller.unbindDriver();
+      existing.dispose();
+    }
+
+    final driver = EmbedWebViewDriver(
       controller: widget.controller,
-      webViewController: reusedController,
     );
+    widget.controller.bindDriver(
+      driver,
+      onDispose: () => driver.dispose(),
+    );
+    return driver;
   }
 
-  void _captureReuseScope({bool listen = true}) {
-    _reuseScopeToken = EmbedScope.reuseScopeTokenOf(context, listen: listen);
-    _reuseWebViewsEnabled = _reuseScopeToken != null &&
-        EmbedScope.reuseWebViewsOf(context, listen: listen);
-  }
-
-  void _scheduleInit({bool forceReload = false}) {
+  void _scheduleInit() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final bg = Theme.of(context).scaffoldBackgroundColor;
@@ -153,25 +221,16 @@ class _EmbedViewState extends State<EmbedWebView> {
         embedUrl: widget.url,
         maxWidth: widget.maxWidth,
         scrollable: widget.scrollable,
-        forceReload: forceReload,
+        forceReload: true,
       );
     });
   }
 
-  @override
-  void dispose() {
-    var preserveWebView = false;
-    if (widget.reuseKey != null && _reuseWebViewsEnabled) {
-      EmbedScope.releaseReusedWebViewControllerToToken(
-        _reuseScopeToken,
-        reuseKey: widget.reuseKey!,
-        signature: _reuseSignature,
-        controller: _driver.webViewController,
-      );
-      preserveWebView = true;
-    }
-    _driver.dispose(preserveWebView: preserveWebView);
-    super.dispose();
+  void _scheduleVisibilityCheck() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      VisibilityDetectorController.instance.notifyNow();
+    });
   }
 
   Widget _buildLoadingOverlay(
@@ -205,9 +264,13 @@ class _EmbedViewState extends State<EmbedWebView> {
     return Semantics(
       container: true,
       label: strings.contentSemanticsLabel,
-      child: WebViewWidget(
-        controller: _driver.webViewController,
-        gestureRecognizers: gestureRecognizers,
+      child: Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (_) => _driver.recordUserInteraction(),
+        child: WebViewWidget(
+          controller: _driver.webViewController,
+          gestureRecognizers: gestureRecognizers,
+        ),
       ),
     );
   }
@@ -245,6 +308,7 @@ class _EmbedViewState extends State<EmbedWebView> {
     return AnimatedBuilder(
       animation: widget.controller,
       builder: (context, child) {
+        final effectiveParam = widget.controller.param;
         final config = widget.controller.config ?? EmbedScope.configOf(context);
         final style = widget.style ?? config?.style;
         final strings = config?.strings ?? const EmbedStrings();
@@ -297,11 +361,10 @@ class _EmbedViewState extends State<EmbedWebView> {
                       widget.controller.setLoadingState(
                         EmbedLoadingState.loading,
                       );
-                      if (loadingState == EmbedLoadingState.error) {
+                      if (loadingState == EmbedLoadingState.error ||
+                          loadingState == EmbedLoadingState.noConnection) {
                         widget.controller.setDidRetry();
                         _driver.refresh();
-                      } else {
-                        _driver.webViewController.reload();
                       }
                     },
                     child: style?.errorBuilder?.call(
@@ -316,11 +379,26 @@ class _EmbedViewState extends State<EmbedWebView> {
         );
 
         if (effectiveWebViewBuilder != null) {
-          webViewContainer = effectiveWebViewBuilder(context, webViewContainer);
+          final controls = EmbedWebViewControls(
+            controller: _driver.webViewController,
+            onReload: () => _driver.refresh(),
+            onUpdateHeight: () => _driver.updateEmbedPostHeight(),
+            onPause: () => widget.controller.pauseMedia(),
+            onResume: () => widget.controller.resumeMedia(),
+            onMute: () => widget.controller.muteMedia(),
+            onUnmute: () => widget.controller.unmuteMedia(),
+          );
+          webViewContainer = effectiveWebViewBuilder(
+            context,
+            controls,
+            webViewContainer,
+          );
         }
 
         return VisibilityDetector(
-          key: ValueKey(widget.param),
+          key: ValueKey(
+            'embed_webview_${widget.controller.embedRevision}_${effectiveParam.key}',
+          ),
           onVisibilityChanged: (info) {
             widget.controller.updateVisibility(
               info.visibleFraction > 0,
@@ -333,30 +411,6 @@ class _EmbedViewState extends State<EmbedWebView> {
       },
     );
   }
-}
-
-@immutable
-class _EmbedWebViewReuseSignature {
-  const _EmbedWebViewReuseSignature({
-    required this.param,
-    required this.data,
-    required this.url,
-  });
-
-  final SocialEmbedParam param;
-  final EmbedData? data;
-  final String? url;
-
-  @override
-  bool operator ==(Object other) {
-    return other is _EmbedWebViewReuseSignature &&
-        other.param == param &&
-        other.data == data &&
-        other.url == url;
-  }
-
-  @override
-  int get hashCode => Object.hash(param, data, url);
 }
 
 class _EmbedWebviewObserver extends StatefulWidget {
@@ -375,6 +429,7 @@ class _EmbedWebviewObserver extends StatefulWidget {
 class _EmbedWebviewObserverState extends State<_EmbedWebviewObserver>
     with RouteAware {
   RouteObserver<ModalRoute<dynamic>>? _routeObserver;
+  bool _pauseOnRouteCover = false;
 
   @override
   void didChangeDependencies() {
@@ -395,8 +450,11 @@ class _EmbedWebviewObserverState extends State<_EmbedWebviewObserver>
     if (!mounted) return;
 
     final config = widget.controller.config ?? EmbedScope.configOf(context);
-    final routeObserver = config?.routeObserver;
+    final pauseOnRouteCover = config?.pauseOnRouteCover ?? false;
+    final routeObserver = pauseOnRouteCover ? config?.routeObserver : null;
     final route = ModalRoute.of(context);
+    final wasPauseOnRouteCover = _pauseOnRouteCover;
+    _pauseOnRouteCover = pauseOnRouteCover;
 
     if (routeObserver != _routeObserver) {
       _routeObserver?.unsubscribe(this);
@@ -404,6 +462,10 @@ class _EmbedWebviewObserverState extends State<_EmbedWebviewObserver>
       if (routeObserver != null && route != null) {
         routeObserver.subscribe(this, route);
       }
+    }
+
+    if (wasPauseOnRouteCover && !pauseOnRouteCover) {
+      widget.driver.setRouteCovered(false);
     }
 
     widget.driver.updateFocusGroup(route);
@@ -417,11 +479,13 @@ class _EmbedWebviewObserverState extends State<_EmbedWebviewObserver>
 
   @override
   void didPushNext() {
+    if (!_pauseOnRouteCover) return;
     widget.driver.setRouteCovered(true);
   }
 
   @override
   void didPopNext() {
+    if (!_pauseOnRouteCover) return;
     widget.driver.setRouteCovered(false);
   }
 

@@ -54,7 +54,7 @@ dependencies:
 - When the covered route becomes visible again, the package also makes a best-effort resume attempt for providers that expose controllable players. Autoplay policies may still block resume until the user interacts again.
 - When multiple embeds are visible in the same route, the package treats the highest-visibility embed as focused and attempts to keep non-focused embeds paused.
 - Provider media-control support is not uniform. YouTube, Vimeo, and TikTok's `player/v1` path are the most reliable. Meta-style embeds may still be best-effort only.
-- `EmbedController` exposes best-effort `pauseMedia()`, `resumeMedia()`, `muteMedia()`, `unmuteMedia()`, and `seekMediaTo(...)` methods once an embed is attached. TikTok `player/v1` is the most complete implementation of that API in the current package.
+- `EmbedController` exposes best-effort `pauseMedia()`, `resumeMedia()`, `muteMedia()`, and `unmuteMedia()` methods once an embed is attached. TikTok `player/v1` is the most complete implementation of that API in the current package.
 - To drive those controls from your own UI, pass the same `EmbedController` into `EmbedCard(controller: ...)`, `YoutubeEmbedPlayer`, or `TikTokEmbedPlayer` so the rendered embed can bind to it.
 
 ### Brightness Support Matrix
@@ -98,6 +98,7 @@ EmbedScope(
     pauseOnRouteCover: true,
     routeObserver: embedRouteObserver,
   ),
+  maxReusedWebViews: 8,
   child: MyApp(),
 )
 ```
@@ -129,7 +130,8 @@ EmbedCard(
 
 - `about:blank`, `data:`, `blob:`, and sub-frame navigations stay inside the WebView so provider scripts and nested iframes can initialize correctly.
 - Unexpected main-frame redirects are blocked while the embed is still loading to avoid auto-redirect hijacks.
-- Once loaded, external main-frame navigations are prevented inside the WebView and handed off to the host app instead.
+- Once loaded, external main-frame navigations are prevented inside the WebView and only handed off to the host app when they follow a recent user tap captured inside the embed. The package prefers href-specific JavaScript capture and falls back to a coarse Flutter-side pointer signal when needed.
+- Passive post-load redirects, ad hops, and background deep-link attempts are blocked instead of being auto-launched.
 - If you do not provide `onLinkTap`, the package attempts to open intercepted links with the platform's external browser or native app via `url_launcher`.
 - If you provide `onLinkTap`, your callback becomes responsible for deciding what to do with that intercepted URL.
 
@@ -232,6 +234,7 @@ EmbedConfig(
   useDynamicDiscovery: true, // Enables searching the official oEmbed registry if no local provider matches
   pauseOnRouteCover: true, // Pauses supported media when a new page or bottom sheet covers the route
   routeObserver: embedRouteObserver,
+  heightUpdateDeltaThreshold: 2, // Ignores tiny downward height shifts to reduce jitter
   providers: EmbedProviderConfig(
     providerRenderModes: {
       'YouTube': EmbedRenderMode.iframe,
@@ -278,6 +281,10 @@ EmbedScope(
 You can also provide your own `EmbedCacheProvider` implementation in
 `EmbedConfig` when you need a custom cache backend per scope or test.
 
+When `reuseWebViews: true` is enabled on `EmbedScope`, released WebViews are
+kept in a bounded LRU-style cache. Use `maxReusedWebViews` to tune how many
+detached controllers a scope may retain before older entries are evicted.
+
 ### Customizable Strings
 
 You can customize or localize the user-facing text used by the package for
@@ -310,7 +317,6 @@ await controller.pauseMedia();
 await controller.resumeMedia();
 await controller.muteMedia();
 await controller.unmuteMedia();
-await controller.seekMediaTo(const Duration(seconds: 15));
 ```
 
 These calls are no-ops until the controller is bound to a rendered embed. Other

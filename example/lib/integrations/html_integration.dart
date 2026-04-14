@@ -64,7 +64,6 @@ class EmbedExtension extends HtmlExtension {
         padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: EmbedCard.url(
           url,
-          reuseKey: 'html:$url',
           scrollable: settings.scrollable,
           lazyLoad: true,
           style: EmbedStyle(
@@ -87,6 +86,8 @@ class HtmlIntegrationPage extends StatefulWidget {
 }
 
 class _HtmlIntegrationPageState extends State<HtmlIntegrationPage> {
+  bool showBorder = true;
+
   EmbedConfig _buildScopedConfig(BuildContext context) {
     final settings = ExampleSettingsProvider.of(context).settings;
     final parentConfig = EmbedScope.configOf(context, listen: false);
@@ -132,10 +133,21 @@ class _HtmlIntegrationPageState extends State<HtmlIntegrationPage> {
       appBar: AppBar(
         title: const Text('HTML Integration'),
         actions: const [ConfigMenuAction()],
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(kToolbarHeight),
+          child: SwitchListTile(
+            title: const Text('Show Border'),
+            value: showBorder,
+            onChanged: (value) {
+              setState(() {
+                showBorder = value;
+              });
+            },
+          ),
+        ),
       ),
       body: EmbedScope(
         config: _buildScopedConfig(context),
-        reuseWebViews: true,
         child: SingleChildScrollView(
           padding: EdgeInsets.only(
             bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
@@ -144,15 +156,20 @@ class _HtmlIntegrationPageState extends State<HtmlIntegrationPage> {
             key: ValueKey('html_${settings.locale}-${settings.brightness}'),
             data: htmlData,
             extensions: [EmbedExtension()],
-            style: {
-              ".embed-card": Style(
-                margin: Margins.only(top: 8, bottom: 24),
-                padding: HtmlPaddings.all(12),
-                backgroundColor: Theme.of(context).canvasColor,
+            style:
+                showBorder
+                    ? {
+                      ".embed-card": Style(
+                        margin: Margins.only(top: 8, bottom: 24),
+                        padding: HtmlPaddings.all(12),
+                        backgroundColor: Theme.of(context).canvasColor,
 
-                border: Border.all(color: Theme.of(context).dividerColor),
-              ),
-            },
+                        border: Border.all(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                      ),
+                    }
+                    : {},
           ),
         ),
       ),

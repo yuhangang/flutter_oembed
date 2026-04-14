@@ -179,6 +179,13 @@ void main() {
           fakePlatform.lastCreatedController?.lastLoadedHtml,
           contains('controls=0'),
         );
+        expect(
+          controller.param.embedParams,
+          const TikTokEmbedParams(
+            autoplay: true,
+            controls: false,
+          ),
+        );
       } finally {
         controller.dispose();
       }

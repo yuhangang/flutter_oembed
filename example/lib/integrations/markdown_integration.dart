@@ -210,7 +210,6 @@ You can add any OEmbed-supported URL using `url`, `href`, `src`, `data-url`, as 
       ),
       body: EmbedScope(
         config: _buildScopedConfig(context),
-        reuseWebViews: true,
         child: MarkdownWidget(
           padding: EdgeInsets.only(
             top: 16,
@@ -285,7 +284,6 @@ class _KeepAliveEmbedState extends State<KeepAliveEmbed>
 
     return EmbedCard.url(
       widget.url,
-      reuseKey: 'markdown:${widget.url}',
       scrollable: settings.scrollable,
       style: EmbedStyle(
         loadingBuilder:

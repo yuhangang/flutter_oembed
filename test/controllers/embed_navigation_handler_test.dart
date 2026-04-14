@@ -75,6 +75,7 @@ class LaunchCall {
 void main() {
   late UrlLauncherPlatform originalUrlLauncher;
   late FakeUrlLauncherPlatform fakeUrlLauncher;
+  late DateTime now;
 
   setUpAll(() {
     WebViewPlatform.instance = FakeWebViewPlatform();
@@ -90,6 +91,7 @@ void main() {
     late EmbedConfig config;
 
     setUp(() {
+      now = DateTime(2026, 4, 14, 12);
       fakeUrlLauncher = FakeUrlLauncherPlatform();
       UrlLauncherPlatform.instance = fakeUrlLauncher;
       param = SocialEmbedParam(
@@ -138,7 +140,11 @@ void main() {
 
     group('onNavigationRequest()', () {
       test('should allow navigation to about:blank', () async {
-        final handler = EmbedNavigationHandler(param: param, config: config);
+        final handler = EmbedNavigationHandler(
+          param: param,
+          config: config,
+          now: () => now,
+        );
         final delegate = handler.buildDelegate(
           loadingStateGetter: () => EmbedLoadingState.loaded,
           baseUrl: 'https://twitter.com',
@@ -160,14 +166,18 @@ void main() {
             url: 'https://tiktok.com/123', embedType: EmbedType.tiktok);
         config = EmbedConfig(onLinkTap: (url, _) => tappedUrl = url);
 
-        final handler =
-            EmbedNavigationHandler(param: tikTokParam, config: config);
+        final handler = EmbedNavigationHandler(
+          param: tikTokParam,
+          config: config,
+          now: () => now,
+        );
         final delegate = handler.buildDelegate(
           loadingStateGetter: () => EmbedLoadingState.loaded,
           baseUrl: 'https://tiktok.com',
           trustedMainFrameUrls: const [],
           onPageFinished: () async {},
         );
+        handler.recordUserNavigationIntent('https://example.com/deep-link');
 
         final request = MockNavigationRequest();
         when(() => request.url).thenReturn('https://google.com');
@@ -178,7 +188,11 @@ void main() {
       });
 
       test('should allow sub-frame navigation', () async {
-        final handler = EmbedNavigationHandler(param: param, config: config);
+        final handler = EmbedNavigationHandler(
+          param: param,
+          config: config,
+          now: () => now,
+        );
         final delegate = handler.buildDelegate(
           loadingStateGetter: () => EmbedLoadingState.loaded,
           baseUrl: 'https://twitter.com',
@@ -197,7 +211,11 @@ void main() {
 
       test('should allow trusted main-frame startup navigation while loading',
           () async {
-        final handler = EmbedNavigationHandler(param: param, config: config);
+        final handler = EmbedNavigationHandler(
+          param: param,
+          config: config,
+          now: () => now,
+        );
         final delegate = handler.buildDelegate(
           loadingStateGetter: () => EmbedLoadingState.loading,
           baseUrl: 'https://twitter.com',
@@ -220,8 +238,11 @@ void main() {
           url: 'https://www.youtube.com/watch?v=123',
           embedType: EmbedType.youtube,
         );
-        final handler =
-            EmbedNavigationHandler(param: youtubeParam, config: config);
+        final handler = EmbedNavigationHandler(
+          param: youtubeParam,
+          config: config,
+          now: () => now,
+        );
         final delegate = handler.buildDelegate(
           loadingStateGetter: () => EmbedLoadingState.loading,
           baseUrl: 'https://www.youtube.com',
@@ -240,7 +261,11 @@ void main() {
 
       test('should allow provider-specific cross-host redirects while loading',
           () async {
-        final handler = EmbedNavigationHandler(param: param, config: config);
+        final handler = EmbedNavigationHandler(
+          param: param,
+          config: config,
+          now: () => now,
+        );
         final delegate = handler.buildDelegate(
           loadingStateGetter: () => EmbedLoadingState.loading,
           baseUrl: 'https://twitter.com',
@@ -259,7 +284,11 @@ void main() {
 
       test('should block unexpected main-frame redirects while loading',
           () async {
-        final handler = EmbedNavigationHandler(param: param, config: config);
+        final handler = EmbedNavigationHandler(
+          param: param,
+          config: config,
+          now: () => now,
+        );
         final delegate = handler.buildDelegate(
           loadingStateGetter: () => EmbedLoadingState.loading,
           baseUrl: 'https://twitter.com',
@@ -280,13 +309,18 @@ void main() {
           'should fall back to the default policy when onNavigationRequest returns null',
           () async {
         config = EmbedConfig(onNavigationRequest: (req) => null);
-        final handler = EmbedNavigationHandler(param: param, config: config);
+        final handler = EmbedNavigationHandler(
+          param: param,
+          config: config,
+          now: () => now,
+        );
         final delegate = handler.buildDelegate(
           loadingStateGetter: () => EmbedLoadingState.loaded,
           baseUrl: 'https://twitter.com',
           trustedMainFrameUrls: const [],
           onPageFinished: () async {},
         );
+        handler.recordUserNavigationIntent('https://google.com');
 
         final request = MockNavigationRequest();
         when(() => request.url).thenReturn('https://google.com');
@@ -299,7 +333,11 @@ void main() {
 
       test('should prevent navigation when the widget is not visible',
           () async {
-        final handler = EmbedNavigationHandler(param: param, config: config);
+        final handler = EmbedNavigationHandler(
+          param: param,
+          config: config,
+          now: () => now,
+        );
         handler.isVisible = false;
         final delegate = handler.buildDelegate(
           loadingStateGetter: () => EmbedLoadingState.loaded,
@@ -307,6 +345,7 @@ void main() {
           trustedMainFrameUrls: const [],
           onPageFinished: () async {},
         );
+        handler.recordUserNavigationIntent('https://google.com');
 
         final request = MockNavigationRequest();
         when(() => request.url).thenReturn('https://google.com');
@@ -317,11 +356,16 @@ void main() {
         expect(fakeUrlLauncher.launchedUrls, isEmpty);
       });
 
-      test('should call onLinkTap and prevent navigation for external links',
+      test(
+          'should call onLinkTap and prevent navigation for user-initiated external links',
           () async {
         String? tappedUrl;
         final config = EmbedConfig(onLinkTap: (url, _) => tappedUrl = url);
-        final handler = EmbedNavigationHandler(param: param, config: config);
+        final handler = EmbedNavigationHandler(
+          param: param,
+          config: config,
+          now: () => now,
+        );
         handler.isVisible = true;
 
         final delegate = handler.buildDelegate(
@@ -330,6 +374,7 @@ void main() {
           trustedMainFrameUrls: const [],
           onPageFinished: () async {},
         );
+        handler.recordUserNavigationIntent('https://google.com/path');
 
         final request = MockNavigationRequest();
         when(() => request.url).thenReturn('https://google.com');
@@ -337,19 +382,76 @@ void main() {
 
         final decision = await delegate.onNavigationRequest!(request);
         expect(decision, NavigationDecision.prevent);
-        expect(tappedUrl, 'https://google.com');
+        expect(tappedUrl, 'https://google.com/path');
         expect(fakeUrlLauncher.launchedUrls, isEmpty);
       });
 
-      test('should launch external http links when onLinkTap is not configured',
+      test(
+          'should block external http links when there is no recent user intent',
           () async {
-        final handler = EmbedNavigationHandler(param: param, config: config);
+        final handler = EmbedNavigationHandler(
+          param: param,
+          config: config,
+          now: () => now,
+        );
         final delegate = handler.buildDelegate(
           loadingStateGetter: () => EmbedLoadingState.loaded,
           baseUrl: 'https://twitter.com',
           trustedMainFrameUrls: const [],
           onPageFinished: () async {},
         );
+
+        final request = MockNavigationRequest();
+        when(() => request.url).thenReturn('https://google.com');
+        when(() => request.isMainFrame).thenReturn(true);
+
+        final decision = await delegate.onNavigationRequest!(request);
+        expect(decision, NavigationDecision.prevent);
+        expect(fakeUrlLauncher.launchedUrls, isEmpty);
+      });
+
+      test(
+          'should launch the captured click target for user-initiated external http links',
+          () async {
+        final handler = EmbedNavigationHandler(
+          param: param,
+          config: config,
+          now: () => now,
+        );
+        final delegate = handler.buildDelegate(
+          loadingStateGetter: () => EmbedLoadingState.loaded,
+          baseUrl: 'https://twitter.com',
+          trustedMainFrameUrls: const [],
+          onPageFinished: () async {},
+        );
+        handler.recordUserNavigationIntent('https://google.com/path');
+
+        final request = MockNavigationRequest();
+        when(() => request.url).thenReturn('https://google.com');
+        when(() => request.isMainFrame).thenReturn(true);
+
+        final decision = await delegate.onNavigationRequest!(request);
+        expect(decision, NavigationDecision.prevent);
+        expect(
+            fakeUrlLauncher.launchedUrls.single.url, 'https://google.com/path');
+        expect(fakeUrlLauncher.launchedUrls.single.useWebView, isFalse);
+      });
+
+      test(
+          'should launch the requested URL for recent generic user interaction',
+          () async {
+        final handler = EmbedNavigationHandler(
+          param: param,
+          config: config,
+          now: () => now,
+        );
+        final delegate = handler.buildDelegate(
+          loadingStateGetter: () => EmbedLoadingState.loaded,
+          baseUrl: 'https://twitter.com',
+          trustedMainFrameUrls: const [],
+          onPageFinished: () async {},
+        );
+        handler.recordUserInteraction();
 
         final request = MockNavigationRequest();
         when(() => request.url).thenReturn('https://google.com');
@@ -362,9 +464,13 @@ void main() {
       });
 
       test(
-          'should launch external custom schemes instead of letting WebView crash',
+          'should block external custom schemes when there is no recent user intent',
           () async {
-        final handler = EmbedNavigationHandler(param: param, config: config);
+        final handler = EmbedNavigationHandler(
+          param: param,
+          config: config,
+          now: () => now,
+        );
         final delegate = handler.buildDelegate(
           loadingStateGetter: () => EmbedLoadingState.loaded,
           baseUrl: 'https://twitter.com',
@@ -378,17 +484,95 @@ void main() {
 
         final decision = await delegate.onNavigationRequest!(request);
         expect(decision, NavigationDecision.prevent);
+        expect(fakeUrlLauncher.launchedUrls, isEmpty);
+      });
+
+      test(
+          'should launch user-initiated custom schemes instead of letting WebView crash',
+          () async {
+        final handler = EmbedNavigationHandler(
+          param: param,
+          config: config,
+          now: () => now,
+        );
+        final delegate = handler.buildDelegate(
+          loadingStateGetter: () => EmbedLoadingState.loaded,
+          baseUrl: 'https://twitter.com',
+          trustedMainFrameUrls: const [],
+          onPageFinished: () async {},
+        );
+        handler.recordUserNavigationIntent('twitter://status?id=123');
+
+        final request = MockNavigationRequest();
+        when(() => request.url).thenReturn('twitter://status?id=123');
+        when(() => request.isMainFrame).thenReturn(true);
+
+        final decision = await delegate.onNavigationRequest!(request);
+        expect(decision, NavigationDecision.prevent);
         expect(
           fakeUrlLauncher.launchedUrls.single.url,
           'twitter://status?id=123',
         );
       });
+
+      test('should ignore expired user intent for external navigation',
+          () async {
+        final handler = EmbedNavigationHandler(
+          param: param,
+          config: config,
+          now: () => now,
+        );
+        final delegate = handler.buildDelegate(
+          loadingStateGetter: () => EmbedLoadingState.loaded,
+          baseUrl: 'https://twitter.com',
+          trustedMainFrameUrls: const [],
+          onPageFinished: () async {},
+        );
+        handler.recordUserNavigationIntent('https://google.com');
+        now = now.add(const Duration(seconds: 2));
+
+        final request = MockNavigationRequest();
+        when(() => request.url).thenReturn('https://google.com');
+        when(() => request.isMainFrame).thenReturn(true);
+
+        final decision = await delegate.onNavigationRequest!(request);
+        expect(decision, NavigationDecision.prevent);
+        expect(fakeUrlLauncher.launchedUrls, isEmpty);
+      });
+
+      test('should ignore expired generic user interaction for navigation',
+          () async {
+        final handler = EmbedNavigationHandler(
+          param: param,
+          config: config,
+          now: () => now,
+        );
+        final delegate = handler.buildDelegate(
+          loadingStateGetter: () => EmbedLoadingState.loaded,
+          baseUrl: 'https://twitter.com',
+          trustedMainFrameUrls: const [],
+          onPageFinished: () async {},
+        );
+        handler.recordUserInteraction();
+        now = now.add(const Duration(seconds: 2));
+
+        final request = MockNavigationRequest();
+        when(() => request.url).thenReturn('https://google.com');
+        when(() => request.isMainFrame).thenReturn(true);
+
+        final decision = await delegate.onNavigationRequest!(request);
+        expect(decision, NavigationDecision.prevent);
+        expect(fakeUrlLauncher.launchedUrls, isEmpty);
+      });
     });
 
     group('onWebResourceError()', () {
       test('should handle web resource errors and log them', () {
-        final handler =
-            EmbedNavigationHandler(param: param, config: const EmbedConfig());
+        final handler = EmbedNavigationHandler(
+          param: param,
+          config: const EmbedConfig(),
+          now: () => now,
+        );
         final delegate = handler.buildDelegate(
           baseUrl: 'https://twitter.com',
           trustedMainFrameUrls: const [],

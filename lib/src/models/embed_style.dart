@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/models/embed_constant.dart';
+import 'package:flutter_oembed/src/models/embed_webview_controls.dart';
 
 /// Per-widget visual customization for OEmbed embeds.
 ///
@@ -49,7 +50,11 @@ class EmbedStyle extends Equatable {
 
   /// Wraps the internal WebView widget. Use this to add borders, border radius,
   /// or other decorations specifically to the webview content.
-  final Widget Function(BuildContext context, Widget child)? webViewBuilder;
+  final Widget Function(
+    BuildContext context,
+    EmbedWebViewControls controls,
+    Widget child,
+  )? webViewBuilder;
 
   /// Convenience border radius applied by the default wrapper when
   /// [wrapperBuilder] is null.
@@ -80,7 +85,11 @@ class EmbedStyle extends Equatable {
     WidgetBuilder? lazyLoadPlaceholderBuilder,
     Widget Function(BuildContext context, Object? error)? errorBuilder,
     Widget Function(BuildContext context, String url)? footerBuilder,
-    Widget Function(BuildContext context, Widget child)? webViewBuilder,
+    Widget Function(
+      BuildContext context,
+      EmbedWebViewControls controls,
+      Widget child,
+    )? webViewBuilder,
     BorderRadius? borderRadius,
     double? maxScrollableHeight,
   }) {

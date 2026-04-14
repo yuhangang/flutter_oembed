@@ -3,6 +3,7 @@ import 'package:embed_example/integrations/discovery_integration.dart';
 import 'package:embed_example/integrations/html_integration.dart';
 import 'package:embed_example/integrations/markdown_integration.dart';
 import 'package:embed_example/integrations/quill_integration.dart';
+import 'package:embed_example/integrations/webview_controls_integration.dart';
 import 'package:embed_example/integrations/youtube_player_integration.dart';
 import 'package:embed_example/models/sample_data.dart';
 import 'package:embed_example/pages/details_page.dart';
@@ -108,6 +109,14 @@ class _MyHomePageState extends State<MyHomePage> {
                   icon: Icons.extension_rounded,
                   color: Colors.brown,
                   page: const CustomProviderIntegrationPage(),
+                ),
+                _buildIntegrationCard(
+                  context,
+                  title: 'Webview builder',
+                  subtitle: 'Custom overlays using controls',
+                  icon: Icons.control_camera_rounded,
+                  color: Colors.indigo,
+                  page: const WebViewControlsIntegrationPage(),
                 ),
               ],
             ),

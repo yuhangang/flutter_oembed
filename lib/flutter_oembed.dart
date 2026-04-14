@@ -30,6 +30,7 @@ export 'src/models/embed_data.dart';
 export 'src/models/embed_provider_config.dart';
 export 'src/models/embed_strings.dart';
 export 'src/models/embed_style.dart';
+export 'src/models/embed_webview_controls.dart';
 export 'src/models/provider_rule.dart';
 export 'src/models/social_embed_param.dart';
 export 'src/models/base_embed_params.dart';

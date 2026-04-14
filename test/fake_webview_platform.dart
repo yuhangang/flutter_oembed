@@ -65,6 +65,7 @@ class FakePlatformNavigationDelegate extends PlatformNavigationDelegate {
 class FakePlatformWebViewController extends PlatformWebViewController {
   FakePlatformWebViewController(super.params) : super.implementation();
 
+  int reloadCount = 0;
   String? lastLoadedHtml;
   String? lastBaseUrl;
   LoadRequestParams? lastRequest;
@@ -90,7 +91,9 @@ class FakePlatformWebViewController extends PlatformWebViewController {
   }
 
   @override
-  Future<void> reload() async {}
+  Future<void> reload() async {
+    reloadCount++;
+  }
 
   @override
   Future<void> runJavaScript(String javaScript) async {

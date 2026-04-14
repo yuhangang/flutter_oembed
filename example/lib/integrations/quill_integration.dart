@@ -27,7 +27,6 @@ class OEmbedEmbedBuilder extends EmbedBuilder {
       padding: const EdgeInsets.symmetric(vertical: 12.0),
       child: EmbedCard.url(
         url,
-        reuseKey: 'quill:$url',
         scrollable: settings.scrollable,
         lazyLoad: true,
         style: EmbedStyle(
@@ -240,7 +239,6 @@ class _QuillIntegrationPageState extends State<QuillIntegrationPage> {
       ),
       body: EmbedScope(
         config: _buildScopedConfig(context),
-        reuseWebViews: true,
         child: Column(
           children: [
             QuillSimpleToolbar(
