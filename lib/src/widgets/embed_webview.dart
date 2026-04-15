@@ -175,10 +175,16 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
   /// for the core widget, causing Flutter to destroy this state and create a
   /// fresh one with a new driver.
   late final EmbedWebViewDriver _driver;
+  late final Object _driverContentKey;
 
   @override
   void initState() {
     super.initState();
+    _driverContentKey = (
+      widget.param,
+      widget.data,
+      widget.url,
+    );
     _driver = _createDriver();
     _scheduleVisibilityCheck();
     _scheduleInit();
@@ -191,21 +197,22 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
 
   EmbedWebViewDriver _createDriver() {
     final existing = widget.controller.boundDriver;
-    final controllerParam = widget.controller.param;
     if (existing is EmbedWebViewDriver) {
-      if (existing.controller.param == controllerParam) {
+      if (widget.controller.boundDriverContentKey == _driverContentKey) {
         return existing;
       }
-      // Parameters mismatch: unbind and dispose the old driver.
+      // Content mismatch: unbind and dispose the old driver.
       widget.controller.unbindDriver();
       existing.dispose();
     }
 
     final driver = EmbedWebViewDriver(
       controller: widget.controller,
+      param: widget.param,
     );
     widget.controller.bindDriver(
       driver,
+      contentKey: _driverContentKey,
       onDispose: () => driver.dispose(),
     );
     return driver;
@@ -213,6 +220,7 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
 
   void _scheduleInit() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      widget.controller.setEmbedData(widget.data);
       if (!mounted) return;
       final bg = Theme.of(context).scaffoldBackgroundColor;
       await _driver.initEmbedWebview(
@@ -308,15 +316,13 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
     return AnimatedBuilder(
       animation: widget.controller,
       builder: (context, child) {
-        final effectiveParam = widget.controller.param;
         final config = widget.controller.config ?? EmbedScope.configOf(context);
         final style = widget.style ?? config?.style;
         final strings = config?.strings ?? const EmbedStrings();
         final loadingState = widget.controller.loadingState;
         final embedConstraints = _effectiveEmbedConstraints;
         final measuredHeight = widget.controller.height;
-        final double? aspectRatio = widget.data?.aspectRatio ??
-            widget.controller.preloadedData?.aspectRatio;
+        final double? aspectRatio = widget.data?.aspectRatio;
 
         double height = embedConstraints?.preferredHeight ??
             measuredHeight ??
@@ -397,7 +403,7 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
 
         return VisibilityDetector(
           key: ValueKey(
-            'embed_webview_${widget.controller.embedRevision}_${effectiveParam.key}',
+            'embed_webview_${widget.controller.embedRevision}_${widget.param.key}',
           ),
           onVisibilityChanged: (info) {
             widget.controller.updateVisibility(

@@ -136,29 +136,24 @@ class _TikTokEmbedPlayerState extends State<TikTokEmbedPlayer> {
 
   void _initControllerIfNeeded({bool forceReplace = false}) {
     final config = EmbedScope.configOf(context);
-    final param = _buildParam();
 
     if (widget.controller != null) {
       _controller = widget.controller!;
       _isControllerInternal = false;
-      _controller.synchronize(
-        param: param,
-        config: config,
-      );
     } else {
       if (!_isControllerInternal || forceReplace) {
         _controller = EmbedController(
-          param: param,
           config: config,
         );
         _isControllerInternal = true;
-      } else {
-        _controller.synchronize(
-          param: param,
-          config: config,
-        );
       }
     }
+
+    _controller.synchronize(
+      contentKey: _buildContentKey(config),
+      config: config,
+      notify: false,
+    );
   }
 
   @override
@@ -195,6 +190,25 @@ class _TikTokEmbedPlayerState extends State<TikTokEmbedPlayer> {
       embedParams: widget.embedParams,
     );
   }
+
+  Object _buildContentKey(EmbedConfig? config) => (
+        _buildParam(),
+        widget.controls,
+        widget.progressBar,
+        widget.playButton,
+        widget.volumeControl,
+        widget.fullscreenButton,
+        widget.timestamp,
+        widget.autoplay,
+        widget.loop,
+        widget.musicInfo,
+        widget.description,
+        widget.rel,
+        widget.nativeContextMenu,
+        widget.closedCaption,
+        widget.muted,
+        config?.locale,
+      );
 
   String _buildPlayerUrl(String videoId, {EmbedConfig? config}) {
     var uri = Uri.parse('https://www.tiktok.com/player/v1/$videoId');

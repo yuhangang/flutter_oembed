@@ -6,6 +6,7 @@ import 'package:flutter_oembed/src/models/embed_provider_config.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/widgets/embed_data_loader.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_oembed/src/widgets/embed_widget_loader.dart';
 import 'package:flutter_oembed/src/widgets/tiktok_embed_player.dart';
@@ -14,6 +15,20 @@ import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
 
 import '../fake_webview_platform.dart';
+
+EmbedController buildController({
+  SocialEmbedParam? param,
+  EmbedConfig? config,
+}) {
+  final controller = EmbedController(config: config);
+  if (param != null) {
+    controller.synchronize(
+      contentKey: param,
+      config: config,
+    );
+  }
+  return controller;
+}
 
 void main() {
   setUpAll(() {
@@ -48,6 +63,39 @@ void main() {
       expect(find.byType(EmbedWebView), findsOneWidget);
     });
 
+    testWidgets('shows EmbedWebView when controller embedData is provided',
+        (tester) async {
+      final data = const EmbedData(
+        type: 'rich',
+        html: '<div>Controller Data</div>',
+      );
+      final param = SocialEmbedParam(
+        url: 'https://example.com',
+        embedType: EmbedType.other,
+      );
+      final controller = EmbedController();
+      controller.setEmbedData(data);
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWidgetLoader(
+                param: param,
+                controller: controller,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+        expect(find.byType(EmbedWebView), findsOneWidget);
+        expect(find.byType(EmbedDataLoader), findsNothing);
+      } finally {
+        controller.dispose();
+      }
+    });
+
     testWidgets('binds an externally supplied controller', (tester) async {
       final param = SocialEmbedParam(
         url: 'https://vimeo.com/22439234',
@@ -58,7 +106,7 @@ void main() {
         html:
             '<iframe src="https://player.vimeo.com/video/22439234?api=1"></iframe>',
       );
-      final controller = EmbedController(param: param);
+      final controller = buildController(param: param);
 
       try {
         await tester.pumpWidget(

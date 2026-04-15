@@ -21,6 +21,20 @@ import '../fake_webview_platform.dart';
 
 class MockHttpClient extends Mock implements http.Client {}
 
+EmbedController buildController({
+  SocialEmbedParam? param,
+  EmbedConfig? config,
+}) {
+  final controller = EmbedController(config: config);
+  if (param != null) {
+    controller.synchronize(
+      contentKey: param,
+      config: config,
+    );
+  }
+  return controller;
+}
+
 void main() {
   setUpAll(() {
     VisibilityDetectorController.instance.updateInterval = Duration.zero;
@@ -48,7 +62,7 @@ void main() {
         url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         embedType: EmbedType.youtube,
       );
-      controller = EmbedController(param: param, config: testConfig);
+      controller = buildController(param: param, config: testConfig);
       loaderParam = EmbedLoaderParam(
         url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         embedType: EmbedType.youtube,

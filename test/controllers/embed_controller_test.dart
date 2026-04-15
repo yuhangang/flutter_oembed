@@ -1,7 +1,9 @@
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
 import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
 import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_oembed/src/models/youtube_embed_params.dart';
@@ -11,8 +13,6 @@ import 'package:mocktail/mocktail.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
-import 'package:fake_async/fake_async.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
 
 class MockWebViewController extends Mock implements WebViewController {}
 
@@ -28,6 +28,20 @@ class FakeNavigationDelegate extends Fake implements NavigationDelegate {}
 
 class FakePlatformNavigationDelegateCreationParams extends Fake
     implements PlatformNavigationDelegateCreationParams {}
+
+EmbedController buildController({
+  SocialEmbedParam? param,
+  EmbedConfig? config,
+}) {
+  final controller = EmbedController(config: config);
+  if (param != null) {
+    controller.synchronize(
+      contentKey: param,
+      config: config,
+    );
+  }
+  return controller;
+}
 
 void main() {
   late MockWebViewController mockWebViewController;
@@ -108,14 +122,14 @@ void main() {
 
   group('EmbedController', () {
     test('initial state is loading', () {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       expect(controller.loadingState, EmbedLoadingState.loading);
       expect(controller.height, isNull);
       expect(controller.isVisible, isTrue);
     });
 
     test('setHeight updates height and notifies listeners', () {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       bool listenerCalled = false;
       controller.addListener(() => listenerCalled = true);
 
@@ -125,7 +139,7 @@ void main() {
     });
 
     test('setHeight ignores tiny downward height deltas', () {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       int notifications = 0;
       controller.addListener(() => notifications++);
 
@@ -137,7 +151,7 @@ void main() {
     });
 
     test('setHeight honors configured downward delta threshold', () {
-      final controller = EmbedController(
+      final controller = buildController(
         param: testParam,
         config: const EmbedConfig(heightUpdateDeltaThreshold: 5),
       );
@@ -154,7 +168,7 @@ void main() {
     });
 
     test('setHeight accepts tiny upward adjustments to avoid clipping', () {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       int notifications = 0;
       controller.addListener(() => notifications++);
 
@@ -166,7 +180,7 @@ void main() {
     });
 
     test('setLoadingState updates state and notifies listeners', () {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       bool listenerCalled = false;
       controller.addListener(() => listenerCalled = true);
 
@@ -176,7 +190,7 @@ void main() {
     });
 
     test('setLoadingState stores and clears lastError correctly', () {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       final error = StateError('broken');
 
       controller.setLoadingState(EmbedLoadingState.error, error: error);
@@ -187,7 +201,7 @@ void main() {
     });
 
     test('updateVisibility updates visibility and calls callback', () {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       bool callbackCalledWith = true;
 
       controller.updateVisibility(false, onVisibilityChange: (visible) {
@@ -199,7 +213,7 @@ void main() {
     });
 
     test('disposed controller ignores state mutations', () {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       controller.dispose();
 
       controller.setHeight(500);
@@ -217,7 +231,7 @@ void main() {
 
     test('timeout timer triggers error state', () {
       fakeAsync((async) {
-        final controller = EmbedController(
+        final controller = buildController(
           param: testParam,
           config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
         );
@@ -232,7 +246,7 @@ void main() {
     });
 
     test('no-op after dispose', () {
-      final controller = EmbedController(
+      final controller = buildController(
         param: SocialEmbedParam(url: 'test', embedType: EmbedType.other),
       );
 
@@ -250,7 +264,7 @@ void main() {
     });
 
     test('updateVisibility calls callback', () {
-      final controller = EmbedController(
+      final controller = buildController(
         param: SocialEmbedParam(url: 'test', embedType: EmbedType.other),
       );
 
@@ -274,7 +288,7 @@ void main() {
         embedType: EmbedType.youtube,
         embedParams: const YoutubeEmbedParams(autoplay: true),
       );
-      final controller = EmbedController(
+      final controller = buildController(
         param: initialParam,
         config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
       );
@@ -287,11 +301,10 @@ void main() {
       );
 
       controller.synchronize(
-        param: nextParam,
+        contentKey: nextParam,
         config: const EmbedConfig(loadTimeout: Duration(seconds: 8)),
       );
 
-      expect(controller.param, equals(nextParam));
       expect(controller.config?.loadTimeout, const Duration(seconds: 8));
       expect(controller.loadingState, EmbedLoadingState.loading);
       expect(controller.height, isNull);
@@ -308,24 +321,101 @@ void main() {
         url: 'https://www.youtube.com/watch?v=new',
         embedType: EmbedType.youtube,
       );
-      final controller = EmbedController(param: initialParam);
+      final controller = EmbedController();
 
       var disposeCalls = 0;
       final driver = Object();
       controller.bindDriver(
         driver,
+        contentKey: initialParam,
         onDispose: () => disposeCalls++,
       );
 
-      controller.synchronize(param: nextParam);
+      controller.synchronize(contentKey: nextParam);
 
       expect(disposeCalls, 1);
       expect(controller.boundDriver, isNull);
       expect(controller.embedRevision, 1);
     });
 
+    test(
+        'synchronize preserves the bound driver and revision for config-only updates',
+        () {
+      final param = SocialEmbedParam(
+        url: 'https://www.youtube.com/watch?v=stable',
+        embedType: EmbedType.youtube,
+      );
+      final controller = buildController(
+        param: param,
+        config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
+      );
+      final initialRevision = controller.embedRevision;
+
+      var disposeCalls = 0;
+      final driver = Object();
+      controller.bindDriver(
+        driver,
+        contentKey: param,
+        onDispose: () => disposeCalls++,
+      );
+
+      controller.synchronize(
+        contentKey: param,
+        config: const EmbedConfig(loadTimeout: Duration(seconds: 8)),
+      );
+
+      expect(disposeCalls, 0);
+      expect(controller.boundDriver, same(driver));
+      expect(controller.boundDriverContentKey, same(param));
+      expect(controller.embedRevision, initialRevision);
+      expect(controller.config?.loadTimeout, const Duration(seconds: 8));
+    });
+
+    test('setEmbedData stores data and clears error retry state', () {
+      final controller = buildController(param: testParam);
+      const data = EmbedData(
+        html: '<div>cached</div>',
+        providerUrl: 'https://www.youtube.com',
+      );
+
+      controller.setLoadingState(
+        EmbedLoadingState.error,
+        error: StateError('broken'),
+      );
+      controller.setDidRetry();
+      controller.setEmbedData(data);
+
+      expect(controller.embedData, data);
+      expect(controller.loadingState, EmbedLoadingState.loading);
+      expect(controller.didRetry, isFalse);
+      expect(controller.lastError, isNull);
+    });
+
+    test('synchronize clears embedData when content changes', () {
+      final initialParam = SocialEmbedParam(
+        url: 'https://www.youtube.com/watch?v=old',
+        embedType: EmbedType.youtube,
+      );
+      final nextParam = SocialEmbedParam(
+        url: 'https://www.youtube.com/watch?v=new',
+        embedType: EmbedType.youtube,
+      );
+      final controller = buildController(param: initialParam);
+
+      controller.setEmbedData(
+        const EmbedData(
+          html: '<div>cached</div>',
+          providerUrl: 'https://www.youtube.com',
+        ),
+      );
+
+      controller.synchronize(contentKey: nextParam);
+
+      expect(controller.embedData, isNull);
+    });
+
     test('setHeight ignores non-finite values', () {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       controller.setHeight(double.infinity);
       expect(controller.height, isNull);
       controller.setHeight(double.nan);
@@ -333,7 +423,7 @@ void main() {
     });
 
     test('setHeight ignores zero and negative values', () {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       controller.setHeight(0);
       expect(controller.height, isNull);
       controller.setHeight(-10);
@@ -341,7 +431,7 @@ void main() {
     });
 
     test('setDidRetry only notifies once', () {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       int notifications = 0;
       controller.addListener(() => notifications++);
 
@@ -354,7 +444,7 @@ void main() {
 
     test('cancelLoadTimeout prevents timeout from firing', () {
       fakeAsync((async) {
-        final controller = EmbedController(
+        final controller = buildController(
           param: testParam,
           config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
         );
@@ -370,7 +460,7 @@ void main() {
 
     test('timeout does not fire when already loaded', () {
       fakeAsync((async) {
-        final controller = EmbedController(
+        final controller = buildController(
           param: testParam,
           config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
         );
@@ -385,7 +475,7 @@ void main() {
 
     test('uses default 20-second timeout when no config provided', () {
       fakeAsync((async) {
-        final controller = EmbedController(param: testParam);
+        final controller = buildController(param: testParam);
         controller.startLoadTimeout();
 
         async.elapse(const Duration(seconds: 19));
@@ -397,7 +487,7 @@ void main() {
     });
 
     test('setLoadingState preserves existing error on noConnection', () {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       final error = StateError('original');
 
       controller.setLoadingState(EmbedLoadingState.error, error: error);
@@ -407,14 +497,14 @@ void main() {
     });
 
     test('double dispose does not throw', () {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       controller.dispose();
       expect(() => controller.dispose(), returnsNormally);
     });
 
     test('setLoadingState does not notify when state and error are unchanged',
         () {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       controller.setLoadingState(EmbedLoadingState.loaded);
 
       int notifications = 0;
@@ -425,7 +515,7 @@ void main() {
     });
 
     test('updateVisibility does not notify when value unchanged', () {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       int notifications = 0;
       controller.addListener(() => notifications++);
 
@@ -436,9 +526,10 @@ void main() {
 
   group('EmbedWebViewDriver', () {
     test('initEmbedWebview configures webViewController correctly', () async {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       final driver = EmbedWebViewDriver(
         controller: controller,
+        param: testParam,
         webViewController: mockWebViewController,
       );
 
@@ -467,9 +558,10 @@ void main() {
         url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         embedType: EmbedType.youtube,
       );
-      final controller = EmbedController(param: youtubeParam);
+      final controller = buildController(param: youtubeParam);
       final driver = EmbedWebViewDriver(
         controller: controller,
+        param: youtubeParam,
         webViewController: mockWebViewController,
       );
 
@@ -494,9 +586,10 @@ void main() {
     });
 
     test('dispose cleans up timers and webViewController', () async {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       final driver = EmbedWebViewDriver(
         controller: controller,
+        param: testParam,
         webViewController: mockWebViewController,
       );
 
@@ -517,9 +610,10 @@ void main() {
       final tiktokParam = SocialEmbedParam(
         url: 'https://www.tiktok.com/@user/video/12345',
       );
-      final controller = EmbedController(param: tiktokParam);
+      final controller = buildController(param: tiktokParam);
       final driver = EmbedWebViewDriver(
         controller: controller,
+        param: tiktokParam,
         webViewController: mockWebViewController,
       );
 
@@ -537,9 +631,10 @@ void main() {
       final xParam = SocialEmbedParam(
         url: 'https://twitter.com/user/status/12345',
       );
-      final controller = EmbedController(param: xParam);
+      final controller = buildController(param: xParam);
       final driver = EmbedWebViewDriver(
         controller: controller,
+        param: xParam,
         webViewController: mockWebViewController,
       );
 
@@ -558,9 +653,10 @@ void main() {
       final fbParam = SocialEmbedParam(
         url: 'https://www.facebook.com/post/1',
       );
-      final controller = EmbedController(param: fbParam);
+      final controller = buildController(param: fbParam);
       final driver = EmbedWebViewDriver(
         controller: controller,
+        param: fbParam,
         webViewController: mockWebViewController,
       );
       // ignore: prefer_const_constructors
@@ -586,9 +682,10 @@ void main() {
         url: 'https://www.tiktok.com/@user/photo/123',
         embedType: EmbedType.tiktok,
       );
-      final controller = EmbedController(param: photoParam);
+      final controller = buildController(param: photoParam);
       final driver = EmbedWebViewDriver(
         controller: controller,
+        param: photoParam,
         webViewController: mockWebViewController,
       );
 
@@ -608,9 +705,10 @@ void main() {
       final videoParam = SocialEmbedParam(
         url: 'https://www.youtube.com/watch?v=123',
       );
-      final videoController = EmbedController(param: videoParam);
+      final videoController = buildController(param: videoParam);
       final videoDriver = EmbedWebViewDriver(
         controller: videoController,
+        param: videoParam,
         webViewController: mockWebViewController,
       );
 
@@ -632,9 +730,10 @@ void main() {
         url: 'https://www.tiktok.com/@user/video/123',
         embedType: EmbedType.tiktok_v1,
       );
-      final controller = EmbedController(param: tiktokParam);
+      final controller = buildController(param: tiktokParam);
       final driver = EmbedWebViewDriver(
         controller: controller,
+        param: tiktokParam,
         webViewController: mockWebViewController,
       );
 
@@ -666,9 +765,10 @@ void main() {
     });
 
     test('updateEmbedPostHeight success handles new height', () async {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       final driver = EmbedWebViewDriver(
         controller: controller,
+        param: testParam,
         webViewController: mockWebViewController,
       );
       when(() => mockWebViewController.runJavaScriptReturningResult(any()))
@@ -679,9 +779,10 @@ void main() {
     });
 
     test('refresh reloads and resets state', () {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       final driver = EmbedWebViewDriver(
         controller: controller,
+        param: testParam,
         webViewController: mockWebViewController,
       );
 
@@ -690,9 +791,10 @@ void main() {
     });
 
     test('initEmbedWebview returns early if already loaded', () async {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       final driver = EmbedWebViewDriver(
         controller: controller,
+        param: testParam,
         webViewController: mockWebViewController,
       );
       controller.setLoadingState(EmbedLoadingState.loaded);
@@ -709,9 +811,10 @@ void main() {
     });
 
     test('HeightChannel updates height correctly', () async {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       final driver = EmbedWebViewDriver(
         controller: controller,
+        param: testParam,
         webViewController: mockWebViewController,
       );
 
@@ -740,9 +843,10 @@ void main() {
         url: 'https://www.tiktok.com/@user/video/123',
         embedType: EmbedType.tiktok_v1,
       );
-      final controller = EmbedController(param: tiktokParam);
+      final controller = buildController(param: tiktokParam);
       final driver = EmbedWebViewDriver(
         controller: controller,
+        param: tiktokParam,
         webViewController: mockWebViewController,
       );
 
@@ -775,9 +879,10 @@ void main() {
     });
 
     test('updateEmbedPostHeight handles errors gracefully', () async {
-      final controller = EmbedController(param: testParam);
+      final controller = buildController(param: testParam);
       final driver = EmbedWebViewDriver(
         controller: controller,
+        param: testParam,
         webViewController: mockWebViewController,
       );
       when(() => mockWebViewController.runJavaScriptReturningResult(any()))
@@ -794,9 +899,10 @@ void main() {
           url: 'https://www.youtube.com/watch?v=1',
           embedType: EmbedType.youtube,
         );
-        final controller = EmbedController(param: generalParam);
+        final controller = buildController(param: generalParam);
         final driver = EmbedWebViewDriver(
           controller: controller,
+          param: generalParam,
           webViewController: mockWebViewController,
         );
 
@@ -851,9 +957,10 @@ void main() {
         final xParam = SocialEmbedParam(
           url: 'https://twitter.com/user/status/1',
         );
-        final controller = EmbedController(param: xParam);
+        final controller = buildController(param: xParam);
         final driver = EmbedWebViewDriver(
           controller: controller,
+          param: xParam,
           webViewController: mockWebViewController,
         );
 
@@ -902,9 +1009,10 @@ void main() {
         final xParam = SocialEmbedParam(
           url: 'https://twitter.com/user/status/1',
         );
-        final controller = EmbedController(param: xParam);
+        final controller = buildController(param: xParam);
         final driver = EmbedWebViewDriver(
           controller: controller,
+          param: xParam,
           webViewController: mockWebViewController,
         );
 
@@ -946,9 +1054,10 @@ void main() {
       final xParam = SocialEmbedParam(
         url: 'https://twitter.com/user/status/1',
       );
-      final controller = EmbedController(param: xParam);
+      final controller = buildController(param: xParam);
       final driver = EmbedWebViewDriver(
         controller: controller,
+        param: xParam,
         webViewController: mockWebViewController,
       );
 
@@ -982,9 +1091,10 @@ void main() {
         url: 'https://www.tiktok.com/@u/photo/1',
         embedType: EmbedType.tiktok,
       );
-      final controller = EmbedController(param: photoParam);
+      final controller = buildController(param: photoParam);
       final driver = EmbedWebViewDriver(
         controller: controller,
+        param: photoParam,
         webViewController: mockWebViewController,
       );
 

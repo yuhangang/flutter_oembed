@@ -7,6 +7,7 @@ import 'package:flutter_oembed/src/core/provider_strategy.dart';
 import 'package:flutter_oembed/src/logging/embed_logger.dart';
 import 'package:flutter_oembed/src/models/embed_data.dart';
 import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/social_embed_param.dart';
 import 'package:flutter_oembed/src/services/embed_service.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter_oembed/src/utils/embed_webview_controller_utils.dart';
@@ -46,6 +47,7 @@ class EmbedWebViewDriver {
  */
 
   final EmbedController controller;
+  final SocialEmbedParam param;
   final WebViewController webViewController;
   late final EmbedNavigationHandler _navigationHandler;
   static final _focusCoordinator = _EmbedFocusCoordinator();
@@ -66,10 +68,11 @@ class EmbedWebViewDriver {
 
   EmbedWebViewDriver({
     required this.controller,
+    required this.param,
     WebViewController? webViewController,
   }) : webViewController = webViewController ?? generateWebViewController() {
     _strategy = EmbedService.resolveRule(
-          controller.param.url,
+          param.url,
           config: controller.config,
         )?.strategy ??
         const GenericEmbedProviderStrategy();
@@ -81,7 +84,7 @@ class EmbedWebViewDriver {
       unmute: () => unmuteMedias(),
     );
     _navigationHandler = EmbedNavigationHandler(
-      param: controller.param,
+      param: param,
       config: controller.config,
     );
   }
@@ -144,21 +147,20 @@ class EmbedWebViewDriver {
   }) async {
     if (_isDisposed) return;
     _strategy = EmbedService.resolveRule(
-          controller.param.url,
+          param.url,
           config: controller.config,
         )?.strategy ??
         const GenericEmbedProviderStrategy();
 
     if (!forceReload &&
         controller.loadingState == EmbedLoadingState.loaded &&
-        (controller.height != null ||
-            controller.param.embedType == EmbedType.tiktok_v1)) {
+        (controller.height != null || param.embedType == EmbedType.tiktok_v1)) {
       _logger.debug('Embed already loaded, skipping initEmbedWebview');
       return;
     }
 
     _logger.debug('Initializing WebView', data: {
-      'url': controller.param.url,
+      'url': param.url,
       'strategy': _strategy.runtimeType.toString(),
     });
 
@@ -186,8 +188,7 @@ class EmbedWebViewDriver {
     required String? embedUrl,
     bool scrollable = false,
   }) async {
-    final resolvedData = embedData ?? controller.preloadedData;
-    _navigationHandler.oembedData = resolvedData;
+    _navigationHandler.oembedData = embedData;
 
     await webViewController.setBackgroundColor(backgroundColor);
     if (_isDisposed) return;
@@ -230,7 +231,7 @@ class EmbedWebViewDriver {
           _logger.debug(
             'Ignoring non-fatal WebView JS error',
             data: {
-              'url': controller.param.url,
+              'url': param.url,
               'message': message.message,
             },
           );
@@ -238,7 +239,7 @@ class EmbedWebViewDriver {
         }
 
         _logger.warning('WebView JS error received', data: {
-          'url': controller.param.url,
+          'url': param.url,
           'message': message.message,
         });
 
@@ -264,7 +265,7 @@ class EmbedWebViewDriver {
 
     final baseUrl = embedData?.providerUrl;
     final trustedMainFrameUrls = <String>[
-      if (resolvedData?.url case final url? when url.isNotEmpty) url,
+      if (embedData?.url case final url? when url.isNotEmpty) url,
       if (embedUrl case final url? when url.isNotEmpty) url,
     ];
 
@@ -284,7 +285,7 @@ class EmbedWebViewDriver {
         onWebResourceError: (error) {
           if (error.isForMainFrame == true) {
             _logger.warning('Main frame load error', data: {
-              'url': controller.param.url,
+              'url': param.url,
               'errorCode': error.errorCode,
               'description': error.description,
             });
@@ -334,35 +335,34 @@ class EmbedWebViewDriver {
     bool scrollable,
   ) async {
     if (_isDisposed) return;
-    final resolvedData = embedData ?? controller.preloadedData;
-    if (resolvedData != null) {
-      if (resolvedData.html.isNotEmpty) {
+    if (embedData != null) {
+      if (embedData.html.isNotEmpty) {
         await webViewController.loadHtmlString(
           _strategy.buildHtmlDocument(
-            resolvedData.html,
-            type: controller.param.embedType,
+            embedData.html,
+            type: param.embedType,
             maxWidth: maxWidth,
             scrollable: scrollable,
           ),
-          baseUrl: _strategy.resolveBaseUrl(resolvedData),
+          baseUrl: _strategy.resolveBaseUrl(embedData),
         );
-      } else if (resolvedData.url != null && resolvedData.url!.isNotEmpty) {
+      } else if (embedData.url != null && embedData.url!.isNotEmpty) {
         if (_isDisposed) return;
-        await webViewController.loadRequest(Uri.parse(resolvedData.url!));
+        await webViewController.loadRequest(Uri.parse(embedData.url!));
       }
     } else if (embedUrl != null) {
       if (_isDisposed) return;
       final embedUri = Uri.parse(embedUrl);
-      final refererHeader = controller.param.embedType == EmbedType.youtube &&
+      final refererHeader = param.embedType == EmbedType.youtube &&
               (embedUri.host.contains('youtube.com') ||
                   embedUri.host.contains('youtube-nocookie.com'))
           ? embedUri.origin
-          : controller.param.url;
+          : param.url;
       await webViewController.loadRequest(
         embedUri,
         headers: <String, String>{
-          if (controller.param.embedType == EmbedType.youtube ||
-              controller.param.embedType == EmbedType.spotify)
+          if (param.embedType == EmbedType.youtube ||
+              param.embedType == EmbedType.spotify)
             'Referer': refererHeader,
         },
       );
@@ -399,8 +399,7 @@ class EmbedWebViewDriver {
     _twitterLoadedFallbackTimer = null;
   }
 
-  bool get _usesTwitterLoadedFallback =>
-      controller.param.embedType == EmbedType.x;
+  bool get _usesTwitterLoadedFallback => param.embedType == EmbedType.x;
 
   Future<void> _handleEmbedPageFinished() async {
     // 1. URL Safety Check: If we end up on an error page or unexpected blank page, trigger error
@@ -410,7 +409,7 @@ class EmbedWebViewDriver {
         (url.startsWith('chrome-error:') ||
             (url.startsWith('file://') && url.contains('ERROR')))) {
       _logger.warning('WebView loaded an error page', data: {
-        'url': controller.param.url,
+        'url': param.url,
         'currentUrl': url,
       });
       controller.setLoadingState(
@@ -448,12 +447,12 @@ class EmbedWebViewDriver {
       } else {
         _logger.warning('WebView load integrity failure: effectively 0 height',
             data: {
-              'url': controller.param.url,
+              'url': param.url,
             });
         controller.setLoadingState(
           EmbedLoadingState.error,
           error: StateError(
-            'WebView rendered with an invalid height for ${controller.param.url}.',
+            'WebView rendered with an invalid height for ${param.url}.',
           ),
         );
       }
@@ -474,7 +473,7 @@ class EmbedWebViewDriver {
         _logger.debug(
           'Updated embed height',
           data: {
-            'url': controller.param.url,
+            'url': param.url,
             'height': newHeight,
           },
         );
@@ -483,7 +482,7 @@ class EmbedWebViewDriver {
     } catch (error, stackTrace) {
       _logger.debug(
         'Failed to read embed height',
-        data: {'url': controller.param.url},
+        data: {'url': param.url},
         error: error,
         stackTrace: stackTrace,
       );
@@ -519,7 +518,7 @@ class EmbedWebViewDriver {
   }
 
   Future<void> refresh() async {
-    _logger.debug('Refreshing embed', data: {'url': controller.param.url});
+    _logger.debug('Refreshing embed', data: {'url': param.url});
     if (_isDisposed) return;
     await webViewController.reload();
     if (_isDisposed) return;
@@ -560,7 +559,7 @@ class EmbedWebViewDriver {
     _logger.info(
       'Embed focus changed',
       data: {
-        'url': controller.param.url,
+        'url': param.url,
         'focused': focused,
         'reason': reason,
         'visibleFraction': _visibleFraction,
@@ -588,7 +587,7 @@ class EmbedWebViewDriver {
     _logger.info(
       'Media control requested',
       data: {
-        'url': controller.param.url,
+        'url': param.url,
         'action': action.name,
         'reason': reason,
         'strategy': _strategy.runtimeType.toString(),
@@ -614,7 +613,7 @@ class EmbedWebViewDriver {
       _logger.warning(
         'Media control failed',
         data: {
-          'url': controller.param.url,
+          'url': param.url,
           'action': action.name,
           'reason': reason,
         },
@@ -630,7 +629,7 @@ class EmbedWebViewDriver {
     } catch (error, stackTrace) {
       _logger.debug(
         'Ignoring WebView cleanup load failure during dispose',
-        data: {'url': controller.param.url},
+        data: {'url': param.url},
         error: error,
         stackTrace: stackTrace,
       );
@@ -641,7 +640,7 @@ class EmbedWebViewDriver {
     } catch (error, stackTrace) {
       _logger.debug(
         'Ignoring NavigationDelegate cleanup failure during dispose',
-        data: {'url': controller.param.url},
+        data: {'url': param.url},
         error: error,
         stackTrace: stackTrace,
       );

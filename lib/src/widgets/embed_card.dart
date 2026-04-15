@@ -202,6 +202,7 @@ class EmbedCard extends StatelessWidget {
         url: url,
         style: style,
         embedConstraints: _effectiveEmbedConstraints,
+        isInitialVisible: controller?.loadingState == EmbedLoadingState.loaded,
         child: content,
       );
     }

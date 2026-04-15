@@ -34,6 +34,10 @@ bool _isValidHttpUrl(String? value) {
 }
 
 class EmbedExtension extends HtmlExtension {
+  EmbedExtension({this.controllerForUrl});
+
+  final EmbedController? Function(String url)? controllerForUrl;
+
   @override
   Set<String> get supportedTags => {"oembed", "a"};
 
@@ -64,6 +68,7 @@ class EmbedExtension extends HtmlExtension {
         padding: const EdgeInsets.symmetric(vertical: 8.0),
         child: EmbedCard.url(
           url,
+          controller: controllerForUrl?.call(url),
           scrollable: settings.scrollable,
           lazyLoad: true,
           style: EmbedStyle(
@@ -87,6 +92,11 @@ class HtmlIntegrationPage extends StatefulWidget {
 
 class _HtmlIntegrationPageState extends State<HtmlIntegrationPage> {
   bool showBorder = true;
+  final Map<String, EmbedController> _controllersByUrl = {};
+
+  EmbedController _controllerForUrl(String url) {
+    return _controllersByUrl.putIfAbsent(url, EmbedController.new);
+  }
 
   EmbedConfig _buildScopedConfig(BuildContext context) {
     final settings = ExampleSettingsProvider.of(context).settings;
@@ -97,6 +107,14 @@ class _HtmlIntegrationPageState extends State<HtmlIntegrationPage> {
       scrollable: settings.scrollable,
       useDynamicDiscovery: settings.useDynamicDiscovery,
     );
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _controllersByUrl.values) {
+      controller.dispose();
+    }
+    super.dispose();
   }
 
   @override
@@ -155,7 +173,7 @@ class _HtmlIntegrationPageState extends State<HtmlIntegrationPage> {
           child: Html(
             key: ValueKey('html_${settings.locale}-${settings.brightness}'),
             data: htmlData,
-            extensions: [EmbedExtension()],
+            extensions: [EmbedExtension(controllerForUrl: _controllerForUrl)],
             style:
                 showBorder
                     ? {

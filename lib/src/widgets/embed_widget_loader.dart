@@ -54,6 +54,8 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
   late EmbedController _controller;
   EmbedConfig? _scopeConfig;
 
+  Object get _contentKey => (widget.param, widget.preloadedData);
+
   @override
   void initState() {
     super.initState();
@@ -99,17 +101,19 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
   }) {
     if (widget.controller != null) {
       widget.controller!.synchronize(
-        param: widget.param,
+        contentKey: _contentKey,
         config: config,
-        preloadedData: widget.preloadedData,
+        notify: false,
       );
       return widget.controller!;
     }
     return EmbedController(
-      param: widget.param,
       config: config,
-      preloadedData: widget.preloadedData,
-    );
+    )..synchronize(
+        contentKey: _contentKey,
+        config: config,
+        notify: false,
+      );
   }
 
   void _replaceController({
@@ -141,9 +145,10 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        final showErrorWidget =
+        final effectivePreloadedData = _controller.embedData;
+        final showErrorWidget = effectivePreloadedData == null &&
             _controller.loadingState == EmbedLoadingState.error &&
-                _controller.didRetry;
+            _controller.didRetry;
 
         if (showErrorWidget) {
           final errorWidget =
@@ -154,10 +159,10 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
         return LayoutBuilder(
           builder: (context, constraints) {
             // Short-circuit for pre-fetched data (avoids a resolveRender call).
-            if (widget.preloadedData != null) {
+            if (effectivePreloadedData != null) {
               return EmbedWebView.data(
                 param: widget.param,
-                data: widget.preloadedData!,
+                data: effectivePreloadedData,
                 maxWidth: constraints.maxWidth,
                 controller: _controller,
                 style: style,

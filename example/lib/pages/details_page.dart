@@ -44,13 +44,7 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
   }
 
   void _initController() {
-    final videoIdOrUrl = widget.sample['url'] as String;
-    _controller = EmbedController(
-      param: SocialEmbedParam(
-        url: videoIdOrUrl,
-        embedType: widget.sample['type'],
-      ),
-    );
+    _controller = EmbedController();
   }
 
   @override

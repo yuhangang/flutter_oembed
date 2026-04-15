@@ -1,4 +1,16 @@
+## 1.0.1-alpha.4
+
+### Improvements
+- Refactored `EmbedController` into a runtime attachment controller so embed identity now lives with `EmbedWebView`/driver inputs instead of on the controller itself. This makes external controllers easier to reuse across rendered embeds without coupling them to a specific `SocialEmbedParam`.
+- Example: Cached controllers in the HTML integration demo so toggling non-content styling like the border switch does not unnecessarily reload embedded WebViews.
+- EmbedController: Added `setEmbedData()` / `clearEmbedData()` so controller-owned preloaded oEmbed data can bypass `EmbedDataLoader` and render directly through `EmbedCard`.
+
 ## 1.0.1-alpha.3
+
+### Breaking Changes
+- Removed `seekTo` functionality from WebView entirely.
+- Removed `EmbedController.seekMediaTo(Duration position)`.
+- Removed `EmbedWebViewControls.seekTo(Duration position)`.
 
 ### Improvements
 
@@ -10,14 +22,6 @@
 * **EmbedController**: Added `EmbedConfig.heightUpdateDeltaThreshold` to tune how aggressively tiny downward WebView height changes are ignored.
 * **EmbedController**: Fixed external-controller embeds so changing `embedParams` resets the controller and forces the WebView to reload even when cache configuration is supplied from `EmbedScope`.
 * **Maintenance**: Refactored internal media control constants in `provider_strategies.dart` into their respective strategy classes for better namespacing and readability.
-
-
-## [Unreleased]
-
-### Breaking Changes
-- Removed `seekTo` functionality from WebView entirely.
-- Removed `EmbedController.seekMediaTo(Duration position)`.
-- Removed `EmbedWebViewControls.seekTo(Duration position)`.
 
 ## 1.0.1-alpha.2
 

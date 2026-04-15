@@ -51,6 +51,20 @@ class FakeWebViewPlatform extends WebViewPlatform {
   }
 }
 
+EmbedController buildController({
+  SocialEmbedParam? param,
+  EmbedConfig? config,
+}) {
+  final controller = EmbedController(config: config);
+  if (param != null) {
+    controller.synchronize(
+      contentKey: param,
+      config: config,
+    );
+  }
+  return controller;
+}
+
 class FakePlatformNavigationDelegate extends PlatformNavigationDelegate {
   FakePlatformNavigationDelegate(super.params) : super.implementation();
 
@@ -171,7 +185,7 @@ void main() {
   });
 
   testWidgets('EmbedCard.url factory forwards controller', (tester) async {
-    final controller = EmbedController(
+    final controller = buildController(
       param: SocialEmbedParam(
         url: 'https://vimeo.com/22439234',
         embedType: EmbedType.vimeo,
@@ -396,7 +410,7 @@ void main() {
   testWidgets(
       'embed params updates refresh the webview and external controller even with scope cache',
       (tester) async {
-    final controller = EmbedController(
+    final controller = buildController(
       param: SocialEmbedParam(
         url: 'https://www.tiktok.com/@user/video/123',
         embedType: EmbedType.tiktok_v1,
@@ -429,7 +443,10 @@ void main() {
         contains('autoplay=0'),
       );
       expect(
-        controller.param.embedParams,
+        tester
+            .widget<EmbedWebView>(find.byType(EmbedWebView))
+            .param
+            .embedParams,
         const TikTokEmbedParams(
           autoplay: false,
           controls: true,
@@ -464,7 +481,10 @@ void main() {
         contains('controls=0'),
       );
       expect(
-        controller.param.embedParams,
+        tester
+            .widget<EmbedWebView>(find.byType(EmbedWebView))
+            .param
+            .embedParams,
         const TikTokEmbedParams(
           autoplay: true,
           controls: false,

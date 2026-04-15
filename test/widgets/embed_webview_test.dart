@@ -17,6 +17,20 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../fake_webview_platform.dart';
 
+EmbedController buildController({
+  SocialEmbedParam? param,
+  EmbedConfig? config,
+}) {
+  final controller = EmbedController(config: config);
+  if (param != null) {
+    controller.synchronize(
+      contentKey: param,
+      config: config,
+    );
+  }
+  return controller;
+}
+
 void main() {
   final fakePlatform = FakeWebViewPlatform();
 
@@ -37,7 +51,7 @@ void main() {
         url: 'https://youtube.com/watch?v=123',
         embedType: EmbedType.youtube,
       );
-      controller = EmbedController(
+      controller = buildController(
         param: param,
         config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
       );
@@ -112,7 +126,7 @@ void main() {
               param: param,
               data: data,
               maxWidth: 640,
-              controller: EmbedController(
+              controller: buildController(
                 param: param,
                 config: EmbedConfig(
                   pauseOnRouteCover: true,
@@ -166,7 +180,7 @@ void main() {
                   param: param,
                   data: data,
                   maxWidth: 640,
-                  controller: EmbedController(
+                  controller: buildController(
                     param: param,
                     config: EmbedConfig(
                       pauseOnRouteCover: true,
@@ -208,7 +222,7 @@ void main() {
               param: param,
               data: data,
               maxWidth: 640,
-              controller: EmbedController(
+              controller: buildController(
                 param: param,
                 config: EmbedConfig(
                   pauseOnRouteCover: true,
@@ -276,7 +290,7 @@ void main() {
               param: param,
               data: data,
               maxWidth: 640,
-              controller: EmbedController(
+              controller: buildController(
                 param: param,
                 config: const EmbedConfig(pauseOnRouteCover: false),
               ),
@@ -325,7 +339,7 @@ void main() {
               param: param,
               data: data,
               maxWidth: 640,
-              controller: EmbedController(
+              controller: buildController(
                 param: param,
                 config: EmbedConfig(
                   pauseOnRouteCover: true,
@@ -491,7 +505,7 @@ void main() {
 
     testWidgets('uses configured strings for retry semantics', (tester) async {
       final semanticsHandle = tester.ensureSemantics();
-      final customController = EmbedController(
+      final customController = buildController(
         param: param,
         config: const EmbedConfig(
           strings: EmbedStrings(
@@ -585,7 +599,7 @@ void main() {
         expect(fakePlatform.createdControllers.length, 1);
 
         controller.synchronize(
-          param: SocialEmbedParam(
+          contentKey: SocialEmbedParam(
             url: 'https://youtube.com/watch?v=456',
             embedType: EmbedType.youtube,
           ),
@@ -710,7 +724,7 @@ void main() {
     testWidgets(
         'should restart guarded retry logic when the controller is in noConnection state',
         (tester) async {
-      final customController = EmbedController(
+      final customController = buildController(
         param: param,
         config: const EmbedConfig(loadTimeout: Duration(milliseconds: 100)),
       );
@@ -762,7 +776,7 @@ void main() {
         ),
       );
 
-      final newController = EmbedController(param: param);
+      final newController = buildController(param: param);
 
       await tester.pumpWidget(
         MaterialApp(
@@ -816,7 +830,7 @@ void main() {
         url: 'https://example.com/post/1',
         embedType: EmbedType.other,
       );
-      final genericController = EmbedController(
+      final genericController = buildController(
         param: genericParam,
         config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
       );
@@ -903,7 +917,7 @@ void main() {
 
     testWidgets('prefers measured WebView height over oEmbed aspect ratio',
         (tester) async {
-      final measuredController = EmbedController(
+      final measuredController = buildController(
         param: param,
         config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
       )..setHeight(260);
@@ -939,7 +953,7 @@ void main() {
 
     testWidgets('clamps scrollable embeds to the default max height',
         (tester) async {
-      final scrollableController = EmbedController(
+      final scrollableController = buildController(
         param: param,
         config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
       )..setHeight(900);

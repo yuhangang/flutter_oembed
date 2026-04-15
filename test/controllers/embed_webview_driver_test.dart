@@ -18,6 +18,20 @@ class MockWebViewController extends Mock implements WebViewController {}
 
 class MockWebResourceError extends Mock implements WebResourceError {}
 
+EmbedController buildController({
+  SocialEmbedParam? param,
+  EmbedConfig? config,
+}) {
+  final controller = EmbedController(config: config);
+  if (param != null) {
+    controller.synchronize(
+      contentKey: param,
+      config: config,
+    );
+  }
+  return controller;
+}
+
 void main() {
   setUpAll(() {
     WebViewPlatform.instance = FakeWebViewPlatform();
@@ -30,15 +44,17 @@ void main() {
 
   group('EmbedWebViewDriver', () {
     late EmbedController controller;
+    late SocialEmbedParam param;
     late MockWebViewController mockWebViewController;
 
     setUp(() {
       resetEmbedFocusCoordinatorForTests();
-      controller = EmbedController(
-        param: SocialEmbedParam(
-          url: 'https://twitter.com/user/status/123',
-          embedType: EmbedType.x,
-        ),
+      param = SocialEmbedParam(
+        url: 'https://twitter.com/user/status/123',
+        embedType: EmbedType.x,
+      );
+      controller = buildController(
+        param: param,
         config: const EmbedConfig(),
       );
       mockWebViewController = MockWebViewController();
@@ -72,7 +88,7 @@ void main() {
     group('focus arbitration', () {
       test('pauses non-focused embed when another visible embed has priority',
           () async {
-        final secondController = EmbedController(
+        final secondController = buildController(
           param: SocialEmbedParam(
             url: 'https://youtube.com/watch?v=456',
             embedType: EmbedType.youtube,
@@ -89,10 +105,15 @@ void main() {
 
         final firstDriver = EmbedWebViewDriver(
           controller: controller,
+          param: param,
           webViewController: mockWebViewController,
         );
         final secondDriver = EmbedWebViewDriver(
           controller: secondController,
+          param: SocialEmbedParam(
+            url: 'https://youtube.com/watch?v=456',
+            embedType: EmbedType.youtube,
+          ),
           webViewController: secondWebViewController,
         );
 
@@ -110,7 +131,7 @@ void main() {
       });
 
       test('transfers focus when another embed becomes more visible', () async {
-        final secondController = EmbedController(
+        final secondController = buildController(
           param: SocialEmbedParam(
             url: 'https://youtube.com/watch?v=456',
             embedType: EmbedType.youtube,
@@ -127,10 +148,15 @@ void main() {
 
         final firstDriver = EmbedWebViewDriver(
           controller: controller,
+          param: param,
           webViewController: mockWebViewController,
         );
         final secondDriver = EmbedWebViewDriver(
           controller: secondController,
+          param: SocialEmbedParam(
+            url: 'https://youtube.com/watch?v=456',
+            embedType: EmbedType.youtube,
+          ),
           webViewController: secondWebViewController,
         );
 
@@ -154,6 +180,7 @@ void main() {
       test('syncs navigation visibility from visible fraction updates', () {
         final driver = EmbedWebViewDriver(
           controller: controller,
+          param: param,
           webViewController: mockWebViewController,
         );
 
@@ -174,7 +201,9 @@ void main() {
         controller.setHeight(100);
 
         final driver = EmbedWebViewDriver(
-            controller: controller, webViewController: mockWebViewController);
+            controller: controller,
+            param: param,
+            webViewController: mockWebViewController);
         await driver.initEmbedWebview(
             backgroundColor: Colors.white,
             embedData: null,
@@ -191,7 +220,9 @@ void main() {
         controller.setHeight(100);
 
         final driver = EmbedWebViewDriver(
-            controller: controller, webViewController: mockWebViewController);
+            controller: controller,
+            param: param,
+            webViewController: mockWebViewController);
         await driver.initEmbedWebview(
             backgroundColor: Colors.white,
             embedData: const EmbedData(html: 'test'),
@@ -207,7 +238,9 @@ void main() {
           'should load the request URL when HTML is empty but a URL is present',
           () async {
         final driver = EmbedWebViewDriver(
-            controller: controller, webViewController: mockWebViewController);
+            controller: controller,
+            param: param,
+            webViewController: mockWebViewController);
         final data = const EmbedData(html: '', url: 'https://example.com');
 
         await driver.initEmbedWebview(
@@ -222,6 +255,7 @@ void main() {
       test('registers navigation intent tracking channel', () async {
         final driver = EmbedWebViewDriver(
           controller: controller,
+          param: param,
           webViewController: mockWebViewController,
         );
 
@@ -251,7 +285,9 @@ void main() {
         });
 
         final driver = EmbedWebViewDriver(
-            controller: controller, webViewController: mockWebViewController);
+            controller: controller,
+            param: param,
+            webViewController: mockWebViewController);
         await driver.initEmbedWebview(
             backgroundColor: Colors.white,
             embedData: const EmbedData(html: '<div></div>'),
@@ -278,7 +314,9 @@ void main() {
         });
 
         final driver = EmbedWebViewDriver(
-            controller: controller, webViewController: mockWebViewController);
+            controller: controller,
+            param: param,
+            webViewController: mockWebViewController);
         await driver.initEmbedWebview(
             backgroundColor: Colors.white,
             embedData: const EmbedData(html: '<div></div>'),
@@ -305,7 +343,9 @@ void main() {
         });
 
         final driver = EmbedWebViewDriver(
-            controller: controller, webViewController: mockWebViewController);
+            controller: controller,
+            param: param,
+            webViewController: mockWebViewController);
         await driver.initEmbedWebview(
             backgroundColor: Colors.white,
             embedData: const EmbedData(html: '<div></div>'),
@@ -341,6 +381,7 @@ void main() {
 
                 final driver = EmbedWebViewDriver(
                     controller: controller,
+                    param: param,
                     webViewController: mockWebViewController);
                 driver.initEmbedWebview(
                     backgroundColor: Colors.white,
@@ -375,6 +416,7 @@ void main() {
 
                 final driver = EmbedWebViewDriver(
                     controller: controller,
+                    param: param,
                     webViewController: mockWebViewController);
                 driver.initEmbedWebview(
                     backgroundColor: Colors.white,
@@ -399,7 +441,9 @@ void main() {
             .thenAnswer((_) async => '500');
 
         final driver = EmbedWebViewDriver(
-            controller: controller, webViewController: mockWebViewController);
+            controller: controller,
+            param: param,
+            webViewController: mockWebViewController);
         await driver.updateEmbedPostHeight();
 
         expect(controller.height, 500.0);
@@ -413,7 +457,9 @@ void main() {
             .thenThrow(Exception('JS Error'));
 
         final driver = EmbedWebViewDriver(
-            controller: controller, webViewController: mockWebViewController);
+            controller: controller,
+            param: param,
+            webViewController: mockWebViewController);
         await driver.updateEmbedPostHeight();
 
         // Should not crash
@@ -428,6 +474,7 @@ void main() {
 
       final driver = EmbedWebViewDriver(
         controller: controller,
+        param: param,
         webViewController: mockWebViewController,
       );
 

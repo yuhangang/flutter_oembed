@@ -306,12 +306,7 @@ commands after the embed has been mounted. This is most reliable with
 `TikTokEmbedPlayer` and TikTok `player/v1` embeds.
 
 ```dart
-final controller = EmbedController(
-  param: const SocialEmbedParam(
-    url: 'https://www.tiktok.com/@scout2015/video/6718335390845095173',
-    embedType: EmbedType.tiktok_v1,
-  ),
-);
+final controller = EmbedController();
 
 await controller.pauseMedia();
 await controller.resumeMedia();
@@ -322,6 +317,27 @@ await controller.unmuteMedia();
 These calls are no-ops until the controller is bound to a rendered embed. Other
 providers may support only pause/resume, or may fall back to provider-defined
 best-effort behavior.
+
+You can also hydrate a controller with pre-fetched oEmbed data and let the
+widget skip `EmbedDataLoader` entirely:
+
+```dart
+final controller = EmbedController()
+  ..setEmbedData(
+    const EmbedData(
+      html: '<blockquote>Preloaded embed</blockquote>',
+      providerUrl: 'https://publish.twitter.com',
+    ),
+  );
+
+EmbedCard.url(
+  'https://twitter.com/X/status/1328842765115920384',
+  controller: controller,
+)
+```
+
+Controller-provided data is cleared automatically when
+`controller.synchronize(contentKey: ...)` changes to a different embed.
 
 ## Custom Provider Rules
 

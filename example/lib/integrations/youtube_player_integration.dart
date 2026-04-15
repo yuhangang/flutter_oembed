@@ -20,12 +20,8 @@ class _YoutubePlayerIntegrationState
   double _videoHeight = 220;
   double _shortsHeight = 520;
 
-  late final EmbedController _videoController = EmbedController(
-    param: SocialEmbedParam(url: _testUrl, embedType: EmbedType.youtube),
-  );
-  late final EmbedController _shortsController = EmbedController(
-    param: SocialEmbedParam(url: _shortsUrl, embedType: EmbedType.youtube),
-  );
+  late final EmbedController _videoController = EmbedController();
+  late final EmbedController _shortsController = EmbedController();
 
   @override
   void initState() {
