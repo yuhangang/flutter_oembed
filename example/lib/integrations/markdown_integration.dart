@@ -173,7 +173,6 @@ class _MarkdownIntegrationPageState extends State<MarkdownIntegrationPage> {
       locale: settings.locale,
       brightness: settings.brightness,
       scrollable: settings.scrollable,
-      useDynamicDiscovery: settings.useDynamicDiscovery,
     );
   }
 

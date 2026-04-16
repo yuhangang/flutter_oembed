@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/flutter_oembed.dart';
 import 'package:flutter_oembed/src/core/provider_strategies.dart';
-import 'package:flutter_oembed/src/models/embed_renderer.dart';
+import 'package:flutter_oembed/src/models/core/embed_renderer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

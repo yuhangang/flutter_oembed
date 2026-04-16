@@ -1,4 +1,4 @@
-export 'package:flutter_oembed/src/models/provider_rule.dart';
+export 'package:flutter_oembed/src/models/core/provider_rule.dart';
 export 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 export 'package:flutter_oembed/src/services/api/meta_embed_api.dart';
 export 'package:flutter_oembed/src/services/api/reddit_embed_api.dart';

@@ -1,9 +1,14 @@
 ## 1.0.1-alpha.4
 
+### Breaking Changes
+- **Provider Resolution**: Refactored `EmbedProviderConfig` to use an explicit `providers` list instead of implicitly concatenating `enabledProviders`, `customProviders`, and `includeUnverified`.
+- **Provider Registry**: The active providers list now defaults to `EmbedProviders.verified`. You can merge custom rules directly using `providers: EmbedProviders.verified.append([myRule])`. Dynamic discovery and `providers_snapshot.dart` have been removed.
+
 ### Improvements
 - Refactored `EmbedController` into a runtime attachment controller so embed identity now lives with `EmbedWebView`/driver inputs instead of on the controller itself. This makes external controllers easier to reuse across rendered embeds without coupling them to a specific `SocialEmbedParam`.
 - Example: Cached controllers in the HTML integration demo so toggling non-content styling like the border switch does not unnecessarily reload embedded WebViews.
 - EmbedController: Added `setEmbedData()` / `clearEmbedData()` so controller-owned preloaded oEmbed data can bypass `EmbedDataLoader` and render directly through `EmbedCard`.
+- Documentation: Clarified that current WebView reuse is driven by app-owned `EmbedController` caching rather than an `EmbedScope`-level pooling API.
 
 ## 1.0.1-alpha.3
 

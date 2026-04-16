@@ -58,7 +58,6 @@ class _QuillIntegrationPageState extends State<QuillIntegrationPage> {
       locale: settings.locale,
       brightness: settings.brightness,
       scrollable: settings.scrollable,
-      useDynamicDiscovery: settings.useDynamicDiscovery,
     );
   }
 

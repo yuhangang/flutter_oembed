@@ -1,6 +1,6 @@
 import 'package:flutter_oembed/src/core/provider_strategies.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/provider_rule.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/provider_rule.dart';
 import 'package:flutter_oembed/src/utils/embed_link_utils.dart';
 
 // ---------------------------------------------------------------------------
@@ -38,8 +38,8 @@ bool _xNavigationCheck(String url) {
 ///
 /// Rules are matched in order — put more-specific patterns before broader ones
 /// of the same provider if needed. Providers with `isVerified: true` are
-/// included by default; others require
-/// [EmbedProviderConfig.includeUnverified].
+/// included by default through [EmbedProviders.verified]; others require
+/// [EmbedProviders.all] or an explicit provider list.
 const List<EmbedProviderRule> kDefaultEmbedProviders = [
   EmbedProviderRule(
     pattern:

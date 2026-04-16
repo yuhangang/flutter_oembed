@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/tiktok_embed_player.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
-import 'package:flutter_oembed/src/models/tiktok_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/tiktok_embed_params.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';

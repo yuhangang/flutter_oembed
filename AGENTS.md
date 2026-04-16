@@ -20,6 +20,7 @@ The main maintenance rule is simple:
 - `tool/`: code generation helpers
 - `.github/workflows/pull_request.yml`: CI contract for pull requests
 - `README.md`: public package documentation
+- `system_design.md`: architecture and flow reference for maintainers and reviewers
 - `CHANGELOG.md`: release-facing summary of shipped changes
 - `RELEASE_CHECKLIST.md`: release and verification policy
 
@@ -64,6 +65,15 @@ Update `README.md` whenever a change affects any of the following:
 - caching behavior
 - limitations, caveats, or defaults
 
+Update `system_design.md` whenever a change materially affects any of the following:
+
+- architecture or layering
+- control flow between widgets, controllers, services, and WebView components
+- navigation/security policy
+- caching or reuse strategy
+- rendering pipeline selection
+- lifecycle or media-control coordination
+
 Update `CHANGELOG.md` for any change intended to ship.
 
 Update `example/` when the best usage pattern changes or when a new capability
@@ -76,6 +86,9 @@ should be demonstrated in the sample app.
 - Do not claim provider support details unless they match the current code.
 - Keep README examples aligned with actual exported APIs from
   `lib/flutter_oembed.dart`.
+- Keep `system_design.md` aligned with the current implementation and avoid
+  describing package features that only exist in example-app code unless they
+  are clearly labeled as app-level patterns.
 
 ### 4. Keep this file up to date
 
@@ -89,14 +102,8 @@ Update this file when any of these change:
 - release process or contributor workflow
 - repository structure that affects agent behavior
 
-## Provider And Generator Notes
+## Provider Notes
 
-Take extra care when touching provider-related code:
-
-- `lib/src/services/providers_snapshot.dart` is generated data and should stay
-  consistent with the generator when provider source data changes.
-- If provider discovery data or generation logic changes, run the generator and
-  commit the updated generated output.
 - If a provider is added, removed, or materially changed, update README provider
   tables and add or update focused tests.
 
@@ -121,10 +128,6 @@ Dependency-related changes:
 - Run `flutter pub get` in `example/` if `example/pubspec.yaml` changes.
 - Commit any intentional lockfile updates.
 
-Provider snapshot changes:
-
-- Run the relevant generator under `tool/`.
-- Verify generated files are committed.
 
 ## Review Heuristics
 

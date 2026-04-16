@@ -1,10 +1,12 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:flutter_oembed/src/models/embed_constant.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/logging/embed_logger.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_constant.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/provider_rule.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 
 class EmbedController extends ChangeNotifier {
@@ -24,6 +26,7 @@ class EmbedController extends ChangeNotifier {
   Future<void> Function()? _unmuteMediaHandler;
   Object? _contentKey;
   EmbedData? _embedData;
+  EmbedProviderRule? _matchedProviderRule;
 
   /// Internal slot used by [EmbedWebView] to persist a driver across remounts.
   Object? _boundDriver;
@@ -31,6 +34,7 @@ class EmbedController extends ChangeNotifier {
   void Function()? _onDriverDispose;
   int get embedRevision => _embedRevision;
   EmbedData? get embedData => _embedData;
+  EmbedProviderRule? get matchedProviderRule => _matchedProviderRule;
 
   EmbedLogger get _logger => config?.logger ?? const EmbedLogger.disabled();
 
@@ -93,6 +97,11 @@ class EmbedController extends ChangeNotifier {
     setEmbedData(null);
   }
 
+  void setMatchedProviderRule(EmbedProviderRule? value) {
+    if (_isDisposed || identical(_matchedProviderRule, value)) return;
+    _matchedProviderRule = value;
+  }
+
   void synchronize({
     required Object contentKey,
     EmbedConfig? config,
@@ -112,10 +121,13 @@ class EmbedController extends ChangeNotifier {
     _contentKey = contentKey;
     this.config = config;
 
-    if (contentChanged) {
+    if (contentChanged || configChanged) {
       _disposeBoundDriver();
       _embedRevision++;
-      _resetRuntimeStateForReload(clearEmbedData: previousContentKey != null);
+      _matchedProviderRule = null;
+      _resetRuntimeStateForReload(
+        clearEmbedData: contentChanged ? previousContentKey != null : true,
+      );
     }
 
     if (notify) {

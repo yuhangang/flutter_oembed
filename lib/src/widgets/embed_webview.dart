@@ -6,14 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
-import 'package:flutter_oembed/src/models/embed_constant.dart';
-import 'package:flutter_oembed/src/models/embed_constraints.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_strings.dart';
-import 'package:flutter_oembed/src/models/embed_style.dart';
-import 'package:flutter_oembed/src/models/embed_webview_controls.dart';
-import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/core/embed_constant.dart';
+import 'package:flutter_oembed/src/models/core/embed_constraints.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_strings.dart';
+import 'package:flutter_oembed/src/models/core/embed_style.dart';
+import 'package:flutter_oembed/src/models/core/embed_webview_controls.dart';
+import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -222,6 +222,7 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       widget.controller.setEmbedData(widget.data);
       if (!mounted) return;
+      // TODO: allow user to configure background color
       final bg = Theme.of(context).scaffoldBackgroundColor;
       await _driver.initEmbedWebview(
         backgroundColor: bg,

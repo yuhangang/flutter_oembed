@@ -1,13 +1,13 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/core/embed_cache_provider.dart';
-import 'package:flutter_oembed/src/models/embed_cache_config.dart';
-import 'package:flutter_oembed/src/models/embed_constant.dart';
-import 'package:flutter_oembed/src/models/embed_provider_config.dart';
-import 'package:flutter_oembed/src/models/embed_strings.dart';
-import 'package:flutter_oembed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/models/configs/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_constant.dart';
+import 'package:flutter_oembed/src/models/configs/embed_provider_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_strings.dart';
+import 'package:flutter_oembed/src/models/core/embed_style.dart';
 import 'package:flutter_oembed/src/logging/embed_logger.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
@@ -23,7 +23,9 @@ import 'dart:async';
 ///     facebookClientToken: 'YOUR_CLIENT_TOKEN',
 ///     cache: EmbedCacheConfig(enabled: false),
 ///     providers: EmbedProviderConfig(
-///       enabledProviders: {'YouTube', 'Spotify', 'Vimeo'},
+///       providers: EmbedProviders.verified
+///           .where((rule) => {'YouTube', 'Spotify', 'Vimeo'}.contains(rule.providerName))
+///           .toList(),
 ///       providerRenderModes: {
 ///         'YouTube': EmbedRenderMode.iframe,
 ///       },
@@ -104,10 +106,6 @@ class EmbedConfig extends Equatable {
   /// This is easier to use than [onNavigationRequest] as it only provides the URL.
   final void Function(String url, EmbedData? data)? onLinkTap;
 
-  /// Whether to use dynamic discovery via the official OEmbed providers.json registry.
-  /// Defaults to `false`.
-  final bool useDynamicDiscovery;
-
   /// Timeout duration for the WebView to finish loading before showing an error.
   /// Defaults to [kDefaultEmbedLoadTimeout].
   final Duration loadTimeout;
@@ -167,7 +165,6 @@ class EmbedConfig extends Equatable {
     this.strings = const EmbedStrings(),
     this.onNavigationRequest,
     this.onLinkTap,
-    this.useDynamicDiscovery = false,
     this.loadTimeout = kDefaultEmbedLoadTimeout,
     this.heightUpdateDeltaThreshold = kDefaultHeightUpdateDeltaThreshold,
     this.scrollable = false,
@@ -199,7 +196,6 @@ class EmbedConfig extends Equatable {
         locale,
         brightness,
         strings,
-        useDynamicDiscovery,
         loadTimeout,
         heightUpdateDeltaThreshold,
         scrollable,
@@ -209,11 +205,8 @@ class EmbedConfig extends Equatable {
         logger,
       ];
 
-  /// Internal getter that returns the providers config with the discovery flag synced.
-  EmbedProviderConfig get resolvedProviders =>
-      providers.useDynamicDiscovery == useDynamicDiscovery
-          ? providers
-          : providers.copyWith(useDynamicDiscovery: useDynamicDiscovery);
+  /// Internal getter that returns the providers config.
+  EmbedProviderConfig get resolvedProviders => providers;
 
   /// Returns `true` when all runtime-relevant fields match.
   ///
@@ -235,7 +228,6 @@ class EmbedConfig extends Equatable {
         strings == other.strings &&
         identical(onNavigationRequest, other.onNavigationRequest) &&
         identical(onLinkTap, other.onLinkTap) &&
-        useDynamicDiscovery == other.useDynamicDiscovery &&
         loadTimeout == other.loadTimeout &&
         heightUpdateDeltaThreshold == other.heightUpdateDeltaThreshold &&
         scrollable == other.scrollable &&
@@ -266,7 +258,6 @@ class EmbedConfig extends Equatable {
     FutureOr<NavigationDecision>? Function(NavigationRequest)?
         onNavigationRequest,
     void Function(String url, EmbedData? data)? onLinkTap,
-    bool? useDynamicDiscovery,
     Duration? loadTimeout,
     double? heightUpdateDeltaThreshold,
     bool? scrollable,
@@ -289,7 +280,6 @@ class EmbedConfig extends Equatable {
       strings: strings ?? this.strings,
       onNavigationRequest: onNavigationRequest ?? this.onNavigationRequest,
       onLinkTap: onLinkTap ?? this.onLinkTap,
-      useDynamicDiscovery: useDynamicDiscovery ?? this.useDynamicDiscovery,
       loadTimeout: loadTimeout ?? this.loadTimeout,
       heightUpdateDeltaThreshold:
           heightUpdateDeltaThreshold ?? this.heightUpdateDeltaThreshold,

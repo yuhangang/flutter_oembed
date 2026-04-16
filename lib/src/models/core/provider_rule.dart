@@ -70,7 +70,7 @@ class EmbedProviderRule {
 
   /// Human-readable provider name, e.g. `'YouTube'` or `'Vimeo'`.
   ///
-  /// Used as the key for [EmbedProviderConfig.enabledProviders] and
+  /// Used as the key when filtering [EmbedProviderConfig.providers] and for
   /// [EmbedProviderConfig.providerRenderModes].
   final String providerName;
 
@@ -85,8 +85,8 @@ class EmbedProviderRule {
 
   /// Whether this provider has been verified to work correctly.
   ///
-  /// Unverified providers are excluded by default; set
-  /// [EmbedProviderConfig.includeUnverified] to `true` to include them.
+  /// Unverified providers are excluded from [EmbedProviders.verified] but remain
+  /// available through [EmbedProviders.all] or explicit custom provider lists.
   final bool isVerified;
 
   /// Factory that constructs the [BaseEmbedApi] client for this provider.

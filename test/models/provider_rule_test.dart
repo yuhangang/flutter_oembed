@@ -1,4 +1,4 @@
-import 'package:flutter_oembed/src/models/provider_rule.dart';
+import 'package:flutter_oembed/src/models/core/provider_rule.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

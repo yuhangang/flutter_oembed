@@ -1,7 +1,7 @@
 import 'package:flutter_oembed/src/controllers/embed_navigation_handler.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:url_launcher_platform_interface/link.dart';
@@ -107,7 +107,11 @@ void main() {
         bool pageFinished = false;
         bool webResourceError = false;
 
-        final handler = EmbedNavigationHandler(param: param, config: config);
+        final handler = EmbedNavigationHandler(
+          param: param,
+          config: config,
+          providerRuleGetter: () => null,
+        );
         final delegate = handler.buildDelegate(
           baseUrl: 'https://twitter.com',
           trustedMainFrameUrls: const [],
@@ -143,6 +147,7 @@ void main() {
         final handler = EmbedNavigationHandler(
           param: param,
           config: config,
+          providerRuleGetter: () => null,
           now: () => now,
         );
         final delegate = handler.buildDelegate(
@@ -169,6 +174,7 @@ void main() {
         final handler = EmbedNavigationHandler(
           param: tikTokParam,
           config: config,
+          providerRuleGetter: () => null,
           now: () => now,
         );
         final delegate = handler.buildDelegate(
@@ -191,6 +197,7 @@ void main() {
         final handler = EmbedNavigationHandler(
           param: param,
           config: config,
+          providerRuleGetter: () => null,
           now: () => now,
         );
         final delegate = handler.buildDelegate(
@@ -214,6 +221,7 @@ void main() {
         final handler = EmbedNavigationHandler(
           param: param,
           config: config,
+          providerRuleGetter: () => null,
           now: () => now,
         );
         final delegate = handler.buildDelegate(
@@ -241,6 +249,7 @@ void main() {
         final handler = EmbedNavigationHandler(
           param: youtubeParam,
           config: config,
+          providerRuleGetter: () => null,
           now: () => now,
         );
         final delegate = handler.buildDelegate(
@@ -264,6 +273,7 @@ void main() {
         final handler = EmbedNavigationHandler(
           param: param,
           config: config,
+          providerRuleGetter: () => null,
           now: () => now,
         );
         final delegate = handler.buildDelegate(
@@ -287,6 +297,7 @@ void main() {
         final handler = EmbedNavigationHandler(
           param: param,
           config: config,
+          providerRuleGetter: () => null,
           now: () => now,
         );
         final delegate = handler.buildDelegate(
@@ -312,6 +323,7 @@ void main() {
         final handler = EmbedNavigationHandler(
           param: param,
           config: config,
+          providerRuleGetter: () => null,
           now: () => now,
         );
         final delegate = handler.buildDelegate(
@@ -336,6 +348,7 @@ void main() {
         final handler = EmbedNavigationHandler(
           param: param,
           config: config,
+          providerRuleGetter: () => null,
           now: () => now,
         );
         handler.isVisible = false;
@@ -364,6 +377,7 @@ void main() {
         final handler = EmbedNavigationHandler(
           param: param,
           config: config,
+          providerRuleGetter: () => null,
           now: () => now,
         );
         handler.isVisible = true;
@@ -392,6 +406,7 @@ void main() {
         final handler = EmbedNavigationHandler(
           param: param,
           config: config,
+          providerRuleGetter: () => null,
           now: () => now,
         );
         final delegate = handler.buildDelegate(
@@ -416,6 +431,7 @@ void main() {
         final handler = EmbedNavigationHandler(
           param: param,
           config: config,
+          providerRuleGetter: () => null,
           now: () => now,
         );
         final delegate = handler.buildDelegate(
@@ -443,6 +459,7 @@ void main() {
         final handler = EmbedNavigationHandler(
           param: param,
           config: config,
+          providerRuleGetter: () => null,
           now: () => now,
         );
         final delegate = handler.buildDelegate(
@@ -469,6 +486,7 @@ void main() {
         final handler = EmbedNavigationHandler(
           param: param,
           config: config,
+          providerRuleGetter: () => null,
           now: () => now,
         );
         final delegate = handler.buildDelegate(
@@ -493,6 +511,7 @@ void main() {
         final handler = EmbedNavigationHandler(
           param: param,
           config: config,
+          providerRuleGetter: () => null,
           now: () => now,
         );
         final delegate = handler.buildDelegate(
@@ -520,6 +539,7 @@ void main() {
         final handler = EmbedNavigationHandler(
           param: param,
           config: config,
+          providerRuleGetter: () => null,
           now: () => now,
         );
         final delegate = handler.buildDelegate(
@@ -545,6 +565,7 @@ void main() {
         final handler = EmbedNavigationHandler(
           param: param,
           config: config,
+          providerRuleGetter: () => null,
           now: () => now,
         );
         final delegate = handler.buildDelegate(
@@ -571,6 +592,7 @@ void main() {
         final handler = EmbedNavigationHandler(
           param: param,
           config: const EmbedConfig(),
+          providerRuleGetter: () => null,
           now: () => now,
         );
         final delegate = handler.buildDelegate(

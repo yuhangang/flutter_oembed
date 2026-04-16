@@ -2,11 +2,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
-import 'package:flutter_oembed/src/models/meta_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/meta_embed_params.dart';
 
 /// OEmbed API client for Meta platforms (Facebook + Instagram).
 class MetaEmbedApi extends BaseEmbedApi {

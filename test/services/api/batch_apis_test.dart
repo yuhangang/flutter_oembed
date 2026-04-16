@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/soundcloud_embed_params.dart';
-import 'package:flutter_oembed/src/models/vimeo_embed_params.dart';
-import 'package:flutter_oembed/src/models/x_embed_params.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/params/soundcloud_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/vimeo_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/x_embed_params.dart';
 import 'package:flutter_oembed/src/services/api/soundcloud_embed_api.dart';
 import 'package:flutter_oembed/src/services/api/spotify_embed_api.dart';
 import 'package:flutter_oembed/src/services/api/tiktok_embed_api.dart';

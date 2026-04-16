@@ -98,7 +98,6 @@ EmbedScope(
     pauseOnRouteCover: true,
     routeObserver: embedRouteObserver,
   ),
-  maxReusedWebViews: 8,
   child: MyApp(),
 )
 ```
@@ -231,7 +230,6 @@ You can customize caching, provider render modes, and style:
 
 ```dart
 EmbedConfig(
-  useDynamicDiscovery: true, // Enables searching the official oEmbed registry if no local provider matches
   pauseOnRouteCover: true, // Pauses supported media when a new page or bottom sheet covers the route
   routeObserver: embedRouteObserver,
   heightUpdateDeltaThreshold: 2, // Ignores tiny downward height shifts to reduce jitter
@@ -281,9 +279,28 @@ EmbedScope(
 You can also provide your own `EmbedCacheProvider` implementation in
 `EmbedConfig` when you need a custom cache backend per scope or test.
 
-When `reuseWebViews: true` is enabled on `EmbedScope`, released WebViews are
-kept in a bounded LRU-style cache. Use `maxReusedWebViews` to tune how many
-detached controllers a scope may retain before older entries are evicted.
+If you want to preserve an embed's attached WebView across widget remounts,
+hold on to an `EmbedController` and pass the same controller back to the same
+content later. This is the pattern used by the example app's HTML integration.
+
+```dart
+final controllersByUrl = <String, EmbedController>{};
+
+EmbedController controllerForUrl(String url) {
+  return controllersByUrl.putIfAbsent(url, EmbedController.new);
+}
+
+EmbedCard.url(
+  'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+  controller: controllerForUrl(
+    'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+  ),
+)
+```
+
+This is controller-driven reuse, not an `EmbedScope`-managed WebView pool. The
+package does not currently expose a scope-level `reuseWebViews` or
+`maxReusedWebViews` API.
 
 ### Customizable Strings
 
@@ -342,8 +359,11 @@ Controller-provided data is cleared automatically when
 ## Custom Provider Rules
 
 If you need to support a provider that is not part of the verified built-in
-set, register your own `EmbedProviderRule` through
-`EmbedProviderConfig.customProviders`.
+set, you can explicitly configure your `EmbedProviderConfig.providers` list.
+
+The package exposes an `EmbedProviders` utility to easily access `EmbedProviders.verified` 
+or `EmbedProviders.all`. You can use standard dart list manipulation or our `.append()` 
+extension to merge your own `EmbedProviderRule`.
 
 The example app includes a few practical recipes:
 
@@ -355,36 +375,35 @@ The example app includes a few practical recipes:
 - TED as a scoped trial of a provider you may not want to enable globally
 - audio.com for audio-focused oEmbed examples
 
-Pinterest is a practical starting point. The bundled discovery snapshot already
-knows about `www.pinterest.com`, but a custom rule lets you support Pinterest
-explicitly and extend matching to short links like `pin.it` even when dynamic
-discovery is disabled.
+Pinterest is a practical starting point. The default registry doesn't include it, 
+but a custom rule lets you support Pinterest explicitly and handle short links like `pin.it`.
 
 ```dart
 EmbedScope(
   config: EmbedConfig(
     providers: EmbedProviderConfig(
-      customProviders: const [
+      providers: EmbedProviders.verified.append([
         EmbedProviderRule(
           providerName: 'Pinterest',
           pattern: r'^(https?:\/\/(?:www\.)?pinterest\.com\/.*|https?:\/\/pin\.it\/.*)$',
           endpoint: 'https://www.pinterest.com/oembed.json',
         ),
-      ],
+      ]),
     ),
   ),
   child: EmbedCard.url('https://www.pinterest.com/pin/36739528211842807/'),
 )
 ```
 
-You can use the same pattern for any other oEmbed-compatible provider, and add
-multiple entries to `customProviders` when your app needs a small curated
-provider set. If a provider needs more than a simple endpoint match, add
-`iframeUrlBuilder`, `subRules`, or a custom `apiFactory`.
+You can use the same pattern for any other oEmbed-compatible provider. Simply provide
+the endpoints or use `iframeUrlBuilder`, `subRules`, or a custom `apiFactory` if the 
+provider requires complex API logic.
 
-If you also use `enabledProviders`, add the custom rule's `providerName` to
-that allowlist. Otherwise the custom rule is registered but still filtered out
-before matching.
+Because you have direct control over the `providers` list, you can restrict the app to 
+only load certain platforms:
+```dart
+providers: EmbedProviders.verified.where((r) => {'YouTube', 'Spotify'}.contains(r.providerName)).toList(),
+```
 
 ## Debug Logging
 
@@ -437,7 +456,7 @@ See the example app in `/example` for concrete integration code.
 - If Meta embeds fail, verify your App ID and Client Token first.
 - If a provider resolves but renders an empty frame, enable debug logging and inspect WebView/network events.
 - If taps should open inside your own router instead of the system browser/app, provide `onLinkTap` or a full `onNavigationRequest` override.
-- If a URL is not matched, provide a custom provider rule or enable dynamic discovery where appropriate.
+- If a URL is not matched, provide a custom provider rule to support it.
 - If you need Flutter Web support, this package does not provide it yet.
 
 ## Additional Information

@@ -2,14 +2,14 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
-import 'package:flutter_oembed/src/models/embed_constant.dart';
-import 'package:flutter_oembed/src/models/embed_constraints.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_strings.dart';
-import 'package:flutter_oembed/src/models/embed_webview_controls.dart';
-import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_constant.dart';
+import 'package:flutter_oembed/src/models/core/embed_constraints.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_strings.dart';
+import 'package:flutter_oembed/src/models/core/embed_webview_controls.dart';
+import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:visibility_detector/visibility_detector.dart';
@@ -516,7 +516,6 @@ void main() {
       );
 
       try {
-        customController.setLoadingState(EmbedLoadingState.error);
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
@@ -530,6 +529,8 @@ void main() {
           ),
         );
 
+        await tester.pump();
+        customController.setLoadingState(EmbedLoadingState.error);
         await tester.pump();
 
         expect(
@@ -690,8 +691,6 @@ void main() {
         (tester) async {
       final semanticsHandle = tester.ensureSemantics();
       try {
-        controller.setLoadingState(EmbedLoadingState.error);
-
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
@@ -705,6 +704,8 @@ void main() {
           ),
         );
 
+        await tester.pump();
+        controller.setLoadingState(EmbedLoadingState.error);
         await tester.pump();
         final refreshIcon = find.byIcon(Icons.refresh);
         expect(refreshIcon, findsOneWidget);
@@ -730,8 +731,6 @@ void main() {
       );
 
       try {
-        customController.setLoadingState(EmbedLoadingState.noConnection);
-
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
@@ -745,6 +744,8 @@ void main() {
           ),
         );
 
+        await tester.pump();
+        customController.setLoadingState(EmbedLoadingState.noConnection);
         await tester.pump();
 
         await tester.tap(find.byIcon(Icons.refresh));

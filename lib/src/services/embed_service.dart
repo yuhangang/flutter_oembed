@@ -1,20 +1,18 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter_oembed/src/logging/embed_logger.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/embed_cache_config.dart';
-import 'package:flutter_oembed/src/models/base_embed_params.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_loader_param.dart';
-import 'package:flutter_oembed/src/models/embed_provider_config.dart';
-import 'package:flutter_oembed/src/models/provider_rule.dart';
+import 'package:flutter_oembed/src/models/params/base_embed_params.dart';
+import 'package:flutter_oembed/src/models/configs/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_loader_param.dart';
+import 'package:flutter_oembed/src/models/configs/embed_provider_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_renderer.dart';
+import 'package:flutter_oembed/src/models/core/provider_rule.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
-import 'package:flutter_oembed/src/services/provider_registry.dart';
-import 'package:flutter_oembed/src/services/providers_snapshot.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
-import 'package:flutter_oembed/src/models/embed_renderer.dart';
+import 'package:http/http.dart' as http;
 
 class EmbedService {
   /// Fetches OEmbed data using [EmbedConfig].
@@ -155,18 +153,10 @@ class EmbedService {
       rule = config.resolvedProviders.matchRule(url);
     } else {
       // Fallback for when no config is provided
-      rule = kDefaultEmbedProviders.firstWhereOrNull(
+      rule = EmbedProviders.verified.firstWhereOrNull(
         (r) => r.matches(url),
       );
     }
-
-    // 2. Static discovery check
-    if (rule == null &&
-        (config?.useDynamicDiscovery == true ||
-            config?.providers.useDynamicDiscovery == true)) {
-      rule = _findRuleInSnapshot(url);
-    }
-
     return rule;
   }
 
@@ -296,29 +286,5 @@ class EmbedService {
       });
     }
     return iframeUrl;
-  }
-
-  /// Performs an O(1) domain-based lookup in the static snapshot.
-  static EmbedProviderRule? _findRuleInSnapshot(String url) {
-    final uri = Uri.tryParse(url);
-    if (uri == null) return null;
-
-    final host = uri.host.toLowerCase();
-    final parts = host.split('.');
-
-    // Check host and parent domains (e.g., 'www.youtube.com' -> 'youtube.com')
-    for (int i = 0; i < parts.length - 1; i++) {
-      final domain = parts.sublist(i).join('.');
-
-      // Try exact match (e.g. 'ted.com')
-      var rules = kEmbedProvidersSnapshot[domain];
-      rules ??= kEmbedProvidersSnapshot['*.$domain'];
-
-      if (rules != null && rules.isNotEmpty) {
-        final match = rules.firstWhereOrNull((r) => r.matches(url));
-        if (match != null) return match;
-      }
-    }
-    return null;
   }
 }

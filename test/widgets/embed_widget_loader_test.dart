@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
+import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
-import 'package:flutter_oembed/src/models/embed_provider_config.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/configs/embed_provider_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_data_loader.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_oembed/src/widgets/embed_widget_loader.dart';
@@ -126,6 +127,71 @@ void main() {
           tester.widget<EmbedWebView>(find.byType(EmbedWebView)).controller,
           same(controller),
         );
+      } finally {
+        controller.dispose();
+      }
+    });
+
+    testWidgets(
+        'recreates the bound driver and matched rule when config changes',
+        (tester) async {
+      final param = SocialEmbedParam(
+        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        embedType: EmbedType.youtube,
+      );
+      final data = const EmbedData(
+        type: 'video',
+        html:
+            '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>',
+      );
+      final controller = buildController(
+        param: param,
+        config: const EmbedConfig(
+          providers: EmbedProviderConfig(providers: []),
+        ),
+      );
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: EmbedScope(
+              config: const EmbedConfig(
+                providers: EmbedProviderConfig(providers: []),
+              ),
+              child: Scaffold(
+                body: EmbedWidgetLoader(
+                  param: param,
+                  preloadedData: data,
+                  controller: controller,
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+        final initialDriver = controller.boundDriver as EmbedWebViewDriver;
+        expect(controller.matchedProviderRule, isNull);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: EmbedScope(
+              config: const EmbedConfig(),
+              child: Scaffold(
+                body: EmbedWidgetLoader(
+                  param: param,
+                  preloadedData: data,
+                  controller: controller,
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+        final refreshedDriver = controller.boundDriver as EmbedWebViewDriver;
+        expect(refreshedDriver, isNot(same(initialDriver)));
+        expect(controller.matchedProviderRule?.providerName, equals('YouTube'));
       } finally {
         controller.dispose();
       }

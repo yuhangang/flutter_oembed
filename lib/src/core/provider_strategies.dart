@@ -1,16 +1,16 @@
 import 'dart:ui';
 
 import 'package:flutter_oembed/src/core/provider_strategy.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_renderer.dart';
-import 'package:flutter_oembed/src/models/meta_embed_params.dart';
-import 'package:flutter_oembed/src/models/soundcloud_embed_params.dart';
-import 'package:flutter_oembed/src/models/tiktok_embed_params.dart';
-import 'package:flutter_oembed/src/models/vimeo_embed_params.dart';
-import 'package:flutter_oembed/src/models/x_embed_params.dart';
-import 'package:flutter_oembed/src/models/youtube_embed_params.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_renderer.dart';
+import 'package:flutter_oembed/src/models/params/meta_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/soundcloud_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/tiktok_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/vimeo_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/x_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/youtube_embed_params.dart';
 import 'package:flutter_oembed/src/services/embed_apis.dart';
 import 'package:flutter_oembed/src/utils/embed_html_utils.dart';
 import 'package:flutter_oembed/src/utils/embed_webview_controller_utils.dart';

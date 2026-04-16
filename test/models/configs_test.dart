@@ -1,15 +1,15 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
-import 'package:flutter_oembed/src/models/embed_constant.dart';
-import 'package:flutter_oembed/src/models/embed_constraints.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/embed_provider_config.dart';
-import 'package:flutter_oembed/src/models/embed_strings.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_constant.dart';
+import 'package:flutter_oembed/src/models/core/embed_constraints.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/configs/embed_provider_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_strings.dart';
 import 'package:flutter_oembed/src/core/embed_cache_provider.dart';
-import 'package:flutter_oembed/src/models/embed_style.dart';
-import 'package:flutter_oembed/src/models/provider_rule.dart';
+import 'package:flutter_oembed/src/models/core/embed_style.dart';
+import 'package:flutter_oembed/src/models/core/provider_rule.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeEmbedCacheProvider implements EmbedCacheProvider {
@@ -31,7 +31,11 @@ class _FakeEmbedCacheProvider implements EmbedCacheProvider {
 void main() {
   group('EmbedProviderConfig', () {
     test('isEnabled', () {
-      const config = EmbedProviderConfig(enabledProviders: {'YouTube'});
+      final config = EmbedProviderConfig(
+        providers: EmbedProviders.verified
+            .where((r) => r.providerName == 'YouTube')
+            .toList(),
+      );
       expect(config.isEnabled('YouTube'), isTrue);
       expect(config.isEnabled('Vimeo'), isFalse);
 
@@ -49,52 +53,75 @@ void main() {
 
     test('copyWith', () {
       const config = EmbedProviderConfig();
-      final updated = config.copyWith(enabledProviders: {'YouTube'});
-      expect(updated.enabledProviders, contains('YouTube'));
+      final updated = config.copyWith(
+        providers: EmbedProviders.verified
+            .where((r) => r.providerName == 'YouTube')
+            .toList(),
+      );
+      expect(updated.isEnabled('YouTube'), isTrue);
+      expect(updated.isEnabled('Vimeo'), isFalse);
     });
 
-    test('effectiveProviders filtering', () {
-      const config = EmbedProviderConfig(
-        includeUnverified: true,
-        enabledProviders: {'YouTube', 'Vimeo'},
+    test('copyWith can reset providers to the default verified registry', () {
+      final customOnly = EmbedProviderConfig(
+        providers: EmbedProviders.verified
+            .where((r) => r.providerName == 'YouTube')
+            .toList(),
       );
-      final providers = config.effectiveProviders;
-      expect(
-          providers.every(
-              (p) => p.providerName == 'YouTube' || p.providerName == 'Vimeo'),
-          isTrue);
+
+      final reset = customOnly.copyWith(providers: null);
+
+      expect(reset.providers, isNull);
+      expect(reset.isEnabled('YouTube'), isTrue);
+      expect(reset.isEnabled('Tumblr'), isTrue);
     });
 
-    test(
-        'custom providers must be present in enabledProviders when allowlist is active',
-        () {
-      const pinterestRule = EmbedProviderRule(
-        pattern: r'^https?:\/\/(?:www\.)?pinterest\.com\/.*$',
-        endpoint: 'https://www.pinterest.com/oembed.json',
-        providerName: 'Pinterest',
+    test('explicit providers override default registry', () {
+      final config = const EmbedProviderConfig(
+        providers: [
+          EmbedProviderRule(
+            pattern: r'^https?:\/\/(?:www\.)?pinterest\.com\/.*$',
+            endpoint: 'https://www.pinterest.com/oembed.json',
+            providerName: 'Pinterest',
+          ),
+        ],
       );
 
-      const blockedConfig = EmbedProviderConfig(
-        enabledProviders: {'YouTube'},
-        customProviders: [pinterestRule],
-      );
-      expect(
-        blockedConfig.effectiveProviders.any(
-          (provider) => provider.providerName == 'Pinterest',
-        ),
-        isFalse,
+      expect(config.isEnabled('Pinterest'), isTrue);
+      // The default registry is fully replaced
+      expect(config.isEnabled('YouTube'), isFalse);
+    });
+
+    test('EmbedProviders extension append', () {
+      const customRule = EmbedProviderRule(
+        pattern: r'',
+        endpoint: '',
+        providerName: 'Custom',
       );
 
-      const enabledConfig = EmbedProviderConfig(
-        enabledProviders: {'YouTube', 'Pinterest'},
-        customProviders: [pinterestRule],
-      );
+      final merged = EmbedProviders.verified.append([customRule]);
+      expect(merged.any((p) => p.providerName == 'Custom'), isTrue);
+      expect(merged.any((p) => p.providerName == 'YouTube'), isTrue);
+    });
+
+    test('EmbedProviders getters are defensive copies', () {
+      final verified = EmbedProviders.verified;
+      final all = EmbedProviders.all;
+
       expect(
-        enabledConfig.effectiveProviders.any(
-          (provider) => provider.providerName == 'Pinterest',
-        ),
-        isTrue,
-      );
+          () => verified.add(const EmbedProviderRule(
+                pattern: r'',
+                endpoint: '',
+                providerName: 'Custom Verified',
+              )),
+          throwsUnsupportedError);
+      expect(
+          () => all.add(const EmbedProviderRule(
+                pattern: r'',
+                endpoint: '',
+                providerName: 'Custom All',
+              )),
+          throwsUnsupportedError);
     });
 
     test('matchRule memoizes provider resolution by URL', () {
@@ -110,11 +137,6 @@ void main() {
   });
 
   group('EmbedConfig', () {
-    test('resolvedProviders syncs discovery flag', () {
-      const config = EmbedConfig(useDynamicDiscovery: true);
-      expect(config.resolvedProviders.useDynamicDiscovery, isTrue);
-    });
-
     test('copyWith', () {
       const config = EmbedConfig();
       const cacheProvider = _FakeEmbedCacheProvider();

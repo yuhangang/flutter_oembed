@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
-import '../models/embed_constraints.dart';
-import '../models/embed_style.dart';
+import '../models/core/embed_constraints.dart';
+import '../models/core/embed_style.dart';
 
 /// A wrapper widget that defers rendering its [child] until it becomes visible
 /// in the viewport.

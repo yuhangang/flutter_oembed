@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_oembed/src/models/embed_constraints.dart';
+import 'package:flutter_oembed/src/models/core/embed_constraints.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 
 /// Represents how an embed should be loaded and rendered by the standard pipeline.

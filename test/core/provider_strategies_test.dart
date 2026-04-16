@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/core/provider_strategy.dart';
 import 'package:flutter_oembed/src/core/provider_strategies.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_renderer.dart';
-import 'package:flutter_oembed/src/models/provider_rule.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_renderer.dart';
+import 'package:flutter_oembed/src/models/core/provider_rule.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 import 'package:flutter_oembed/src/services/api/meta_embed_api.dart';
 import 'package:flutter_oembed/src/services/api/reddit_embed_api.dart';

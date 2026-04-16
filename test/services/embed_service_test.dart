@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
 import 'package:flutter_oembed/src/core/embed_cache_provider.dart';
-import 'package:flutter_oembed/src/models/embed_cache_config.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_loader_param.dart';
-import 'package:flutter_oembed/src/models/embed_provider_config.dart';
-import 'package:flutter_oembed/src/models/embed_renderer.dart';
+import 'package:flutter_oembed/src/models/configs/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_loader_param.dart';
+import 'package:flutter_oembed/src/models/configs/embed_provider_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_renderer.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 import 'package:flutter_oembed/src/services/embed_service.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
@@ -58,46 +58,11 @@ void main() {
         expect(rule, isNull);
       });
 
-      test('should use dynamic discovery when enabled in the config', () {
-        const url = 'https://www.facebook.com/facebook/posts/10158716223136729';
-        final rule = EmbedService.resolveRule(url,
-            config: const EmbedConfig(useDynamicDiscovery: true));
-
-        expect(rule, isNotNull);
-        expect(rule?.providerName, anyOf('Facebook', 'Facebook Post'));
-      });
-
-      test('should handle subdomains correctly (e.g., m.youtube.com)', () {
-        const url = 'https://m.youtube.com/watch?v=dQw4w9WgXcQ';
-        final rule = EmbedService.resolveRule(url,
-            config: const EmbedConfig(useDynamicDiscovery: true));
-        expect(rule, isNotNull);
-        expect(rule?.providerName, equals('YouTube'));
-      });
-
-      test(
-          'should not fall back to the first snapshot rule when the host matches but the pattern does not',
-          () {
-        const url = 'https://www.youtube.com/channel/UC123456789';
-        final rule = EmbedService.resolveRule(url,
-            config: const EmbedConfig(useDynamicDiscovery: true));
-
-        expect(rule, isNull);
-      });
-
       test('should use default rules when no config is provided', () {
         final rule =
             EmbedService.resolveRule('https://youtube.com/watch?v=123');
         expect(rule, isNotNull);
         expect(rule?.providerName, equals('YouTube'));
-      });
-
-      test('should match wildcard domains in snapshot (e.g., flickr.com)', () {
-        const url = 'https://www.flickr.com/photos/123';
-        final rule = EmbedService.resolveRule(url,
-            config: const EmbedConfig(useDynamicDiscovery: true));
-        expect(rule, isNotNull);
-        expect(rule?.providerName, equals('Flickr'));
       });
 
       test('should discover Tumblr as a verified provider by default', () {
@@ -106,32 +71,6 @@ void main() {
         expect(rule, isNotNull);
         expect(rule?.providerName, equals('Tumblr'));
         expect(rule?.isVerified, isTrue);
-      });
-
-      test(
-          'should resolve Tumblr endpoint for photomatt URL shape from discovery example',
-          () {
-        const url =
-            'https://www.tumblr.com/photomatt/765038139535097856/the-new-auto-follow-on-tumblr-is-so-good';
-        final rule = EmbedService.resolveRule(url,
-            config: const EmbedConfig(useDynamicDiscovery: true));
-        expect(rule, isNotNull);
-        expect(rule?.providerName, equals('Tumblr'));
-
-        final api = EmbedService.getEmbedApiByEmbedType(
-          EmbedLoaderParam(
-            url: url,
-            embedType: EmbedType.other,
-            width: 640,
-          ),
-        );
-        expect(api, isA<GenericEmbedApi>());
-        expect(api.baseUrl, equals('https://www.tumblr.com/oembed/1.0'));
-
-        final requestUri = api.constructUrl(url);
-        expect(requestUri.origin + requestUri.path,
-            equals('https://www.tumblr.com/oembed/1.0'));
-        expect(requestUri.queryParameters['url'], equals(url));
       });
     });
 

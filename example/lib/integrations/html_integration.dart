@@ -105,7 +105,6 @@ class _HtmlIntegrationPageState extends State<HtmlIntegrationPage> {
       locale: settings.locale,
       brightness: settings.brightness,
       scrollable: settings.scrollable,
-      useDynamicDiscovery: settings.useDynamicDiscovery,
     );
   }
 

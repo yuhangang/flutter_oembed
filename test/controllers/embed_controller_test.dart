@@ -2,11 +2,12 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/social_embed_param.dart';
-import 'package:flutter_oembed/src/models/youtube_embed_params.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/provider_rule.dart';
+import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/params/youtube_embed_params.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -339,7 +340,7 @@ void main() {
     });
 
     test(
-        'synchronize preserves the bound driver and revision for config-only updates',
+        'synchronize resets the bound driver and revision for config-only updates',
         () {
       final param = SocialEmbedParam(
         url: 'https://www.youtube.com/watch?v=stable',
@@ -350,6 +351,13 @@ void main() {
         config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
       );
       final initialRevision = controller.embedRevision;
+      controller.setMatchedProviderRule(
+        const EmbedProviderRule(
+          pattern: r'^https?:\/\/(?:www\.)?youtube\.com\/.*$',
+          endpoint: 'https://www.youtube.com/oembed',
+          providerName: 'YouTube',
+        ),
+      );
 
       var disposeCalls = 0;
       final driver = Object();
@@ -364,11 +372,12 @@ void main() {
         config: const EmbedConfig(loadTimeout: Duration(seconds: 8)),
       );
 
-      expect(disposeCalls, 0);
-      expect(controller.boundDriver, same(driver));
-      expect(controller.boundDriverContentKey, same(param));
-      expect(controller.embedRevision, initialRevision);
+      expect(disposeCalls, 1);
+      expect(controller.boundDriver, isNull);
+      expect(controller.boundDriverContentKey, isNull);
+      expect(controller.embedRevision, initialRevision + 1);
       expect(controller.config?.loadTimeout, const Duration(seconds: 8));
+      expect(controller.matchedProviderRule, isNull);
     });
 
     test('setEmbedData stores data and clears error retry state', () {

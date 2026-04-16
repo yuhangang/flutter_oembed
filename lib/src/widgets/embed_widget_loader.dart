@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
-import 'package:flutter_oembed/src/models/embed_cache_config.dart';
-import 'package:flutter_oembed/src/models/embed_constraints.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/embed_loader_param.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_renderer.dart';
-import 'package:flutter_oembed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/configs/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_constraints.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_loader_param.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_renderer.dart';
+import 'package:flutter_oembed/src/models/core/embed_style.dart';
 import 'package:flutter_oembed/src/services/embed_service.dart';
-import 'package:flutter_oembed/src/models/embed_webview_controls.dart';
-import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/core/embed_webview_controls.dart';
+import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_data_loader.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 
@@ -145,7 +145,8 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        final effectivePreloadedData = _controller.embedData;
+        final effectivePreloadedData =
+            _controller.embedData ?? widget.preloadedData;
         final showErrorWidget = effectivePreloadedData == null &&
             _controller.loadingState == EmbedLoadingState.error &&
             _controller.didRetry;
@@ -158,11 +159,11 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            // Short-circuit for pre-fetched data (avoids a resolveRender call).
-            if (effectivePreloadedData != null) {
+            // Explicitly provided preloadedData overrides all native renderers.
+            if (widget.preloadedData != null) {
               return EmbedWebView.data(
                 param: widget.param,
-                data: effectivePreloadedData,
+                data: widget.preloadedData!,
                 maxWidth: constraints.maxWidth,
                 controller: _controller,
                 style: style,
@@ -181,13 +182,32 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
               embedParams: widget.param.embedParams,
             );
 
+            // Native renderers manage their own data populating; don't bypass them.
+            if (renderer is NativeWidgetRenderer) {
+              return renderer.builder(
+                context,
+                constraints.maxWidth,
+                _controller,
+                widget.embedConstraints,
+              );
+            }
+
+            // Short-circuit if the data has been loaded/fetched internally.
+            if (_controller.embedData != null) {
+              return EmbedWebView.data(
+                param: widget.param,
+                data: _controller.embedData!,
+                maxWidth: constraints.maxWidth,
+                controller: _controller,
+                style: style,
+                embedConstraints: widget.embedConstraints,
+                scrollable: widget.scrollable,
+                webViewBuilder: widget.webViewBuilder,
+              );
+            }
+
             return switch (renderer) {
-              NativeWidgetRenderer(:final builder) => builder(
-                  context,
-                  constraints.maxWidth,
-                  _controller,
-                  widget.embedConstraints,
-                ),
+              NativeWidgetRenderer() => const SizedBox.shrink(),
               IframeRenderer(:final iframeUrl) => EmbedWebView.url(
                   param: widget.param,
                   url: iframeUrl,

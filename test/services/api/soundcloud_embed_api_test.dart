@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter_oembed/src/models/soundcloud_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/soundcloud_embed_params.dart';
 import 'package:flutter_oembed/src/services/api/soundcloud_embed_api.dart';
 
 void main() {
