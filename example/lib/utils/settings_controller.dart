@@ -6,6 +6,7 @@ class ExampleSettings {
   final Brightness brightness;
   final bool scrollable;
   final bool showFooter;
+  final Color? backgroundColor;
 
   // Provider-specific params
   final VimeoEmbedParams vimeoParams;
@@ -20,6 +21,7 @@ class ExampleSettings {
     this.brightness = Brightness.light,
     this.scrollable = false,
     this.showFooter = false,
+    this.backgroundColor,
     this.vimeoParams = const VimeoEmbedParams(),
     this.xParams = const XEmbedParams(
       dnt: true,
@@ -40,6 +42,7 @@ class ExampleSettings {
     Brightness? brightness,
     bool? scrollable,
     bool? showFooter,
+    Color? backgroundColor,
     VimeoEmbedParams? vimeoParams,
     XEmbedParams? xParams,
     MetaEmbedParams? metaParams,
@@ -52,6 +55,7 @@ class ExampleSettings {
       brightness: brightness ?? this.brightness,
       scrollable: scrollable ?? this.scrollable,
       showFooter: showFooter ?? this.showFooter,
+      backgroundColor: backgroundColor ?? this.backgroundColor,
       vimeoParams: vimeoParams ?? this.vimeoParams,
       xParams: xParams ?? this.xParams,
       metaParams: metaParams ?? this.metaParams,
@@ -87,12 +91,14 @@ class ExampleSettingsController extends ChangeNotifier {
     Brightness? brightness,
     bool? scrollable,
     bool? showFooter,
+    Color? backgroundColor,
   }) {
     _settings = _settings.copyWith(
       locale: locale,
       brightness: brightness,
       scrollable: scrollable,
       showFooter: showFooter,
+      backgroundColor: backgroundColor,
     );
     notifyListeners();
   }

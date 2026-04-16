@@ -1,5 +1,4 @@
-import 'dart:ui';
-
+import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
 import 'package:flutter_oembed/src/core/provider_strategy.dart';
 import 'package:flutter_oembed/src/models/configs/embed_config.dart';
 import 'package:flutter_oembed/src/models/core/embed_data.dart';
@@ -124,14 +123,6 @@ class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
   }
 
   @override
-  Future<void> onPageFinished(WebViewController controller) async {
-    // TikTok handles its own pausing via IntersectionObserver in their script,
-    // but we can try to mute it if it's a photo post.
-    await controller.muteMediaElements();
-    await controller.pauseMediaElements();
-  }
-
-  @override
   EmbedRenderer resolveRenderer(EmbedProviderContext context,
       {EmbedConfig? config}) {
     final params = context.embedParams as TikTokEmbedParams?;
@@ -177,27 +168,28 @@ class XProviderStrategy extends GenericEmbedProviderStrategy {
   }
 
   @override
-  Future<void> onWebViewCreated(
-    WebViewController controller, {
-    VoidCallback? onTwitterLoaded,
-  }) async {
-    await controller.addJavaScriptChannel(
+  Future<void> onWebViewCreated(EmbedWebViewDriver driver) async {
+    await driver.webViewController.addJavaScriptChannel(
       'OnTwitterLoaded',
       onMessageReceived: (_) {
-        onTwitterLoaded?.call();
+        driver.finalizePageFinished();
       },
     );
   }
 
   @override
-  Future<void> onPageFinished(WebViewController controller) async {
-    await controller.runJavaScript('''
+  Future<void> onPageFinished(EmbedWebViewDriver driver) async {
+    await driver.webViewController.runJavaScript('''
       twttr.events.bind('loaded', function(event) {
         if (window.OnTwitterLoaded) {
           OnTwitterLoaded.postMessage("loaded");
         }
       });
     ''');
+    await Future.delayed(const Duration(seconds: 2));
+    if (driver.controller.loadingState != EmbedLoadingState.loaded) {
+      driver.finalizePageFinished();
+    }
   }
 }
 

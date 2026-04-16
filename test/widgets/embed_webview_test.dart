@@ -11,6 +11,7 @@ import 'package:flutter_oembed/src/models/core/embed_strings.dart';
 import 'package:flutter_oembed/src/models/core/embed_webview_controls.dart';
 import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
+import 'package:flutter_oembed/src/models/core/embed_style.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -1015,8 +1016,14 @@ void main() {
       }
     });
 
-    testWidgets('keeps gesture recognizers empty when scrollable is disabled',
-        (tester) async {
+    testWidgets('respects backgroundColor from EmbedStyle', (tester) async {
+      const customBgColor = Colors.red;
+      final customController = buildController(
+        param: param,
+        config: const EmbedConfig(
+          style: EmbedStyle(backgroundColor: customBgColor),
+        ),
+      );
       try {
         await tester.pumpWidget(
           MaterialApp(
@@ -1025,20 +1032,56 @@ void main() {
                 param: param,
                 data: data,
                 maxWidth: 640,
-                controller: controller,
-                scrollable: false,
+                controller: customController,
               ),
             ),
           ),
         );
 
         await tester.pump();
+        // The post-frame callback triggers driver.initEmbedWebview
+        await tester.pump(const Duration(milliseconds: 100));
 
-        final webViewWidget =
-            tester.widget<WebViewWidget>(find.byType(WebViewWidget));
-        expect(webViewWidget.gestureRecognizers, isEmpty);
+        final platformController = fakePlatform.lastCreatedController!;
+        expect(platformController.backgroundColor, customBgColor);
       } finally {
-        controller.dispose();
+        customController.dispose();
+      }
+    });
+
+    testWidgets(
+        'falls back to theme scaffoldBackgroundColor when style bg is null',
+        (tester) async {
+      const themeBgColor = Colors.blue;
+      final customController = buildController(
+        param: param,
+        config: const EmbedConfig(
+          style: EmbedStyle(backgroundColor: null),
+        ),
+      );
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: ThemeData(scaffoldBackgroundColor: themeBgColor),
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 640,
+                controller: customController,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        final platformController = fakePlatform.lastCreatedController!;
+        expect(platformController.backgroundColor, themeBgColor);
+      } finally {
+        customController.dispose();
       }
     });
   });

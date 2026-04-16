@@ -222,8 +222,10 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       widget.controller.setEmbedData(widget.data);
       if (!mounted) return;
-      // TODO: allow user to configure background color
-      final bg = Theme.of(context).scaffoldBackgroundColor;
+      final config = widget.controller.config ?? EmbedScope.configOf(context);
+      final style = widget.style ?? config?.style;
+      final bg =
+          style?.backgroundColor ?? Theme.of(context).scaffoldBackgroundColor;
       await _driver.initEmbedWebview(
         backgroundColor: bg,
         embedData: widget.data,

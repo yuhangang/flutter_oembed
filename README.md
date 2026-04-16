@@ -245,6 +245,7 @@ EmbedConfig(
   ),
   style: EmbedStyle(
     borderRadius: BorderRadius.circular(12),
+    backgroundColor: Colors.black, // Match your app theme exactly
   ),
 )
 ```

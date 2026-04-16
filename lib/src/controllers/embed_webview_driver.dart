@@ -31,7 +31,6 @@ class EmbedWebViewDriver {
   late final EmbedNavigationHandler _navigationHandler;
   static final _focusCoordinator = _EmbedFocusCoordinator();
   static final Object _defaultFocusGroup = Object();
-  static const _twitterLoadedFallbackDelay = Duration(seconds: 2);
 
   EmbedProviderStrategy _strategy = const GenericEmbedProviderStrategy();
   Object _focusGroupKey = _defaultFocusGroup;
@@ -39,8 +38,6 @@ class EmbedWebViewDriver {
   bool _isFocused = false;
   bool _isRouteCovered = false;
   bool _isDisposed = false;
-  Timer? _twitterLoadedFallbackTimer;
-  bool _awaitingTwitterLoadedEvent = false;
 
   EmbedLogger get _logger =>
       controller.config?.logger ?? const EmbedLogger.disabled();
@@ -75,7 +72,6 @@ class EmbedWebViewDriver {
   void dispose({bool preserveWebView = false}) {
     if (_isDisposed) return;
     _isDisposed = true;
-    _cancelTwitterLoadedFallback();
     controller.cancelLoadTimeout();
     controller.unbindMediaControls();
     _focusCoordinator.detach(this, groupKey: _focusGroupKey);
@@ -206,12 +202,7 @@ class EmbedWebViewDriver {
       if (_isDisposed) return;
     }
 
-    await _strategy.onWebViewCreated(
-      webViewController,
-      onTwitterLoaded: () async {
-        await _handleTwitterLoaded();
-      },
-    );
+    await _strategy.onWebViewCreated(this);
     if (_isDisposed) return;
 
     await webViewController.addJavaScriptChannel(
@@ -278,14 +269,11 @@ class EmbedWebViewDriver {
         trustedMainFrameUrls: trustedMainFrameUrls,
         loadingStateGetter: () => controller.loadingState,
         onPageStarted: (url) async {
-          // TODO: allow more comprehensive api
-          _cancelTwitterLoadedFallback();
-          await _strategy.onPageStarted(webViewController);
+          await _strategy.onPageStarted(this);
         },
         onPageFinished: () async {
-          // TODO: allow more comprehensive api
-          await _strategy.onPageFinished(webViewController);
-          await _handleEmbedPageFinishedWithFallback();
+          await _strategy.onPageFinished(this);
+          finalizePageFinished();
         },
         onWebResourceError: (error) {
           if (error.isForMainFrame == true) {
@@ -374,39 +362,7 @@ class EmbedWebViewDriver {
     }
   }
 
-  Future<void> _handleEmbedPageFinishedWithFallback() async {
-    if (_usesTwitterLoadedFallback) {
-      _awaitingTwitterLoadedEvent = true;
-      _twitterLoadedFallbackTimer?.cancel();
-      _twitterLoadedFallbackTimer = Timer(
-        _twitterLoadedFallbackDelay,
-        () {
-          if (_isDisposed || !_awaitingTwitterLoadedEvent) return;
-          _awaitingTwitterLoadedEvent = false;
-          unawaited(_handleEmbedPageFinished());
-        },
-      );
-      return;
-    }
-
-    await _handleEmbedPageFinished();
-  }
-
-  Future<void> _handleTwitterLoaded() async {
-    if (_isDisposed || !_awaitingTwitterLoadedEvent) return;
-    _cancelTwitterLoadedFallback();
-    await _handleEmbedPageFinished();
-  }
-
-  void _cancelTwitterLoadedFallback() {
-    _awaitingTwitterLoadedEvent = false;
-    _twitterLoadedFallbackTimer?.cancel();
-    _twitterLoadedFallbackTimer = null;
-  }
-
-  bool get _usesTwitterLoadedFallback => param.embedType == EmbedType.x;
-
-  Future<void> _handleEmbedPageFinished() async {
+  Future<void> finalizePageFinished() async {
     // 1. URL Safety Check: If we end up on an error page or unexpected blank page, trigger error
     final url = await webViewController.currentUrl();
     if (_isDisposed) return;

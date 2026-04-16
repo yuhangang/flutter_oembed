@@ -1,3 +1,8 @@
+## 1.0.1-alpha.5
+
+### Features
+- **Custom Background Color**: Added `backgroundColor` to `EmbedStyle` to allow configuring the WebView's background color, helping prevent visual flickering during load by matching the container's theme.
+
 ## 1.0.1-alpha.4
 
 ### Breaking Changes

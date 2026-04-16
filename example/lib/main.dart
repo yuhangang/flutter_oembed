@@ -76,6 +76,7 @@ class _MyAppState extends State<MyApp> {
                 }
               },
               style: EmbedStyle(
+                backgroundColor: settings.backgroundColor,
                 errorBuilder: (context, error) {
                   return const SocialEmbedErrorPlaceholder(
                     embedType: EmbedType.other,
