@@ -7,6 +7,7 @@ import 'package:flutter_oembed/src/core/provider_strategy.dart';
 import 'package:flutter_oembed/src/logging/embed_logger.dart';
 import 'package:flutter_oembed/src/models/core/embed_data.dart';
 import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/provider_rule.dart';
 import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_oembed/src/services/embed_service.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
@@ -41,6 +42,15 @@ class EmbedWebViewDriver {
 
   EmbedLogger get _logger =>
       controller.config?.logger ?? const EmbedLogger.disabled();
+
+  EmbedProviderCapabilities _resolveCapabilities(EmbedProviderRule? rule) {
+    return rule?.resolveCapabilities(
+          param.url,
+          embedParams: param.embedParams,
+          embedType: param.embedType,
+        ) ??
+        const EmbedProviderCapabilities();
+  }
 
   EmbedWebViewDriver({
     required this.controller,
@@ -148,12 +158,14 @@ class EmbedWebViewDriver {
       param.url,
       config: controller.config,
     );
+    final capabilities = _resolveCapabilities(rule);
     controller.setMatchedProviderRule(rule);
     _strategy = rule?.strategy ?? const GenericEmbedProviderStrategy();
 
     if (!forceReload &&
         controller.loadingState == EmbedLoadingState.loaded &&
-        (controller.height != null || param.embedType == EmbedType.tiktok_v1)) {
+        (controller.height != null ||
+            capabilities.preserveLoadedStateWithoutMeasuredHeight)) {
       _logger.debug('Embed already loaded, skipping initEmbedWebview');
       return;
     }
@@ -346,17 +358,25 @@ class EmbedWebViewDriver {
     } else if (embedUrl != null) {
       if (_isDisposed) return;
       final embedUri = Uri.parse(embedUrl);
-      final refererHeader = param.embedType == EmbedType.youtube &&
-              (embedUri.host.contains('youtube.com') ||
+      final rule = controller.matchedProviderRule ??
+          EmbedService.resolveRule(
+            param.url,
+            config: controller.config,
+          );
+      final capabilities = _resolveCapabilities(rule);
+      final refererHeader = switch (capabilities.refererPolicy) {
+        EmbedRefererPolicy.contentUrl => param.url,
+        EmbedRefererPolicy.embedOriginWhenProviderHostedElseContentUrl =>
+          (embedUri.host.contains('youtube.com') ||
                   embedUri.host.contains('youtube-nocookie.com'))
-          ? embedUri.origin
-          : param.url;
+              ? embedUri.origin
+              : param.url,
+        EmbedRefererPolicy.none => null,
+      };
       await webViewController.loadRequest(
         embedUri,
         headers: <String, String>{
-          if (param.embedType == EmbedType.youtube ||
-              param.embedType == EmbedType.spotify)
-            'Referer': refererHeader,
+          if (refererHeader != null) 'Referer': refererHeader,
         },
       );
     }
@@ -378,6 +398,16 @@ class EmbedWebViewDriver {
         error: StateError('WebView loaded an error page: $url'),
       );
       return;
+    }
+
+    final rule = EmbedService.resolveRule(
+      param.url,
+      config: controller.config,
+    );
+    final capabilities = _resolveCapabilities(rule);
+
+    if (capabilities.muteMediaOnLoad) {
+      await muteMedias(reason: 'mute_on_load');
     }
 
     // 2. Small delay to allow initial rendering to start

@@ -1,6 +1,7 @@
 import 'package:flutter_oembed/src/core/provider_strategies.dart';
 import 'package:flutter_oembed/src/models/core/embed_enums.dart';
 import 'package:flutter_oembed/src/models/core/provider_rule.dart';
+import 'package:flutter_oembed/src/models/params/tiktok_embed_params.dart';
 import 'package:flutter_oembed/src/utils/embed_link_utils.dart';
 
 // ---------------------------------------------------------------------------
@@ -30,6 +31,74 @@ bool _xNavigationCheck(String url) {
   };
 }
 
+EmbedVariant _facebookVariantResolver(
+  String url,
+  Object? _,
+  EmbedType? embedType,
+) {
+  if (embedType == EmbedType.facebook_video) {
+    return EmbedVariant.facebookVideo;
+  }
+  if (embedType == EmbedType.facebook_post) {
+    return EmbedVariant.facebookPost;
+  }
+
+  final uri = url.toLowerCase();
+  if (uri.contains('/videos/') ||
+      uri.contains('video.php') ||
+      uri.contains('fb.watch')) {
+    return EmbedVariant.facebookVideo;
+  }
+  if (uri.contains('/posts/') ||
+      uri.contains('permalink.php') ||
+      uri.contains('photo.php')) {
+    return EmbedVariant.facebookPost;
+  }
+  return EmbedVariant.standard;
+}
+
+EmbedProviderCapabilities _facebookCapabilitiesResolver(
+  String url,
+  Object? embedParams,
+  EmbedType? embedType,
+) {
+  final variant = _facebookVariantResolver(url, embedParams, embedType);
+  return EmbedProviderCapabilities(
+    isVideo: variant == EmbedVariant.facebookVideo,
+  );
+}
+
+EmbedVariant _tiktokVariantResolver(
+  String url,
+  Object? embedParams,
+  EmbedType? embedType,
+) {
+  if (embedType == EmbedType.tiktok_v1) {
+    return EmbedVariant.tiktokV1;
+  }
+
+  final params = embedParams as TikTokEmbedParams?;
+  if (params?.useV1Player == true) {
+    return EmbedVariant.tiktokV1;
+  }
+
+  return EmbedVariant.standard;
+}
+
+EmbedProviderCapabilities _tiktokCapabilitiesResolver(
+  String url,
+  Object? embedParams,
+  EmbedType? embedType,
+) {
+  final variant = _tiktokVariantResolver(url, embedParams, embedType);
+  return EmbedProviderCapabilities(
+    isVideo: true,
+    preserveLoadedStateWithoutMeasuredHeight: variant == EmbedVariant.tiktokV1,
+    useOriginalContentUrlForCallback: true,
+    muteMediaOnLoad: true,
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Default provider registry
 // ---------------------------------------------------------------------------
@@ -48,6 +117,11 @@ const List<EmbedProviderRule> kDefaultEmbedProviders = [
     providerName: 'YouTube',
     strategy: YouTubeProviderStrategy(),
     iframeUrlBuilder: buildYoutubeEmbedUrl,
+    capabilities: EmbedProviderCapabilities(
+      isVideo: true,
+      refererPolicy:
+          EmbedRefererPolicy.embedOriginWhenProviderHostedElseContentUrl,
+    ),
     isVerified: true,
   ),
   EmbedProviderRule(
@@ -56,6 +130,11 @@ const List<EmbedProviderRule> kDefaultEmbedProviders = [
     providerName: 'YouTube',
     strategy: YouTubeProviderStrategy(),
     iframeUrlBuilder: buildYoutubeEmbedUrl,
+    capabilities: EmbedProviderCapabilities(
+      isVideo: true,
+      refererPolicy:
+          EmbedRefererPolicy.embedOriginWhenProviderHostedElseContentUrl,
+    ),
     isVerified: true,
   ),
   EmbedProviderRule(
@@ -64,6 +143,7 @@ const List<EmbedProviderRule> kDefaultEmbedProviders = [
     providerName: 'Vimeo',
     strategy: VimeoProviderStrategy(),
     iframeUrlBuilder: buildVimeoEmbedUrl,
+    capabilities: EmbedProviderCapabilities(isVideo: true),
     isVerified: true,
   ),
   EmbedProviderRule(
@@ -72,6 +152,10 @@ const List<EmbedProviderRule> kDefaultEmbedProviders = [
     providerName: 'Spotify',
     strategy: SpotifyProviderStrategy(),
     iframeUrlBuilder: buildSpotifyEmbedUrl,
+    capabilities: EmbedProviderCapabilities(
+      fallbackHeight: 152,
+      refererPolicy: EmbedRefererPolicy.contentUrl,
+    ),
     isVerified: true,
   ),
   EmbedProviderRule(
@@ -81,6 +165,8 @@ const List<EmbedProviderRule> kDefaultEmbedProviders = [
     strategy: TikTokProviderStrategy(),
     iframeUrlBuilder: getTikTokEmbedUrl,
     shouldAllowNavigation: _tiktokNavigationCheck,
+    capabilitiesResolver: _tiktokCapabilitiesResolver,
+    variantResolver: _tiktokVariantResolver,
     isVerified: true,
   ),
   EmbedProviderRule(
@@ -89,6 +175,8 @@ const List<EmbedProviderRule> kDefaultEmbedProviders = [
     providerName: 'Facebook',
     strategy: MetaProviderStrategy(EmbedType.facebook),
     shouldAllowNavigation: _facebookNavigationCheck,
+    capabilitiesResolver: _facebookCapabilitiesResolver,
+    variantResolver: _facebookVariantResolver,
     isVerified: true,
     subRules: [
       EmbedSubRule(
@@ -127,6 +215,7 @@ const List<EmbedProviderRule> kDefaultEmbedProviders = [
     endpoint: 'https://soundcloud.com/oembed',
     providerName: 'SoundCloud',
     strategy: SoundCloudProviderStrategy(),
+    capabilities: EmbedProviderCapabilities(fallbackHeight: 166),
     isVerified: true,
   ),
   EmbedProviderRule(
@@ -175,6 +264,7 @@ const List<EmbedProviderRule> kDefaultEmbedProviders = [
     endpoint: 'https://www.dailymotion.com/services/oembed',
     providerName: 'Dailymotion',
     strategy: DailymotionProviderStrategy(),
+    capabilities: EmbedProviderCapabilities(isVideo: true),
     isVerified: true,
   ),
   EmbedProviderRule(
@@ -182,6 +272,7 @@ const List<EmbedProviderRule> kDefaultEmbedProviders = [
     endpoint: 'https://www.dailymotion.com/services/oembed',
     providerName: 'Dailymotion',
     strategy: DailymotionProviderStrategy(),
+    capabilities: EmbedProviderCapabilities(isVideo: true),
     isVerified: true,
   ),
   EmbedProviderRule(

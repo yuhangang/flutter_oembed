@@ -11,7 +11,6 @@ import 'package:flutter_oembed/src/models/core/embed_strings.dart';
 import 'package:flutter_oembed/src/models/core/embed_webview_controls.dart';
 import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
-import 'package:flutter_oembed/src/models/core/embed_style.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -81,6 +80,45 @@ void main() {
       await tester.pump();
       expect(find.byType(WebViewWidget), findsOneWidget);
       await tester.pump(const Duration(seconds: 11));
+    });
+
+    testWidgets(
+        'uses provider fallback height metadata when no height is known',
+        (tester) async {
+      final spotifyParam = SocialEmbedParam(
+        url: 'https://open.spotify.com/track/123',
+        embedType: EmbedType.spotify,
+      );
+      final spotifyController = buildController(
+        param: spotifyParam,
+        config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
+      );
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: spotifyParam,
+                data: data,
+                maxWidth: 640,
+                controller: spotifyController,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        expect(
+          tester
+              .widgetList<SizedBox>(find.byType(SizedBox))
+              .any((widget) => widget.height == 152),
+          isTrue,
+        );
+      } finally {
+        spotifyController.dispose();
+      }
     });
 
     testWidgets('records recent user interaction from the wrapper listener',
@@ -1016,72 +1054,30 @@ void main() {
       }
     });
 
-    testWidgets('respects backgroundColor from EmbedStyle', (tester) async {
-      const customBgColor = Colors.red;
-      final customController = buildController(
-        param: param,
-        config: const EmbedConfig(
-          style: EmbedStyle(backgroundColor: customBgColor),
-        ),
-      );
-      try {
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: EmbedWebView.data(
-                param: param,
-                data: data,
-                maxWidth: 640,
-                controller: customController,
-              ),
-            ),
-          ),
-        );
-
-        await tester.pump();
-        // The post-frame callback triggers driver.initEmbedWebview
-        await tester.pump(const Duration(milliseconds: 100));
-
-        final platformController = fakePlatform.lastCreatedController!;
-        expect(platformController.backgroundColor, customBgColor);
-      } finally {
-        customController.dispose();
-      }
-    });
-
-    testWidgets(
-        'falls back to theme scaffoldBackgroundColor when style bg is null',
+    testWidgets('keeps gesture recognizers empty when scrollable is disabled',
         (tester) async {
-      const themeBgColor = Colors.blue;
-      final customController = buildController(
-        param: param,
-        config: const EmbedConfig(
-          style: EmbedStyle(backgroundColor: null),
-        ),
-      );
-
       try {
         await tester.pumpWidget(
           MaterialApp(
-            theme: ThemeData(scaffoldBackgroundColor: themeBgColor),
             home: Scaffold(
               body: EmbedWebView.data(
                 param: param,
                 data: data,
                 maxWidth: 640,
-                controller: customController,
+                controller: controller,
+                scrollable: false,
               ),
             ),
           ),
         );
 
         await tester.pump();
-        await tester.pump(const Duration(milliseconds: 100));
 
-        final platformController = fakePlatform.lastCreatedController!;
-        expect(platformController.backgroundColor, themeBgColor);
+        final webViewWidget =
+            tester.widget<WebViewWidget>(find.byType(WebViewWidget));
+        expect(webViewWidget.gestureRecognizers, isEmpty);
       } finally {
-        customController.dispose();
+        controller.dispose();
       }
     });
   });

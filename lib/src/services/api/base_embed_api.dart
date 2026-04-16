@@ -6,7 +6,7 @@ import 'package:flutter_oembed/src/logging/embed_logger.dart';
 import 'package:flutter_oembed/src/models/configs/embed_cache_config.dart';
 import 'package:flutter_oembed/src/models/core/embed_constant.dart';
 import 'package:flutter_oembed/src/models/core/embed_data.dart';
-import 'package:flutter_oembed/src/services/default_embed_cache_provider.dart';
+import 'package:flutter_oembed/src/cache/in_memory_cache_provider.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:http/http.dart' as http;
 
@@ -199,7 +199,7 @@ abstract class BaseEmbedApi {
   }
 
   EmbedCacheProvider _resolveCacheProvider(EmbedCacheProvider? cacheProvider) {
-    return cacheProvider ?? DefaultEmbedCacheProvider.instance;
+    return cacheProvider ?? InMemoryEmbedCacheProvider.instance;
   }
 }
 

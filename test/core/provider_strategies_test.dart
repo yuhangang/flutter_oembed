@@ -22,6 +22,12 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 class MockWebViewController extends Mock implements WebViewController {}
 
+const _testRule = EmbedProviderRule(
+  pattern: r'https?://example\.com/.*',
+  endpoint: 'https://example.com/oembed',
+  providerName: 'Example',
+);
+
 EmbedWebViewDriver buildDriver(
   WebViewController controller, {
   SocialEmbedParam? param,
@@ -58,13 +64,16 @@ void main() {
     const defaultContext = EmbedProviderContext(
       url: 'https://example.com',
       resolvedEndpoint: 'https://example.com/oembed',
+      rule: _testRule,
       strategy: YouTubeProviderStrategy(),
       width: 640.0,
       locale: 'en',
       brightness: Brightness.light,
-      facebookAppId: '',
-      facebookClientToken: '',
+      facebookAppId: null,
+      facebookClientToken: null,
       providerName: 'YouTube',
+      variant: EmbedVariant.standard,
+      capabilities: EmbedProviderCapabilities(),
     );
 
     test('YouTubeProviderStrategy', () async {
@@ -107,7 +116,11 @@ void main() {
         scripts.add(invocation.positionalArguments.first as String);
       });
       await strategy.onPageFinished(buildDriver(mockController));
-      expect(scripts, hasLength(2));
+      expect(scripts, hasLength(1));
+      expect(
+        scripts.single,
+        contains("document.querySelectorAll('video, audio')"),
+      );
 
       clearInteractions(mockController);
       scripts.clear();

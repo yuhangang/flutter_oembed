@@ -10,10 +10,12 @@ import 'package:flutter_oembed/src/models/core/embed_constant.dart';
 import 'package:flutter_oembed/src/models/core/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/core/embed_data.dart';
 import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/provider_rule.dart';
 import 'package:flutter_oembed/src/models/core/embed_strings.dart';
 import 'package:flutter_oembed/src/models/core/embed_style.dart';
 import 'package:flutter_oembed/src/models/core/embed_webview_controls.dart';
 import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
+import 'package:flutter_oembed/src/services/embed_service.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -166,8 +168,6 @@ class _EmbedWebViewCore extends StatefulWidget {
 
 class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
   static const _defaultVideoAspectRatio = 16 / 9;
-  static const _defaultSpotifyHeight = 152.0;
-  static const _defaultSoundCloudHeight = 166.0;
   static const _defaultContentFallbackHeight = 320.0;
 
   /// The driver is created once in [initState] and never reassigned.
@@ -222,10 +222,8 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       widget.controller.setEmbedData(widget.data);
       if (!mounted) return;
-      final config = widget.controller.config ?? EmbedScope.configOf(context);
-      final style = widget.style ?? config?.style;
-      final bg =
-          style?.backgroundColor ?? Theme.of(context).scaffoldBackgroundColor;
+      // TODO: allow user to configure background color
+      final bg = Theme.of(context).scaffoldBackgroundColor;
       await _driver.initEmbedWebview(
         backgroundColor: bg,
         embedData: widget.data,
@@ -295,17 +293,27 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
   }
 
   double _fallbackHeight() {
-    switch (widget.param.embedType) {
-      case EmbedType.spotify:
-        return _defaultSpotifyHeight;
-      case EmbedType.soundcloud:
-        return _defaultSoundCloudHeight;
-      default:
-        if (widget.param.embedType.isVideo) {
-          return widget.maxWidth / _defaultVideoAspectRatio;
-        }
-        return math.min(widget.maxWidth, _defaultContentFallbackHeight);
+    final config = widget.controller.config ?? EmbedScope.configOf(context);
+    final rule = EmbedService.resolveRule(
+      widget.param.url,
+      config: config,
+    );
+    final capabilities = rule?.resolveCapabilities(
+          widget.param.url,
+          embedParams: widget.param.embedParams,
+          embedType: widget.param.embedType,
+        ) ??
+        const EmbedProviderCapabilities();
+
+    if (capabilities.fallbackHeight case final fallbackHeight?) {
+      return fallbackHeight;
     }
+
+    if (capabilities.isVideo) {
+      return widget.maxWidth / _defaultVideoAspectRatio;
+    }
+
+    return math.min(widget.maxWidth, _defaultContentFallbackHeight);
   }
 
   EmbedConstraints? get _effectiveEmbedConstraints =>

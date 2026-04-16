@@ -7,6 +7,12 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('TikTokProviderStrategy', () {
     const strategy = TikTokProviderStrategy();
+    const rule = EmbedProviderRule(
+      pattern: r'https?://www\.tiktok\.com/.*',
+      endpoint: 'https://www.tiktok.com/oembed',
+      providerName: 'TikTok',
+      strategy: strategy,
+    );
 
     test('resolveRenderer returns OEmbedRenderer by default', () {
       final context = EmbedProviderContext(
@@ -19,8 +25,11 @@ void main() {
             : Brightness.dark, // Mock brightness
         facebookAppId: '',
         facebookClientToken: '',
+        rule: rule,
         strategy: strategy,
         providerName: 'TikTok',
+        variant: EmbedVariant.standard,
+        capabilities: const EmbedProviderCapabilities(isVideo: true),
       );
 
       final renderer = strategy.resolveRenderer(context);
@@ -38,9 +47,15 @@ void main() {
         brightness: Brightness.light,
         facebookAppId: '',
         facebookClientToken: '',
+        rule: rule,
         strategy: strategy,
         providerName: 'TikTok',
         embedParams: TikTokEmbedParams(useV1Player: true),
+        variant: EmbedVariant.tiktokV1,
+        capabilities: EmbedProviderCapabilities(
+          isVideo: true,
+          preserveLoadedStateWithoutMeasuredHeight: true,
+        ),
       );
 
       final renderer = strategy.resolveRenderer(context);
@@ -58,9 +73,15 @@ void main() {
         brightness: Brightness.light,
         facebookAppId: '',
         facebookClientToken: '',
+        rule: rule,
         strategy: strategy,
         providerName: 'TikTok',
         embedType: EmbedType.tiktok_v1,
+        variant: EmbedVariant.tiktokV1,
+        capabilities: EmbedProviderCapabilities(
+          isVideo: true,
+          preserveLoadedStateWithoutMeasuredHeight: true,
+        ),
       );
 
       final renderer = strategy.resolveRenderer(context);
@@ -77,9 +98,12 @@ void main() {
         brightness: Brightness.light,
         facebookAppId: '',
         facebookClientToken: '',
+        rule: rule,
         strategy: strategy,
         providerName: 'TikTok',
         iframeUrl: 'https://www.tiktok.com/embed/v3/123',
+        variant: EmbedVariant.standard,
+        capabilities: EmbedProviderCapabilities(isVideo: true),
       );
 
       final renderer = strategy.resolveRenderer(context);

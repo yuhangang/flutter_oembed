@@ -1,6 +1,7 @@
 import 'package:flutter_oembed/src/controllers/embed_navigation_handler.dart';
 import 'package:flutter_oembed/src/models/configs/embed_config.dart';
 import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/provider_rule.dart';
 import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -71,6 +72,16 @@ class LaunchCall {
     required this.universalLinksOnly,
   });
 }
+
+const _tikTokRule = EmbedProviderRule(
+  pattern: r'https?://(?:www\.)?tiktok\.com/.*',
+  endpoint: 'https://www.tiktok.com/oembed',
+  providerName: 'TikTok',
+  capabilities: EmbedProviderCapabilities(
+    isVideo: true,
+    useOriginalContentUrlForCallback: true,
+  ),
+);
 
 void main() {
   late UrlLauncherPlatform originalUrlLauncher;
@@ -174,7 +185,7 @@ void main() {
         final handler = EmbedNavigationHandler(
           param: tikTokParam,
           config: config,
-          providerRuleGetter: () => null,
+          providerRuleGetter: () => _tikTokRule,
           now: () => now,
         );
         final delegate = handler.buildDelegate(

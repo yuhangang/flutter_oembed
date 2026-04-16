@@ -107,12 +107,19 @@ class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
         scrollable: scrollable,
       );
     }
-
     return buildTikTokHtmlDocument(
       embedHtml,
       maxWidth: maxWidth,
       scrollable: scrollable,
     );
+  }
+
+  @override
+  Future<void> onPageFinished(EmbedWebViewDriver driver) async {
+    await driver.webViewController.runJavaScript(
+      "document.querySelectorAll('video, audio').forEach(m => { m.muted = true; m.pause(); });",
+    );
+    await super.onPageFinished(driver);
   }
 
   @override
@@ -126,9 +133,9 @@ class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
   EmbedRenderer resolveRenderer(EmbedProviderContext context,
       {EmbedConfig? config}) {
     final params = context.embedParams as TikTokEmbedParams?;
-    final isV1Type = context.embedType == EmbedType.tiktok_v1;
+    final isV1Type = context.variant == EmbedVariant.tiktokV1;
 
-    if (isV1Type || params?.useV1Player == true) {
+    if (isV1Type) {
       return NativeWidgetRenderer(
           (widgetContext, maxWidth, controller, embedConstraints) {
         return TikTokEmbedPlayer(

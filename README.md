@@ -245,22 +245,45 @@ EmbedConfig(
   ),
   style: EmbedStyle(
     borderRadius: BorderRadius.circular(12),
-    backgroundColor: Colors.black, // Match your app theme exactly
   ),
 )
 ```
 
 ### Cache Management
 
-By default, `flutter_oembed` uses `flutter_cache_manager` to persist oEmbed API
-responses. You can manage this cache via `EmbedScope`:
+By default, `flutter_oembed` uses an **in-memory** cache that does not persist across
+app restarts. This ensures the core library remains lightweight and has zero
+mandatory storage dependencies.
+
+You can manage this cache via `EmbedScope`:
 
 ```dart
-// Clear the entire oEmbed response cache
+// Clear the entire in-memory response cache
 await EmbedScope.clearCache();
 
 // Evict a specific URL from the cache
 await EmbedScope.evictCacheForUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+```
+
+#### Persistent Caching (Showcase)
+
+If you need persistence, you can easily plug in a storage library like `hive_ce`
+or `flutter_cache_manager` by implementing `EmbedCacheProvider`.
+
+The example app provides showcase implementations that you can copy into your project:
+
+- **Hive CE**: Lightweight pure-Dart NoSQL database
+- **Flutter Cache Manager**: Popular file-based cache manager (support cache eviction and expiry)
+
+To use a custom provider:
+
+```dart
+EmbedScope(
+  config: EmbedConfig(
+    cacheProvider: MyPersistentCacheProvider(),
+  ),
+  child: const MyApp(),
+)
 ```
 
 There are two ways to disable caching:

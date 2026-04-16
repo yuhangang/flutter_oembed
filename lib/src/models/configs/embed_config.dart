@@ -50,17 +50,17 @@ class EmbedConfig extends Equatable {
 
   /// Optional cache backend used for OEmbed response storage.
   ///
-  /// Leave this null to use the package default cache provider.
+  /// Defaults to [InMemoryEmbedCacheProvider.instance].
   final EmbedCacheProvider? cacheProvider;
 
   /// Global visual customization. Can be overridden per-widget via [EmbedCard.style].
   final EmbedStyle? style;
 
   /// Facebook App ID — required for Facebook and Instagram embeds.
-  final String facebookAppId;
+  final String? facebookAppId;
 
   /// Facebook Client Token — required for Facebook and Instagram embeds.
-  final String facebookClientToken;
+  final String? facebookClientToken;
 
   /// Optional proxy URL to route API requests (e.g. Meta) through.
   /// If provided, [facebookAppId] and [facebookClientToken] become optional.

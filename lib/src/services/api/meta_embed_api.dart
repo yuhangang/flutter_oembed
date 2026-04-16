@@ -24,8 +24,8 @@ class MetaEmbedApi extends BaseEmbedApi {
   final String? endpoint;
   final EmbedType embedType;
   final double width;
-  final String appId;
-  final String clientToken;
+  final String? appId;
+  final String? clientToken;
   final MetaEmbedParams? metaParams;
 
   static const String pageEndPoint = 'embed_page';
@@ -72,7 +72,7 @@ class MetaEmbedApi extends BaseEmbedApi {
 
     final params = {
       'url': url,
-      if (appId.isNotEmpty && clientToken.isNotEmpty)
+      if (appId != null && clientToken != null)
         'access_token': '$appId|$clientToken',
       if (metaParams?.maxwidth == null) 'maxwidth': width.toInt().toString(),
     };

@@ -1127,7 +1127,7 @@ void main() {
       // Verify TikTok page-finish still applies top-level mute and pause.
       verify(() => mockWebViewController.runJavaScript(
               any(that: contains("document.querySelectorAll('video, audio')"))))
-          .called(2);
+          .called(1);
     });
   });
 }

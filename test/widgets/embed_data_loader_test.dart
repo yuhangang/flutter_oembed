@@ -121,7 +121,8 @@ void main() {
 
       await tester.pump();
       completer.complete(http.Response('{}', 200));
-      await tester.pump(const Duration(seconds: 11));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 1));
     });
 
     testWidgets('exposes loading semantics while fetching embed data',
@@ -232,7 +233,7 @@ void main() {
       );
 
       await tester.pump();
-      await tester.pump(const Duration(seconds: 11));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('trigger build branches', (tester) async {

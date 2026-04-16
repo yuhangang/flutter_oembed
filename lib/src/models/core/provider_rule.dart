@@ -1,10 +1,42 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_oembed/flutter_oembed.dart';
 import 'package:flutter_oembed/src/core/provider_strategy.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/params/base_embed_params.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 
 /// Internal cache for compiled [RegExp] objects to avoid redundant parsing.
 final Map<String, RegExp> _oembedRegexCache = {};
+
+enum EmbedVariant {
+  standard,
+  facebookPost,
+  facebookVideo,
+  tiktokV1,
+}
+
+enum EmbedRefererPolicy {
+  none,
+  contentUrl,
+  embedOriginWhenProviderHostedElseContentUrl,
+}
+
+class EmbedProviderCapabilities {
+  final bool isVideo;
+  final double? fallbackHeight;
+  final EmbedRefererPolicy refererPolicy;
+  final bool preserveLoadedStateWithoutMeasuredHeight;
+  final bool useOriginalContentUrlForCallback;
+  final bool muteMediaOnLoad;
+
+  const EmbedProviderCapabilities({
+    this.isVideo = false,
+    this.fallbackHeight,
+    this.refererPolicy = EmbedRefererPolicy.none,
+    this.preserveLoadedStateWithoutMeasuredHeight = false,
+    this.useOriginalContentUrlForCallback = false,
+    this.muteMediaOnLoad = false,
+  });
+}
 
 /// Context passed to [EmbedProviderRule.apiFactory] when constructing an API client.
 class EmbedProviderContext {
@@ -13,14 +45,17 @@ class EmbedProviderContext {
   final double width;
   final String locale;
   final Brightness brightness;
-  final String facebookAppId;
-  final String facebookClientToken;
+  final String? facebookAppId;
+  final String? facebookClientToken;
   final String? proxyUrl;
   final BaseEmbedParams? embedParams;
   final EmbedProviderStrategy strategy;
   final String providerName;
   final String? iframeUrl;
   final EmbedType? embedType;
+  final EmbedProviderRule rule;
+  final EmbedVariant variant;
+  final EmbedProviderCapabilities capabilities;
 
   const EmbedProviderContext({
     required this.url,
@@ -32,6 +67,9 @@ class EmbedProviderContext {
     required this.facebookClientToken,
     required this.strategy,
     required this.providerName,
+    required this.rule,
+    required this.variant,
+    required this.capabilities,
     this.proxyUrl,
     this.embedParams,
     this.iframeUrl,
@@ -94,6 +132,23 @@ class EmbedProviderRule {
   /// When `null`, falls back to [strategy.createApi].
   final BaseEmbedApi Function(EmbedProviderContext ctx)? apiFactory;
 
+  /// Common runtime behaviors associated with this provider.
+  final EmbedProviderCapabilities capabilities;
+
+  /// Optional resolver for variant-specific capabilities and behavior.
+  final EmbedProviderCapabilities Function(
+    String url,
+    BaseEmbedParams? embedParams,
+    EmbedType? embedType,
+  )? capabilitiesResolver;
+
+  /// Optional resolver for content variants exposed by the same provider.
+  final EmbedVariant Function(
+    String url,
+    BaseEmbedParams? embedParams,
+    EmbedType? embedType,
+  )? variantResolver;
+
   /// Returns `true` if the given in-WebView navigation URL should be allowed.
   ///
   /// Useful for providers that use internal redirects or plugin URLs. If this
@@ -113,6 +168,9 @@ class EmbedProviderRule {
     this.shouldAllowNavigation,
     this.subRules,
     this.apiFactory,
+    this.capabilities = const EmbedProviderCapabilities(),
+    this.capabilitiesResolver,
+    this.variantResolver,
     this.isVerified = false,
   });
 
@@ -136,5 +194,25 @@ class EmbedProviderRule {
       () => RegExp(pattern, caseSensitive: false),
     );
     return regex.hasMatch(url);
+  }
+
+  /// Resolves the content variant for this provider instance.
+  EmbedVariant resolveVariant(
+    String url, {
+    BaseEmbedParams? embedParams,
+    EmbedType? embedType,
+  }) {
+    return variantResolver?.call(url, embedParams, embedType) ??
+        EmbedVariant.standard;
+  }
+
+  /// Resolves the runtime capabilities for this provider instance.
+  EmbedProviderCapabilities resolveCapabilities(
+    String url, {
+    BaseEmbedParams? embedParams,
+    EmbedType? embedType,
+  }) {
+    return capabilitiesResolver?.call(url, embedParams, embedType) ??
+        capabilities;
   }
 }

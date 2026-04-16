@@ -1,7 +1,12 @@
 ## 1.0.1-alpha.5
 
-### Features
-- **Custom Background Color**: Added `backgroundColor` to `EmbedStyle` to allow configuring the WebView's background color, helping prevent visual flickering during load by matching the container's theme.
+### Breaking Changes
+- **Cache Management**: The core library is now **zero-dependency** for storage. The mandatory `flutter_cache_manager` dependency has been removed.
+- **Default Cache**: The default `EmbedCacheProvider` is now an **in-memory** implementation (`InMemoryEmbedCacheProvider`). OEmbed responses will no longer persist across app restarts by default.
+
+### Improvements
+- **Storage Showcases**: Added showcase implementations for persistent caching using `hive_ce` and `flutter_cache_manager` in the `example/` project. Users can easily copy these into their projects if they need persistence.
+- **Memory Safety**: `InMemoryEmbedCacheProvider` includes TTL (time-to-live) logic to prevent indefinite memory growth.
 
 ## 1.0.1-alpha.4
 

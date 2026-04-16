@@ -241,7 +241,16 @@ class EmbedNavigationHandler {
   /// TikTok requires returning the original embed URL instead of the clicked URL
   /// due to its specific tracking/navigation behavior.
   String _callbackUrlFor(String requestUrl) {
-    return param.embedType == EmbedType.tiktok ? param.url : requestUrl;
+    final provider = providerRuleGetter();
+    final capabilities = provider?.resolveCapabilities(
+          param.url,
+          embedParams: param.embedParams,
+          embedType: param.embedType,
+        ) ??
+        const EmbedProviderCapabilities();
+    return capabilities.useOriginalContentUrlForCallback
+        ? param.url
+        : requestUrl;
   }
 
   /// Evaluates whether the [requestUrl] uses a core scheme like `data:` or `about:`

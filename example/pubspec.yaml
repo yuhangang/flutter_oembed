@@ -20,6 +20,9 @@ dependencies:
   flutter_svg: ^2.0.10+1
   flutter_quill: ^11.5.0
   visibility_detector: ^0.4.0+2
+  flutter_cache_manager: ^3.4.1
+  hive_ce: ^2.19.3
+  hive_ce_flutter: ^2.3.4
   flutter_localizations:
     sdk: flutter
 

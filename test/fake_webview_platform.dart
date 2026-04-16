@@ -103,12 +103,8 @@ class FakePlatformWebViewController extends PlatformWebViewController {
   @override
   Future<Object> runJavaScriptReturningResult(String javaScript) async => '0';
 
-  Color? backgroundColor;
-
   @override
-  Future<void> setBackgroundColor(Color color) async {
-    backgroundColor = color;
-  }
+  Future<void> setBackgroundColor(Color color) async {}
 
   @override
   Future<void> setJavaScriptMode(JavaScriptMode javaScriptMode) async {}

@@ -214,6 +214,38 @@ void main() {
       });
 
       test(
+          'should preserve loaded state for provider variants that do not report height',
+          () async {
+        final tiktokV1Param = SocialEmbedParam(
+          url: 'https://www.tiktok.com/@user/video/123',
+          embedType: EmbedType.tiktok_v1,
+        );
+        final tiktokController = buildController(
+          param: tiktokV1Param,
+          config: const EmbedConfig(),
+        );
+        tiktokController.setLoadingState(EmbedLoadingState.loaded);
+        try {
+          final driver = EmbedWebViewDriver(
+            controller: tiktokController,
+            param: tiktokV1Param,
+            webViewController: mockWebViewController,
+          );
+
+          await driver.initEmbedWebview(
+            backgroundColor: Colors.white,
+            embedData: null,
+            embedUrl: null,
+            maxWidth: 640,
+          );
+
+          verifyNever(() => mockWebViewController.setNavigationDelegate(any()));
+        } finally {
+          tiktokController.dispose();
+        }
+      });
+
+      test(
           'should force a reload if forceReload is true even if already loaded',
           () async {
         controller.setLoadingState(EmbedLoadingState.loaded);

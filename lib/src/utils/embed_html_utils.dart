@@ -86,33 +86,33 @@ String buildTikTokHtmlDocument(
   required double maxWidth,
   bool scrollable = false,
 }) {
+  // TODO: Fix extra padding for tiktok oembed
   final scrollStyles = !scrollable ? 'overflow: hidden;' : '';
   return '''
 <!DOCTYPE html><html>
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="height=device-height">
   <style>
     html, body {
-      margin: 0 !important;
-      padding: 0 !important;
-      width: 100%;
-      height: 100%;
+      margin: 0;
+      padding: 0;
       $scrollStyles
     }
     blockquote.tiktok-embed {
-      margin: 0 !important;
-      padding: 0 !important;
+      margin: 0;
+      padding: 0;
       max-width: ${maxWidth}px !important;
       min-width: auto !important;
       width: 100%;
     }
-    iframe {
-      width: 100% !important;
-      border: none !important;
-      margin: 0 !important;
-      padding: 0 !important;
-    }
+    .embed-container {
+    width: 100vw;
+    display: block;
+    margin: 0;
+    padding: 0;
+  }
+    
   </style>
 </head>
 <body>

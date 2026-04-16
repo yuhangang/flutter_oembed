@@ -109,6 +109,16 @@ class EmbedService {
     final rule = resolveRule(url, config: config);
     if (rule != null) {
       final endpoint = rule.resolveEndpoint(url);
+      final variant = rule.resolveVariant(
+        url,
+        embedParams: embedParams,
+        embedType: embedType,
+      );
+      final capabilities = rule.resolveCapabilities(
+        url,
+        embedParams: embedParams,
+        embedType: embedType,
+      );
 
       // Resolve iframe URL if requested in config
       final iframeUrl = resolveIframeUrl(
@@ -125,10 +135,13 @@ class EmbedService {
         width: 0,
         locale: config?.locale ?? 'en',
         brightness: config?.brightness ?? Brightness.light,
-        facebookAppId: config?.facebookAppId ?? '',
-        facebookClientToken: config?.facebookClientToken ?? '',
+        facebookAppId: config?.facebookAppId,
+        facebookClientToken: config?.facebookClientToken,
+        rule: rule,
         strategy: rule.strategy,
         providerName: rule.providerName,
+        variant: variant,
+        capabilities: capabilities,
         proxyUrl: config?.proxyUrl,
         embedParams: embedParams,
         iframeUrl: iframeUrl,
@@ -167,8 +180,8 @@ class EmbedService {
   }) {
     final resolvedLogger =
         logger ?? config?.logger ?? const EmbedLogger.disabled();
-    final facebookAppId = config?.facebookAppId ?? '';
-    final facebookClientToken = config?.facebookClientToken ?? '';
+    final facebookAppId = config?.facebookAppId;
+    final facebookClientToken = config?.facebookClientToken;
     final locale = config?.locale ?? 'en';
     final brightness = config?.brightness ?? Brightness.light;
 
@@ -177,6 +190,16 @@ class EmbedService {
     // 3. Resolve using found rule
     if (rule != null) {
       final endpoint = rule.resolveEndpoint(param.url);
+      final variant = rule.resolveVariant(
+        param.url,
+        embedParams: param.embedParams,
+        embedType: param.embedType,
+      );
+      final capabilities = rule.resolveCapabilities(
+        param.url,
+        embedParams: param.embedParams,
+        embedType: param.embedType,
+      );
       resolvedLogger.debug(
         'Matched provider',
         data: {
@@ -193,8 +216,11 @@ class EmbedService {
         brightness: brightness,
         facebookAppId: facebookAppId,
         facebookClientToken: facebookClientToken,
+        rule: rule,
         strategy: rule.strategy,
         providerName: rule.providerName,
+        variant: variant,
+        capabilities: capabilities,
         proxyUrl: config?.proxyUrl,
         embedParams: param.embedParams,
         embedType: param.embedType,

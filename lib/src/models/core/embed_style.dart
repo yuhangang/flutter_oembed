@@ -64,11 +64,6 @@ class EmbedStyle extends Equatable {
   /// Defaults to [kDefaultMaxScrollableEmbedHeight].
   final double maxScrollableHeight;
 
-  /// The background color of the WebView.
-  ///
-  /// If null, it defaults to the scaffold background color of the current theme.
-  final Color? backgroundColor;
-
   const EmbedStyle({
     this.wrapperBuilder,
     this.loadingBuilder,
@@ -78,15 +73,10 @@ class EmbedStyle extends Equatable {
     this.webViewBuilder,
     this.borderRadius,
     this.maxScrollableHeight = kDefaultMaxScrollableEmbedHeight,
-    this.backgroundColor,
   });
 
   @override
-  List<Object?> get props => [
-        borderRadius,
-        maxScrollableHeight,
-        backgroundColor,
-      ];
+  List<Object?> get props => [borderRadius, maxScrollableHeight];
 
   /// Returns a copy of this style with the given fields replaced.
   EmbedStyle copyWith({
@@ -102,7 +92,6 @@ class EmbedStyle extends Equatable {
     )? webViewBuilder,
     BorderRadius? borderRadius,
     double? maxScrollableHeight,
-    Color? backgroundColor,
   }) {
     return EmbedStyle(
       wrapperBuilder: wrapperBuilder ?? this.wrapperBuilder,
@@ -114,7 +103,6 @@ class EmbedStyle extends Equatable {
       webViewBuilder: webViewBuilder ?? this.webViewBuilder,
       borderRadius: borderRadius ?? this.borderRadius,
       maxScrollableHeight: maxScrollableHeight ?? this.maxScrollableHeight,
-      backgroundColor: backgroundColor ?? this.backgroundColor,
     );
   }
 }
