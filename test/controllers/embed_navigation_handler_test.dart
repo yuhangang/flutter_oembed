@@ -9,6 +9,7 @@ import 'package:url_launcher_platform_interface/link.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
+
 import '../fake_webview_platform.dart';
 
 class MockNavigationRequest extends Mock implements NavigationRequest {}
@@ -188,6 +189,7 @@ void main() {
           providerRuleGetter: () => _tikTokRule,
           now: () => now,
         );
+
         final delegate = handler.buildDelegate(
           loadingStateGetter: () => EmbedLoadingState.loaded,
           baseUrl: 'https://tiktok.com',

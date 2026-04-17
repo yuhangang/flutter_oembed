@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
-import 'package:flutter_oembed/src/core/provider_strategy.dart';
 import 'package:flutter_oembed/src/core/provider_strategies.dart';
+import 'package:flutter_oembed/src/core/provider_strategy.dart';
 import 'package:flutter_oembed/src/models/core/embed_data.dart';
 import 'package:flutter_oembed/src/models/core/embed_enums.dart';
 import 'package:flutter_oembed/src/models/core/embed_renderer.dart';

@@ -1,6 +1,7 @@
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
+import 'package:flutter_oembed/src/controllers/embed_driver_interface.dart';
 import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
 import 'package:flutter_oembed/src/models/configs/embed_config.dart';
 import 'package:flutter_oembed/src/models/core/embed_data.dart';
@@ -16,6 +17,8 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
 
 class MockWebViewController extends Mock implements WebViewController {}
+
+class MockEmbedDriver extends Mock implements IEmbedDriver {}
 
 class MockWebViewPlatform extends Mock
     with MockPlatformInterfaceMixin
@@ -325,7 +328,7 @@ void main() {
       final controller = EmbedController();
 
       var disposeCalls = 0;
-      final driver = Object();
+      final driver = MockEmbedDriver();
       controller.bindDriver(
         driver,
         contentKey: initialParam,
@@ -360,7 +363,7 @@ void main() {
       );
 
       var disposeCalls = 0;
-      final driver = Object();
+      final driver = MockEmbedDriver();
       controller.bindDriver(
         driver,
         contentKey: param,
@@ -398,6 +401,22 @@ void main() {
       expect(controller.loadingState, EmbedLoadingState.loading);
       expect(controller.didRetry, isFalse);
       expect(controller.lastError, isNull);
+    });
+
+    test('setEmbedData can update silently without notifying listeners', () {
+      final controller = buildController(param: testParam);
+      const data = EmbedData(
+        html: '<div>cached</div>',
+        providerUrl: 'https://www.youtube.com',
+      );
+
+      var notifications = 0;
+      controller.addListener(() => notifications++);
+
+      controller.setEmbedData(data, notify: false);
+
+      expect(controller.embedData, data);
+      expect(notifications, 0);
     });
 
     test('synchronize clears embedData when content changes', () {

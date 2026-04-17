@@ -10,8 +10,10 @@ import 'package:flutter_oembed/src/models/core/embed_enums.dart';
 import 'package:flutter_oembed/src/models/core/provider_rule.dart';
 import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_oembed/src/services/embed_service.dart';
+import 'package:flutter_oembed/src/core/embed_service_interface.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter_oembed/src/utils/embed_webview_controller_utils.dart';
+import 'package:flutter_oembed/src/controllers/embed_driver_interface.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 /// Internal driver that manages the low-level [WebViewController] interactions.
@@ -21,13 +23,15 @@ import 'package:webview_flutter/webview_flutter.dart';
 /// executing provider-specific strategies, intercepting navigation requests,
 /// and coordinating media focus/playback when the widget enters or leaves
 /// the viewport or is covered by a route.
-class EmbedWebViewDriver {
+class EmbedWebViewDriver implements IEmbedDriver {
   static const _initialRenderDelay = Duration(milliseconds: 300);
   static const _integrityRetryDelay = Duration(milliseconds: 700);
   static const _postLoadShiftDelay = Duration(milliseconds: 500);
 
+  @override
   final EmbedController controller;
   final SocialEmbedParam param;
+  @override
   final WebViewController webViewController;
   late final EmbedNavigationHandler _navigationHandler;
   static final _focusCoordinator = _EmbedFocusCoordinator();
@@ -43,6 +47,9 @@ class EmbedWebViewDriver {
   EmbedLogger get _logger =>
       controller.config?.logger ?? const EmbedLogger.disabled();
 
+  IEmbedService get _service =>
+      controller.config?.embedService ?? EmbedService.instance;
+
   EmbedProviderCapabilities _resolveCapabilities(EmbedProviderRule? rule) {
     return rule?.resolveCapabilities(
           param.url,
@@ -57,7 +64,7 @@ class EmbedWebViewDriver {
     required this.param,
     WebViewController? webViewController,
   }) : webViewController = webViewController ?? generateWebViewController() {
-    final rule = EmbedService.resolveRule(
+    final rule = _service.resolveRule(
       param.url,
       config: controller.config,
     );
@@ -79,6 +86,7 @@ class EmbedWebViewDriver {
 
   /// Disposes of the driver resources, unbinding from the focus coordinator
   /// and clearing the WebView if [preserveWebView] is false.
+  @override
   void dispose({bool preserveWebView = false}) {
     if (_isDisposed) return;
     _isDisposed = true;
@@ -154,7 +162,7 @@ class EmbedWebViewDriver {
     bool forceReload = false,
   }) async {
     if (_isDisposed) return;
-    final rule = EmbedService.resolveRule(
+    final rule = _service.resolveRule(
       param.url,
       config: controller.config,
     );
@@ -359,7 +367,7 @@ class EmbedWebViewDriver {
       if (_isDisposed) return;
       final embedUri = Uri.parse(embedUrl);
       final rule = controller.matchedProviderRule ??
-          EmbedService.resolveRule(
+          _service.resolveRule(
             param.url,
             config: controller.config,
           );
@@ -382,6 +390,7 @@ class EmbedWebViewDriver {
     }
   }
 
+  @override
   Future<void> finalizePageFinished() async {
     // 1. URL Safety Check: If we end up on an error page or unexpected blank page, trigger error
     final url = await webViewController.currentUrl();
@@ -400,7 +409,7 @@ class EmbedWebViewDriver {
       return;
     }
 
-    final rule = EmbedService.resolveRule(
+    final rule = _service.resolveRule(
       param.url,
       config: controller.config,
     );
@@ -483,6 +492,7 @@ class EmbedWebViewDriver {
   }
 
   /// Pauses active media playback via the provider-specific strategy.
+  @override
   Future<void> pauseMedias({String reason = 'manual'}) async {
     await _controlMedia(
       action: _MediaControlAction.pause,
@@ -491,6 +501,7 @@ class EmbedWebViewDriver {
   }
 
   /// Resumes media playback via the provider-specific strategy.
+  @override
   Future<void> resumeMedias({String reason = 'manual'}) async {
     await _controlMedia(
       action: _MediaControlAction.resume,
@@ -499,6 +510,7 @@ class EmbedWebViewDriver {
   }
 
   /// Mutes audio via the provider-specific strategy.
+  @override
   Future<void> muteMedias({String reason = 'manual'}) async {
     await _controlMedia(
       action: _MediaControlAction.mute,
@@ -507,6 +519,7 @@ class EmbedWebViewDriver {
   }
 
   /// Unmutes audio via the provider-specific strategy.
+  @override
   Future<void> unmuteMedias({String reason = 'manual'}) async {
     await _controlMedia(
       action: _MediaControlAction.unmute,

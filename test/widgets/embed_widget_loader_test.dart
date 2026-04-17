@@ -6,6 +6,7 @@ import 'package:flutter_oembed/src/models/configs/embed_config.dart';
 import 'package:flutter_oembed/src/models/configs/embed_provider_config.dart';
 import 'package:flutter_oembed/src/models/core/embed_data.dart';
 import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_renderer.dart';
 import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_data_loader.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
@@ -16,6 +17,7 @@ import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
 
 import '../fake_webview_platform.dart';
+import '../helpers/fake_embed_service.dart';
 
 EmbedController buildController({
   SocialEmbedParam? param,
@@ -32,12 +34,18 @@ EmbedController buildController({
 }
 
 void main() {
+  final fakePlatform = FakeWebViewPlatform();
+
   setUpAll(() {
     VisibilityDetectorController.instance.updateInterval = Duration.zero;
-    WebViewPlatform.instance = FakeWebViewPlatform();
+    WebViewPlatform.instance = fakePlatform;
   });
 
   group('EmbedWidgetLoader', () {
+    setUp(() {
+      fakePlatform.reset();
+    });
+
     testWidgets('shows EmbedWebView when preloadedData is provided',
         (tester) async {
       final data = const EmbedData(
@@ -64,7 +72,8 @@ void main() {
       expect(find.byType(EmbedWebView), findsOneWidget);
     });
 
-    testWidgets('shows EmbedWebView when controller embedData is provided',
+    testWidgets(
+        'shows EmbedWebView via EmbedDataLoader when controller embedData is provided',
         (tester) async {
       final data = const EmbedData(
         type: 'rich',
@@ -91,7 +100,7 @@ void main() {
 
         await tester.pump();
         expect(find.byType(EmbedWebView), findsOneWidget);
-        expect(find.byType(EmbedDataLoader), findsNothing);
+        expect(find.byType(EmbedDataLoader), findsOneWidget);
       } finally {
         controller.dispose();
       }
@@ -301,6 +310,78 @@ void main() {
 
       await tester.pump();
       expect(find.byType(EmbedWebView), findsOneWidget);
+    });
+
+    testWidgets('uses the configured embed service to resolve the renderer',
+        (tester) async {
+      final service = FakeEmbedService(
+        resolveRenderResponse:
+            const IframeRenderer('https://example.com/custom-iframe'),
+      );
+      final config = EmbedConfig(embedService: service);
+      final param = SocialEmbedParam(
+        url: 'https://example.com/custom',
+        embedType: EmbedType.other,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: EmbedScope(
+            config: config,
+            child: Scaffold(
+              body: EmbedWidgetLoader(param: param),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      expect(service.resolveRenderCallCount, 1);
+      expect(service.lastResolveRenderConfig, same(config));
+      expect(find.byType(EmbedWebView), findsOneWidget);
+    });
+
+    testWidgets(
+        'fetched oEmbed data does not remount the WebView during handoff',
+        (tester) async {
+      final service = FakeEmbedService(
+        getResultResponse: const EmbedData(
+          type: 'rich',
+          html: '<div>Fetched</div>',
+          providerUrl: 'https://example.com',
+        ),
+      );
+      final controller = EmbedController();
+      final param = SocialEmbedParam(
+        url: 'https://example.com/post/1',
+        embedType: EmbedType.other,
+      );
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: EmbedScope(
+              config: EmbedConfig(embedService: service),
+              child: Scaffold(
+                body: EmbedWidgetLoader(
+                  param: param,
+                  controller: controller,
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+        await tester.pump();
+        await tester.pump();
+
+        expect(fakePlatform.lastCreatedController, isNotNull);
+        expect(fakePlatform.lastCreatedController?.loadHtmlCount, 1);
+      } finally {
+        controller.dispose();
+      }
     });
   });
 }

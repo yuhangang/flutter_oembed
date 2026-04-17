@@ -15,7 +15,8 @@ class EmbedMatchers {
   /// original behaviour for contexts where [EmbedConfig] is not yet available
   /// (e.g. construction of [SocialEmbedParam] before a [BuildContext] exists).
   static EmbedType getEmbedType(String url, {EmbedConfig? config}) {
-    final rule = EmbedService.resolveRule(url, config: config);
+    final service = config?.embedService ?? EmbedService.instance;
+    final rule = service.resolveRule(url, config: config);
     if (rule == null) return EmbedType.other;
     return fromProviderName(rule.providerName, url: url);
   }

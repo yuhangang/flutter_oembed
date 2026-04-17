@@ -98,16 +98,6 @@ class _HtmlIntegrationPageState extends State<HtmlIntegrationPage> {
     return _controllersByUrl.putIfAbsent(url, EmbedController.new);
   }
 
-  EmbedConfig _buildScopedConfig(BuildContext context) {
-    final settings = ExampleSettingsProvider.of(context).settings;
-    final parentConfig = EmbedScope.configOf(context, listen: false);
-    return (parentConfig ?? const EmbedConfig()).copyWith(
-      locale: settings.locale,
-      brightness: settings.brightness,
-      scrollable: settings.scrollable,
-    );
-  }
-
   @override
   void dispose() {
     for (final controller in _controllersByUrl.values) {
@@ -163,31 +153,26 @@ class _HtmlIntegrationPageState extends State<HtmlIntegrationPage> {
           ),
         ),
       ),
-      body: EmbedScope(
-        config: _buildScopedConfig(context),
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(
-            bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
-          ),
-          child: Html(
-            key: ValueKey('html_${settings.locale}-${settings.brightness}'),
-            data: htmlData,
-            extensions: [EmbedExtension(controllerForUrl: _controllerForUrl)],
-            style:
-                showBorder
-                    ? {
-                      ".embed-card": Style(
-                        margin: Margins.only(top: 8, bottom: 24),
-                        padding: HtmlPaddings.all(12),
-                        backgroundColor: Theme.of(context).canvasColor,
+      body: SingleChildScrollView(
+        padding: EdgeInsets.only(
+          bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
+        ),
+        child: Html(
+          key: ValueKey('html_${settings.locale}-${settings.brightness}'),
+          data: htmlData,
+          extensions: [EmbedExtension(controllerForUrl: _controllerForUrl)],
+          style:
+              showBorder
+                  ? {
+                    ".embed-card": Style(
+                      margin: Margins.only(top: 8, bottom: 24),
+                      padding: HtmlPaddings.all(12),
+                      backgroundColor: Theme.of(context).canvasColor,
 
-                        border: Border.all(
-                          color: Theme.of(context).dividerColor,
-                        ),
-                      ),
-                    }
-                    : {},
-          ),
+                      border: Border.all(color: Theme.of(context).dividerColor),
+                    ),
+                  }
+                  : {},
         ),
       ),
     );

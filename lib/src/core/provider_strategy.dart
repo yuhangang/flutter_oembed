@@ -1,4 +1,4 @@
-import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
+import 'package:flutter_oembed/src/controllers/embed_driver_interface.dart';
 import 'package:flutter_oembed/src/models/configs/embed_config.dart';
 import 'package:flutter_oembed/src/models/core/embed_data.dart';
 import 'package:flutter_oembed/src/models/core/embed_enums.dart';
@@ -21,13 +21,13 @@ abstract class EmbedProviderStrategy {
   String? get userAgent => null;
 
   /// Custom JavaScript to run when the page starts loading.
-  Future<void> onPageStarted(EmbedWebViewDriver driver) async {}
+  Future<void> onPageStarted(IEmbedDriver driver) async {}
 
   /// Custom JavaScript to run when the page finishes loading.
-  Future<void> onPageFinished(EmbedWebViewDriver driver) async {}
+  Future<void> onPageFinished(IEmbedDriver driver) async {}
 
   /// Custom JavaScript to run when the page is being initialized (e.g. adding channels).
-  Future<void> onWebViewCreated(EmbedWebViewDriver driver) async {}
+  Future<void> onWebViewCreated(IEmbedDriver driver) async {}
 
   /// The media strategy for controlling playback.
   EmbedMediaStrategy? get mediaStrategy => const EmbedMediaStrategy();
@@ -99,10 +99,10 @@ class GenericEmbedProviderStrategy extends EmbedProviderStrategy {
   const GenericEmbedProviderStrategy();
 
   @override
-  Future<void> onPageStarted(EmbedWebViewDriver driver) async {}
+  Future<void> onPageStarted(IEmbedDriver driver) async {}
 
   @override
-  Future<void> onPageFinished(EmbedWebViewDriver driver) async {
+  Future<void> onPageFinished(IEmbedDriver driver) async {
     await driver.finalizePageFinished();
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter_oembed/src/cache/in_memory_cache_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/core/embed_cache_provider.dart';
+import 'package:flutter_oembed/src/core/embed_service_interface.dart';
 import 'package:flutter_oembed/src/models/params/base_embed_params.dart';
 import 'package:flutter_oembed/src/models/configs/embed_config.dart';
 import 'package:flutter_oembed/src/models/core/embed_enums.dart';
@@ -45,6 +46,12 @@ class EmbedScope extends InheritedWidget {
     return _maybeOf(context, listen: listen)?.config;
   }
 
+  /// Returns the [IEmbedService] from the nearest [EmbedScope], or the default [EmbedService.instance].
+  static IEmbedService serviceOf(BuildContext context, {bool listen = false}) {
+    final config = configOf(context, listen: listen);
+    return config?.embedService ?? EmbedService.instance;
+  }
+
   /// Returns the [EmbedStyle] from the nearest [EmbedScope], or null.
   ///
   /// Prefer this over extracting style from `configOf(context)?.style` for readability.
@@ -81,8 +88,11 @@ class EmbedScope extends InheritedWidget {
     double? width,
     Map<String, String>? queryParameters,
     BaseEmbedParams? embedParams,
+    IEmbedService? service,
   }) async {
-    final cacheUri = EmbedService.resolveCacheUri(
+    final resolvedService =
+        service ?? config?.embedService ?? EmbedService.instance;
+    final cacheUri = resolvedService.resolveCacheUri(
       url,
       config: config,
       embedType: embedType,

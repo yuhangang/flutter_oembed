@@ -1,4 +1,4 @@
-import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
+import 'package:flutter_oembed/src/controllers/embed_driver_interface.dart';
 import 'package:flutter_oembed/src/core/provider_strategy.dart';
 import 'package:flutter_oembed/src/models/configs/embed_config.dart';
 import 'package:flutter_oembed/src/models/core/embed_data.dart';
@@ -9,12 +9,9 @@ import 'package:flutter_oembed/src/models/params/soundcloud_embed_params.dart';
 import 'package:flutter_oembed/src/models/params/tiktok_embed_params.dart';
 import 'package:flutter_oembed/src/models/params/vimeo_embed_params.dart';
 import 'package:flutter_oembed/src/models/params/x_embed_params.dart';
-import 'package:flutter_oembed/src/models/params/youtube_embed_params.dart';
 import 'package:flutter_oembed/src/services/embed_apis.dart';
 import 'package:flutter_oembed/src/utils/embed_html_utils.dart';
 import 'package:flutter_oembed/src/utils/embed_webview_controller_utils.dart';
-import 'package:flutter_oembed/src/widgets/tiktok_embed_player.dart';
-import 'package:flutter_oembed/src/widgets/youtube_embed_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class YouTubeProviderStrategy extends GenericEmbedProviderStrategy {
@@ -61,23 +58,7 @@ class YouTubeProviderStrategy extends GenericEmbedProviderStrategy {
     }
 
     // Otherwise fallback to YouTube native player
-    return NativeWidgetRenderer(
-        (widgetContext, maxWidth, controller, embedConstraints) {
-      return YoutubeEmbedPlayer(
-        videoIdOrUrl: context.url,
-        maxWidth: maxWidth,
-        embedConstraints: embedConstraints,
-        controls:
-            (context.embedParams as YoutubeEmbedParams?)?.controls ?? true,
-        autoplay:
-            (context.embedParams as YoutubeEmbedParams?)?.autoplay ?? false,
-        loop: (context.embedParams as YoutubeEmbedParams?)?.loop ?? false,
-        rel: (context.embedParams as YoutubeEmbedParams?)?.rel ?? false,
-        theme: (context.embedParams as YoutubeEmbedParams?)?.theme,
-        color: (context.embedParams as YoutubeEmbedParams?)?.color,
-        controller: controller,
-      );
-    });
+    return NativeWidgetRenderer('youtube', context);
   }
 }
 
@@ -115,7 +96,7 @@ class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
   }
 
   @override
-  Future<void> onPageFinished(EmbedWebViewDriver driver) async {
+  Future<void> onPageFinished(IEmbedDriver driver) async {
     await driver.webViewController.runJavaScript(
       "document.querySelectorAll('video, audio').forEach(m => { m.muted = true; m.pause(); });",
     );
@@ -132,20 +113,10 @@ class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
   @override
   EmbedRenderer resolveRenderer(EmbedProviderContext context,
       {EmbedConfig? config}) {
-    final params = context.embedParams as TikTokEmbedParams?;
     final isV1Type = context.variant == EmbedVariant.tiktokV1;
 
     if (isV1Type) {
-      return NativeWidgetRenderer(
-          (widgetContext, maxWidth, controller, embedConstraints) {
-        return TikTokEmbedPlayer(
-          videoIdOrUrl: context.url,
-          maxWidth: maxWidth,
-          embedConstraints: embedConstraints,
-          embedParams: params,
-          controller: controller,
-        );
-      });
+      return NativeWidgetRenderer('tiktok', context);
     }
 
     return super.resolveRenderer(context, config: config);
@@ -175,7 +146,7 @@ class XProviderStrategy extends GenericEmbedProviderStrategy {
   }
 
   @override
-  Future<void> onWebViewCreated(EmbedWebViewDriver driver) async {
+  Future<void> onWebViewCreated(IEmbedDriver driver) async {
     await driver.webViewController.addJavaScriptChannel(
       'OnTwitterLoaded',
       onMessageReceived: (_) {
@@ -185,7 +156,7 @@ class XProviderStrategy extends GenericEmbedProviderStrategy {
   }
 
   @override
-  Future<void> onPageFinished(EmbedWebViewDriver driver) async {
+  Future<void> onPageFinished(IEmbedDriver driver) async {
     await driver.webViewController.runJavaScript('''
       twttr.events.bind('loaded', function(event) {
         if (window.OnTwitterLoaded) {

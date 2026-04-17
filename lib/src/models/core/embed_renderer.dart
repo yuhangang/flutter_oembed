@@ -1,6 +1,4 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_oembed/src/models/core/embed_constraints.dart';
-import 'package:flutter_oembed/src/controllers/embed_controller.dart';
+import 'package:flutter_oembed/src/models/core/provider_rule.dart';
 
 /// Represents how an embed should be loaded and rendered by the standard pipeline.
 sealed class EmbedRenderer {
@@ -19,13 +17,12 @@ class IframeRenderer extends EmbedRenderer {
 }
 
 /// The embed should be rendered natively via a Flutter widget (e.g. YouTube).
+///
+/// The [identifier] is used by the UI layer to look up the appropriate widget builder.
+/// The [context] provides the parameters required by the builder.
 class NativeWidgetRenderer extends EmbedRenderer {
-  final Widget Function(
-    BuildContext context,
-    double maxWidth,
-    EmbedController controller,
-    EmbedConstraints? embedConstraints,
-  ) builder;
+  final String identifier;
+  final EmbedProviderContext context;
 
-  const NativeWidgetRenderer(this.builder);
+  const NativeWidgetRenderer(this.identifier, this.context);
 }

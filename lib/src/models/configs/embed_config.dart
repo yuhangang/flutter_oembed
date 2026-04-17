@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/core/embed_cache_provider.dart';
+import 'package:flutter_oembed/src/core/embed_service_interface.dart';
 import 'package:flutter_oembed/src/models/configs/embed_cache_config.dart';
 import 'package:flutter_oembed/src/models/core/embed_constant.dart';
 import 'package:flutter_oembed/src/models/configs/embed_provider_config.dart';
@@ -152,6 +153,11 @@ class EmbedConfig extends Equatable {
   /// This is useful for testing or providing custom configurations (e.g., custom headers).
   final http.Client? httpClient;
 
+  /// Optional custom embed service implementation.
+  ///
+  /// If provided, this instance will be used instead of the default [EmbedService].
+  final IEmbedService? embedService;
+
   const EmbedConfig({
     this.providers = const EmbedProviderConfig(),
     this.cache = const EmbedCacheConfig(),
@@ -173,6 +179,7 @@ class EmbedConfig extends Equatable {
     this.routeObserver,
     this.logger = const EmbedLogger.disabled(),
     this.httpClient,
+    this.embedService,
   });
 
   /// Equality props — intentionally excludes function fields.
@@ -203,6 +210,7 @@ class EmbedConfig extends Equatable {
         pauseOnRouteCover,
         routeObserver,
         logger,
+        embedService,
       ];
 
   /// Internal getter that returns the providers config.
@@ -235,7 +243,8 @@ class EmbedConfig extends Equatable {
         pauseOnRouteCover == other.pauseOnRouteCover &&
         routeObserver == other.routeObserver &&
         logger == other.logger &&
-        identical(httpClient, other.httpClient);
+        identical(httpClient, other.httpClient) &&
+        identical(embedService, other.embedService);
   }
 
   static bool runtimeEqualsNullable(EmbedConfig? a, EmbedConfig? b) {
@@ -266,6 +275,7 @@ class EmbedConfig extends Equatable {
     RouteObserver<ModalRoute<dynamic>>? routeObserver,
     EmbedLogger? logger,
     http.Client? httpClient,
+    IEmbedService? embedService,
   }) {
     return EmbedConfig(
       providers: providers ?? this.providers,
@@ -289,6 +299,7 @@ class EmbedConfig extends Equatable {
       routeObserver: routeObserver ?? this.routeObserver,
       logger: logger ?? this.logger,
       httpClient: httpClient ?? this.httpClient,
+      embedService: embedService ?? this.embedService,
     );
   }
 }

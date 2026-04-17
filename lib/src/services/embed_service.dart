@@ -13,10 +13,14 @@ import 'package:flutter_oembed/src/models/core/provider_rule.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_oembed/src/core/embed_service_interface.dart';
 
-class EmbedService {
-  /// Fetches OEmbed data using [EmbedConfig].
-  static Future<EmbedData> getResult({
+/// Default implementation of [IEmbedService].
+class EmbedServiceImpl implements IEmbedService {
+  const EmbedServiceImpl();
+
+  @override
+  Future<EmbedData> getResult({
     required EmbedLoaderParam param,
     EmbedConfig? config,
     EmbedLogger? logger,
@@ -38,7 +42,7 @@ class EmbedService {
       },
     );
 
-    final api = _resolveApi(
+    final api = resolveApi(
       param,
       config: config,
       logger: resolvedLogger,
@@ -56,18 +60,16 @@ class EmbedService {
     );
   }
 
-  /// Resolves the appropriate [BaseEmbedApi] for the given [param].
-  static BaseEmbedApi getEmbedApiByEmbedType(
+  @override
+  BaseEmbedApi getEmbedApiByEmbedType(
     EmbedLoaderParam param, {
     EmbedLogger? logger,
   }) {
-    return _resolveApi(param, logger: logger);
+    return resolveApi(param, logger: logger);
   }
 
-  /// Resolves the cache request URI used for a given content [url].
-  ///
-  /// Returns `null` when no matching provider can be resolved.
-  static Uri? resolveCacheUri(
+  @override
+  Uri? resolveCacheUri(
     String url, {
     EmbedConfig? config,
     EmbedType? embedType,
@@ -84,7 +86,7 @@ class EmbedService {
         queryParameters: queryParameters,
         embedParams: embedParams,
       );
-      final api = _resolveApi(param, config: config, logger: logger);
+      final api = resolveApi(param, config: config, logger: logger);
       return api.constructUrl(
         url,
         locale: config?.locale ?? 'en',
@@ -96,9 +98,8 @@ class EmbedService {
     }
   }
 
-  /// Resolves how to render [url] given [config], returning a [EmbedRenderer]
-  /// sealed type that callers can exhaustively pattern-match on.
-  static EmbedRenderer resolveRender(
+  @override
+  EmbedRenderer resolveRender(
     String url, {
     EmbedConfig? config,
     EmbedType? embedType,
@@ -154,8 +155,8 @@ class EmbedService {
     return const OEmbedRenderer();
   }
 
-  /// Resolves the [EmbedProviderRule] for a given [url] and [config].
-  static EmbedProviderRule? resolveRule(
+  @override
+  EmbedProviderRule? resolveRule(
     String url, {
     EmbedConfig? config,
   }) {
@@ -173,7 +174,59 @@ class EmbedService {
     return rule;
   }
 
-  static BaseEmbedApi _resolveApi(
+  @override
+  String? resolveIframeUrl(
+    String url, {
+    EmbedConfig? config,
+    EmbedLogger? logger,
+    Map<String, String>? queryParameters,
+    bool silent = false,
+  }) {
+    if (config == null) return null;
+    final resolvedLogger = logger ?? config.logger;
+
+    final rule = resolveRule(url, config: config);
+    if (rule == null) {
+      if (!silent) {
+        resolvedLogger.debug('No iframe provider match', data: {'url': url});
+      }
+      return null;
+    }
+
+    final mode = config.resolvedProviders.getRenderMode(rule.providerName);
+    if (mode != EmbedRenderMode.iframe) {
+      if (!silent) {
+        resolvedLogger.debug(
+          'Rendering mode mismatch',
+          data: {
+            'url': url,
+            'provider': rule.providerName,
+            'configuredMode': mode.name,
+            'requiredMode': 'iframe',
+          },
+        );
+      }
+      return null;
+    }
+
+    var iframeUrl = rule.iframeUrlBuilder?.call(url);
+    if (iframeUrl != null) {
+      if (queryParameters != null && queryParameters.isNotEmpty) {
+        final uri = Uri.parse(iframeUrl);
+        final params = Map<String, dynamic>.from(uri.queryParameters);
+        params.addAll(queryParameters);
+        iframeUrl = uri.replace(queryParameters: params).toString();
+      }
+      resolvedLogger.debug('Resolved iframe URL', data: {
+        'url': url,
+        'iframeUrl': iframeUrl,
+      });
+    }
+    return iframeUrl;
+  }
+
+  /// Internal helper to resolve the API for a given parameter.
+  BaseEmbedApi resolveApi(
     EmbedLoaderParam param, {
     EmbedConfig? config,
     EmbedLogger? logger,
@@ -261,6 +314,85 @@ class EmbedService {
     );
     throw EmbedProviderNotFoundException(url: param.url);
   }
+}
+
+/// Legacy static-access class for the embed service.
+///
+/// Prefer injecting [IEmbedService] or using [EmbedScope.serviceOf].
+class EmbedService {
+  /// The default global instance of [IEmbedService].
+  static const IEmbedService instance = EmbedServiceImpl();
+
+  /// Fetches OEmbed data using [EmbedConfig].
+  static Future<EmbedData> getResult({
+    required EmbedLoaderParam param,
+    EmbedConfig? config,
+    EmbedLogger? logger,
+    EmbedCacheConfig? cacheConfig,
+    http.Client? httpClient,
+  }) =>
+      instance.getResult(
+        param: param,
+        config: config,
+        logger: logger,
+        cacheConfig: cacheConfig,
+        httpClient: httpClient,
+      );
+
+  /// Resolves the appropriate [BaseEmbedApi] for the given [param].
+  static BaseEmbedApi getEmbedApiByEmbedType(
+    EmbedLoaderParam param, {
+    EmbedLogger? logger,
+  }) =>
+      instance.getEmbedApiByEmbedType(param, logger: logger);
+
+  /// Resolves the cache request URI used for a given content [url].
+  ///
+  /// Returns `null` when no matching provider can be resolved.
+  static Uri? resolveCacheUri(
+    String url, {
+    EmbedConfig? config,
+    EmbedType? embedType,
+    double? width,
+    Map<String, String>? queryParameters,
+    BaseEmbedParams? embedParams,
+    EmbedLogger? logger,
+  }) =>
+      instance.resolveCacheUri(
+        url,
+        config: config,
+        embedType: embedType,
+        width: width,
+        queryParameters: queryParameters,
+        embedParams: embedParams,
+        logger: logger,
+      );
+
+  /// Resolves how to render [url] given [config], returning a [EmbedRenderer]
+  /// sealed type that callers can exhaustively pattern-match on.
+  static EmbedRenderer resolveRender(
+    String url, {
+    EmbedConfig? config,
+    EmbedType? embedType,
+    EmbedLogger? logger,
+    Map<String, String>? queryParameters,
+    BaseEmbedParams? embedParams,
+  }) =>
+      instance.resolveRender(
+        url,
+        config: config,
+        embedType: embedType,
+        logger: logger,
+        queryParameters: queryParameters,
+        embedParams: embedParams,
+      );
+
+  /// Resolves the [EmbedProviderRule] for a given [url] and [config].
+  static EmbedProviderRule? resolveRule(
+    String url, {
+    EmbedConfig? config,
+  }) =>
+      instance.resolveRule(url, config: config);
 
   /// Resolves the iframe URL for a given content URL if iframe mode is active.
   /// Returns null if the provider doesn't support iframe mode or isn't enabled.
@@ -270,47 +402,12 @@ class EmbedService {
     EmbedLogger? logger,
     Map<String, String>? queryParameters,
     bool silent = false,
-  }) {
-    if (config == null) return null;
-    final resolvedLogger = logger ?? config.logger;
-
-    final rule = resolveRule(url, config: config);
-    if (rule == null) {
-      if (!silent) {
-        resolvedLogger.debug('No iframe provider match', data: {'url': url});
-      }
-      return null;
-    }
-
-    final mode = config.resolvedProviders.getRenderMode(rule.providerName);
-    if (mode != EmbedRenderMode.iframe) {
-      if (!silent) {
-        resolvedLogger.debug(
-          'Rendering mode mismatch',
-          data: {
-            'url': url,
-            'provider': rule.providerName,
-            'configuredMode': mode.name,
-            'requiredMode': 'iframe',
-          },
-        );
-      }
-      return null;
-    }
-
-    var iframeUrl = rule.iframeUrlBuilder?.call(url);
-    if (iframeUrl != null) {
-      if (queryParameters != null && queryParameters.isNotEmpty) {
-        final uri = Uri.parse(iframeUrl);
-        final params = Map<String, dynamic>.from(uri.queryParameters);
-        params.addAll(queryParameters);
-        iframeUrl = uri.replace(queryParameters: params).toString();
-      }
-      resolvedLogger.debug('Resolved iframe URL', data: {
-        'url': url,
-        'iframeUrl': iframeUrl,
-      });
-    }
-    return iframeUrl;
-  }
+  }) =>
+      instance.resolveIframeUrl(
+        url,
+        config: config,
+        logger: logger,
+        queryParameters: queryParameters,
+        silent: silent,
+      );
 }

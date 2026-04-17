@@ -43,6 +43,7 @@ sequenceDiagram
     Loader->>Controller: Synchronize Controller parameters (notify: false)
     
     Loader->>Service: resolveRender(url)
+    Note over Loader,Service: Service defaults to EmbedService.instance and can be overridden per scope via EmbedConfig.embedService
     Service->>Service: ProviderRegistry lookup (Regex)
     
     alt OEmbed Rendering Mode

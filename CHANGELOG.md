@@ -7,6 +7,7 @@
 ### Improvements
 - **Storage Showcases**: Added showcase implementations for persistent caching using `hive_ce` and `flutter_cache_manager` in the `example/` project. Users can easily copy these into their projects if they need persistence.
 - **Memory Safety**: `InMemoryEmbedCacheProvider` includes TTL (time-to-live) logic to prevent indefinite memory growth.
+- **Service Injection**: Exported `IEmbedService` as public API and documented `EmbedConfig.embedService` so provider resolution and fetch behavior can be overridden per scope.
 
 ## 1.0.1-alpha.4
 
@@ -17,7 +18,7 @@
 ### Improvements
 - Refactored `EmbedController` into a runtime attachment controller so embed identity now lives with `EmbedWebView`/driver inputs instead of on the controller itself. This makes external controllers easier to reuse across rendered embeds without coupling them to a specific `SocialEmbedParam`.
 - Example: Cached controllers in the HTML integration demo so toggling non-content styling like the border switch does not unnecessarily reload embedded WebViews.
-- EmbedController: Added `setEmbedData()` / `clearEmbedData()` so controller-owned preloaded oEmbed data can bypass `EmbedDataLoader` and render directly through `EmbedCard`.
+- EmbedController: Added `setEmbedData()` / `clearEmbedData()` so controller-owned preloaded oEmbed data can seed the render pipeline without fetching the payload again.
 - Documentation: Clarified that current WebView reuse is driven by app-owned `EmbedController` caching rather than an `EmbedScope`-level pooling API.
 
 ## 1.0.1-alpha.3

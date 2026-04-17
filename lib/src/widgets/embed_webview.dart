@@ -10,12 +10,11 @@ import 'package:flutter_oembed/src/models/core/embed_constant.dart';
 import 'package:flutter_oembed/src/models/core/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/core/embed_data.dart';
 import 'package:flutter_oembed/src/models/core/embed_enums.dart';
-import 'package:flutter_oembed/src/models/core/provider_rule.dart';
 import 'package:flutter_oembed/src/models/core/embed_strings.dart';
 import 'package:flutter_oembed/src/models/core/embed_style.dart';
 import 'package:flutter_oembed/src/models/core/embed_webview_controls.dart';
+import 'package:flutter_oembed/src/models/core/provider_rule.dart';
 import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
-import 'package:flutter_oembed/src/services/embed_service.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -27,7 +26,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 ///
 ///  * Controller identity (via [identityHashCode])
 ///  * [EmbedController.embedRevision] (bumped by [EmbedController.synchronize])
-///  * [param], [data], [url], [maxWidth], [scrollable]
+///  * [param], [data], [url], [scrollable]
 ///
 /// When any of these change, Flutter tears down the old [_EmbedWebViewCore]
 /// state and creates a fresh one — giving a clean [State.initState] with no
@@ -93,9 +92,9 @@ class EmbedWebView extends StatelessWidget {
   Widget build(BuildContext context) {
     // ListenableBuilder rebuilds when controller notifies (e.g. synchronize).
     // The composite ValueKey on the inner widget causes a full state reset
-    // whenever the controller identity, embed revision, or content-affecting
-    // props change — eliminating the need for didUpdateWidget or staleness
-    // detection entirely.
+    // whenever the controller identity, embed revision, or content identity
+    // props change. Layout-only changes such as maxWidth are intentionally
+    // excluded so parent relayouts do not remount the WebView.
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
@@ -106,7 +105,6 @@ class EmbedWebView extends StatelessWidget {
             param,
             data,
             url,
-            maxWidth,
             scrollable,
           )),
           param: param,
@@ -220,7 +218,10 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
 
   void _scheduleInit() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      widget.controller.setEmbedData(widget.data);
+      // Mirror the active payload onto the controller without notifying the
+      // parent loader; otherwise the parent can swap branches and remount this
+      // widget during the initial fetch-to-render handoff.
+      widget.controller.setEmbedData(widget.data, notify: false);
       if (!mounted) return;
       // TODO: allow user to configure background color
       final bg = Theme.of(context).scaffoldBackgroundColor;
@@ -294,7 +295,8 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
 
   double _fallbackHeight() {
     final config = widget.controller.config ?? EmbedScope.configOf(context);
-    final rule = EmbedService.resolveRule(
+    final service = config?.embedService ?? EmbedScope.serviceOf(context);
+    final rule = service.resolveRule(
       widget.param.url,
       config: config,
     );

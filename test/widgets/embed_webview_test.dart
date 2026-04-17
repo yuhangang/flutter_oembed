@@ -82,6 +82,57 @@ void main() {
       await tester.pump(const Duration(seconds: 11));
     });
 
+    testWidgets('changing maxWidth does not remount the WebView core',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 640,
+              child: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 640,
+                controller: controller,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      final initialPlatformController = fakePlatform.lastCreatedController;
+      final initialDriver = controller.boundDriver;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 480,
+              child: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 480,
+                controller: controller,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      expect(controller.boundDriver, same(initialDriver));
+      expect(
+          fakePlatform.lastCreatedController, same(initialPlatformController));
+      expect(fakePlatform.lastCreatedController?.loadHtmlCount, 1);
+
+      controller.dispose();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+
     testWidgets(
         'uses provider fallback height metadata when no height is known',
         (tester) async {

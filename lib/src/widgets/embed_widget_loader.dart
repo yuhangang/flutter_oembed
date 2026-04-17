@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
-import 'package:flutter_oembed/src/models/configs/embed_config.dart';
 import 'package:flutter_oembed/src/models/configs/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
 import 'package:flutter_oembed/src/models/core/embed_constraints.dart';
 import 'package:flutter_oembed/src/models/core/embed_data.dart';
-import 'package:flutter_oembed/src/models/core/embed_loader_param.dart';
 import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_loader_param.dart';
 import 'package:flutter_oembed/src/models/core/embed_renderer.dart';
 import 'package:flutter_oembed/src/models/core/embed_style.dart';
-import 'package:flutter_oembed/src/services/embed_service.dart';
 import 'package:flutter_oembed/src/models/core/embed_webview_controls.dart';
 import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_data_loader.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
+import 'package:flutter_oembed/src/widgets/native_renderer_registry.dart';
 
 class EmbedWidgetLoader extends StatefulWidget {
   const EmbedWidgetLoader({
@@ -173,7 +173,9 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
               );
             }
 
-            final renderer = EmbedService.resolveRender(
+            final service =
+                config?.embedService ?? EmbedScope.serviceOf(context);
+            final renderer = service.resolveRender(
               widget.param.url,
               config: config,
               embedType: widget.param.embedType,
@@ -184,25 +186,13 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
 
             // Native renderers manage their own data populating; don't bypass them.
             if (renderer is NativeWidgetRenderer) {
-              return renderer.builder(
+              return NativeRendererRegistry.build(
+                renderer.identifier,
                 context,
+                renderer.context,
                 constraints.maxWidth,
                 _controller,
                 widget.embedConstraints,
-              );
-            }
-
-            // Short-circuit if the data has been loaded/fetched internally.
-            if (_controller.embedData != null) {
-              return EmbedWebView.data(
-                param: widget.param,
-                data: _controller.embedData!,
-                maxWidth: constraints.maxWidth,
-                controller: _controller,
-                style: style,
-                embedConstraints: widget.embedConstraints,
-                scrollable: widget.scrollable,
-                webViewBuilder: widget.webViewBuilder,
               );
             }
 

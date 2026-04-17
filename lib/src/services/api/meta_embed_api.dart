@@ -37,7 +37,7 @@ class MetaEmbedApi extends BaseEmbedApi {
   String get baseUrl {
     if (proxyUrl != null) return proxyUrl!;
     if (embedType == EmbedType.threads) return 'https://graph.threads.net/v1.0';
-    return 'https://graph.facebook.com/v22.0';
+    return 'https://graph.facebook.com/v25.0';
   }
 
   @override

@@ -123,6 +123,20 @@ EmbedCard(
 )
 ```
 
+If you need to override provider discovery or fetch behavior, inject your own
+`IEmbedService` implementation through `EmbedConfig.embedService`:
+
+```dart
+final myEmbedService = MyEmbedService();
+
+EmbedScope(
+  config: EmbedConfig(
+    embedService: myEmbedService,
+  ),
+  child: MyApp(),
+)
+```
+
 ## WebView Navigation Policy
 
 `flutter_oembed` keeps a strict boundary around the embed WebView:
@@ -359,8 +373,8 @@ These calls are no-ops until the controller is bound to a rendered embed. Other
 providers may support only pause/resume, or may fall back to provider-defined
 best-effort behavior.
 
-You can also hydrate a controller with pre-fetched oEmbed data and let the
-widget skip `EmbedDataLoader` entirely:
+You can also hydrate a controller with pre-fetched oEmbed data so the widget
+reuses that payload instead of fetching it again:
 
 ```dart
 final controller = EmbedController()

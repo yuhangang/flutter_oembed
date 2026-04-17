@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_oembed/src/controllers/embed_driver_interface.dart';
 import 'package:flutter_oembed/src/logging/embed_logger.dart';
 import 'package:flutter_oembed/src/models/configs/embed_config.dart';
 import 'package:flutter_oembed/src/models/core/embed_constant.dart';
@@ -29,7 +30,7 @@ class EmbedController extends ChangeNotifier {
   EmbedProviderRule? _matchedProviderRule;
 
   /// Internal slot used by [EmbedWebView] to persist a driver across remounts.
-  Object? _boundDriver;
+  IEmbedDriver? _boundDriver;
   Object? _boundDriverContentKey;
   void Function()? _onDriverDispose;
   int get embedRevision => _embedRevision;
@@ -82,7 +83,7 @@ class EmbedController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setEmbedData(EmbedData? value) {
+  void setEmbedData(EmbedData? value, {bool notify = true}) {
     if (_isDisposed || _embedData == value) return;
     _embedData = value;
     didRetry = false;
@@ -90,7 +91,9 @@ class EmbedController extends ChangeNotifier {
     if (loadingState != EmbedLoadingState.loading) {
       loadingState = EmbedLoadingState.loading;
     }
-    notifyListeners();
+    if (notify) {
+      notifyListeners();
+    }
   }
 
   void clearEmbedData() {
@@ -242,12 +245,12 @@ class EmbedController extends ChangeNotifier {
   }
 
   /// Internal: Gets the currently bound driver (usually an EmbedWebViewDriver).
-  Object? get boundDriver => _boundDriver;
+  IEmbedDriver? get boundDriver => _boundDriver;
   Object? get boundDriverContentKey => _boundDriverContentKey;
 
   /// Internal: Binds a driver to this controller for persistence.
   void bindDriver(
-    Object driver, {
+    IEmbedDriver driver, {
     required Object contentKey,
     required void Function() onDispose,
   }) {
