@@ -19,27 +19,28 @@ library;
 // Configuration & Scope
 export 'src/core/embed_scope.dart';
 export 'src/core/embed_cache_provider.dart';
+export 'src/core/embed_service_interface.dart';
 export 'src/logging/embed_logger.dart';
 //
 // Models
-export 'src/models/embed_enums.dart';
-export 'src/models/embed_cache_config.dart';
-export 'src/models/embed_config.dart';
-export 'src/models/embed_constraints.dart';
-export 'src/models/embed_data.dart';
-export 'src/models/embed_provider_config.dart';
-export 'src/models/embed_strings.dart';
-export 'src/models/embed_style.dart';
-export 'src/models/embed_webview_controls.dart';
-export 'src/models/provider_rule.dart';
-export 'src/models/social_embed_param.dart';
-export 'src/models/base_embed_params.dart';
-export 'src/models/vimeo_embed_params.dart';
-export 'src/models/youtube_embed_params.dart';
-export 'src/models/x_embed_params.dart';
-export 'src/models/meta_embed_params.dart';
-export 'src/models/soundcloud_embed_params.dart';
-export 'src/models/tiktok_embed_params.dart';
+export 'src/models/core/embed_enums.dart';
+export 'src/models/configs/embed_cache_config.dart';
+export 'src/models/configs/embed_config.dart';
+export 'src/models/core/embed_constraints.dart';
+export 'src/models/core/embed_data.dart';
+export 'src/models/configs/embed_provider_config.dart';
+export 'src/models/core/embed_strings.dart';
+export 'src/models/core/embed_style.dart';
+export 'src/models/core/embed_webview_controls.dart';
+export 'src/models/core/provider_rule.dart';
+export 'src/models/params/social_embed_param.dart';
+export 'src/models/params/base_embed_params.dart';
+export 'src/models/params/vimeo_embed_params.dart';
+export 'src/models/params/youtube_embed_params.dart';
+export 'src/models/params/x_embed_params.dart';
+export 'src/models/params/meta_embed_params.dart';
+export 'src/models/params/soundcloud_embed_params.dart';
+export 'src/models/params/tiktok_embed_params.dart';
 // Widgets (public entry points)
 export 'src/widgets/embed_card.dart';
 export 'src/widgets/embed_renderer.dart';

@@ -1,6 +1,6 @@
 import 'package:flutter_oembed/src/core/provider_strategies.dart';
 import 'package:flutter_oembed/src/core/provider_strategy.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

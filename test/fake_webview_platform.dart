@@ -66,6 +66,7 @@ class FakePlatformWebViewController extends PlatformWebViewController {
   FakePlatformWebViewController(super.params) : super.implementation();
 
   int reloadCount = 0;
+  int loadHtmlCount = 0;
   String? lastLoadedHtml;
   String? lastBaseUrl;
   LoadRequestParams? lastRequest;
@@ -81,6 +82,7 @@ class FakePlatformWebViewController extends PlatformWebViewController {
 
   @override
   Future<void> loadHtmlString(String html, {String? baseUrl}) async {
+    loadHtmlCount++;
     lastLoadedHtml = html;
     lastBaseUrl = baseUrl;
   }

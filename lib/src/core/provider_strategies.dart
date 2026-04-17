@@ -1,21 +1,17 @@
-import 'dart:ui';
-
+import 'package:flutter_oembed/src/controllers/embed_driver_interface.dart';
 import 'package:flutter_oembed/src/core/provider_strategy.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_renderer.dart';
-import 'package:flutter_oembed/src/models/meta_embed_params.dart';
-import 'package:flutter_oembed/src/models/soundcloud_embed_params.dart';
-import 'package:flutter_oembed/src/models/tiktok_embed_params.dart';
-import 'package:flutter_oembed/src/models/vimeo_embed_params.dart';
-import 'package:flutter_oembed/src/models/x_embed_params.dart';
-import 'package:flutter_oembed/src/models/youtube_embed_params.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_renderer.dart';
+import 'package:flutter_oembed/src/models/params/meta_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/soundcloud_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/tiktok_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/vimeo_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/x_embed_params.dart';
 import 'package:flutter_oembed/src/services/embed_apis.dart';
 import 'package:flutter_oembed/src/utils/embed_html_utils.dart';
 import 'package:flutter_oembed/src/utils/embed_webview_controller_utils.dart';
-import 'package:flutter_oembed/src/widgets/tiktok_embed_player.dart';
-import 'package:flutter_oembed/src/widgets/youtube_embed_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class YouTubeProviderStrategy extends GenericEmbedProviderStrategy {
@@ -62,23 +58,7 @@ class YouTubeProviderStrategy extends GenericEmbedProviderStrategy {
     }
 
     // Otherwise fallback to YouTube native player
-    return NativeWidgetRenderer(
-        (widgetContext, maxWidth, controller, embedConstraints) {
-      return YoutubeEmbedPlayer(
-        videoIdOrUrl: context.url,
-        maxWidth: maxWidth,
-        embedConstraints: embedConstraints,
-        controls:
-            (context.embedParams as YoutubeEmbedParams?)?.controls ?? true,
-        autoplay:
-            (context.embedParams as YoutubeEmbedParams?)?.autoplay ?? false,
-        loop: (context.embedParams as YoutubeEmbedParams?)?.loop ?? false,
-        rel: (context.embedParams as YoutubeEmbedParams?)?.rel ?? false,
-        theme: (context.embedParams as YoutubeEmbedParams?)?.theme,
-        color: (context.embedParams as YoutubeEmbedParams?)?.color,
-        controller: controller,
-      );
-    });
+    return NativeWidgetRenderer('youtube', context);
   }
 }
 
@@ -108,12 +88,19 @@ class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
         scrollable: scrollable,
       );
     }
-
     return buildTikTokHtmlDocument(
       embedHtml,
       maxWidth: maxWidth,
       scrollable: scrollable,
     );
+  }
+
+  @override
+  Future<void> onPageFinished(IEmbedDriver driver) async {
+    await driver.webViewController.runJavaScript(
+      "document.querySelectorAll('video, audio').forEach(m => { m.muted = true; m.pause(); });",
+    );
+    await super.onPageFinished(driver);
   }
 
   @override
@@ -124,30 +111,12 @@ class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
   }
 
   @override
-  Future<void> onPageFinished(WebViewController controller) async {
-    // TikTok handles its own pausing via IntersectionObserver in their script,
-    // but we can try to mute it if it's a photo post.
-    await controller.muteMediaElements();
-    await controller.pauseMediaElements();
-  }
-
-  @override
   EmbedRenderer resolveRenderer(EmbedProviderContext context,
       {EmbedConfig? config}) {
-    final params = context.embedParams as TikTokEmbedParams?;
-    final isV1Type = context.embedType == EmbedType.tiktok_v1;
+    final isV1Type = context.variant == EmbedVariant.tiktokV1;
 
-    if (isV1Type || params?.useV1Player == true) {
-      return NativeWidgetRenderer(
-          (widgetContext, maxWidth, controller, embedConstraints) {
-        return TikTokEmbedPlayer(
-          videoIdOrUrl: context.url,
-          maxWidth: maxWidth,
-          embedConstraints: embedConstraints,
-          embedParams: params,
-          controller: controller,
-        );
-      });
+    if (isV1Type) {
+      return NativeWidgetRenderer('tiktok', context);
     }
 
     return super.resolveRenderer(context, config: config);
@@ -177,27 +146,28 @@ class XProviderStrategy extends GenericEmbedProviderStrategy {
   }
 
   @override
-  Future<void> onWebViewCreated(
-    WebViewController controller, {
-    VoidCallback? onTwitterLoaded,
-  }) async {
-    await controller.addJavaScriptChannel(
+  Future<void> onWebViewCreated(IEmbedDriver driver) async {
+    await driver.webViewController.addJavaScriptChannel(
       'OnTwitterLoaded',
       onMessageReceived: (_) {
-        onTwitterLoaded?.call();
+        driver.finalizePageFinished();
       },
     );
   }
 
   @override
-  Future<void> onPageFinished(WebViewController controller) async {
-    await controller.runJavaScript('''
+  Future<void> onPageFinished(IEmbedDriver driver) async {
+    await driver.webViewController.runJavaScript('''
       twttr.events.bind('loaded', function(event) {
         if (window.OnTwitterLoaded) {
           OnTwitterLoaded.postMessage("loaded");
         }
       });
     ''');
+    await Future.delayed(const Duration(seconds: 2));
+    if (driver.controller.loadingState != EmbedLoadingState.loaded) {
+      driver.finalizePageFinished();
+    }
   }
 }
 

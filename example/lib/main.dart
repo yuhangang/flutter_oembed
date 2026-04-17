@@ -37,20 +37,20 @@ class _MyAppState extends State<MyApp> {
               locale: settings.locale,
               brightness: settings.brightness,
               providers: EmbedProviderConfig(
-                // Only allow these providers (comment out to enable all)
-                // enabledProviders: {'YouTube', 'Spotify', 'Vimeo', 'TikTok', 'SoundCloud'},
+                // Overriding providers list (e.g. tracking only certain providers)
+                // providers: EmbedProviders.verified.where((r) => {'YouTube', 'Spotify'}.contains(r.providerName)).toList(),
                 providerRenderModes: {
                   'YouTube': EmbedRenderMode.iframe,
                   'Spotify': EmbedRenderMode.iframe,
                 },
-                customProviders: const [
+                providers: EmbedProviders.verified.append(const [
                   EmbedProviderRule(
                     providerName: 'CodePen',
                     pattern:
                         r'^https?:\/\/(?:codepen\.io|cdpn\.io)\/[^\/]+\/pen\/[A-Za-z0-9]+(?:\/.*)?$',
                     endpoint: 'https://codepen.io/api/oembed',
                   ),
-                ],
+                ]),
               ),
               cache: const EmbedCacheConfig(
                 enabled: true,

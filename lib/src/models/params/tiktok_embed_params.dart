@@ -1,4 +1,4 @@
-import 'package:flutter_oembed/src/models/base_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/base_embed_params.dart';
 
 /// Parameters for TikTok's native embedded player (v1).
 class TikTokEmbedParams extends BaseEmbedParams {

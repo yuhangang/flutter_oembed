@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_oembed/src/models/embed_constant.dart';
-import 'package:flutter_oembed/src/models/embed_webview_controls.dart';
+import 'package:flutter_oembed/src/models/core/embed_constant.dart';
+import 'package:flutter_oembed/src/models/core/embed_webview_controls.dart';
 
 /// Per-widget visual customization for OEmbed embeds.
 ///

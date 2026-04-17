@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
-import 'package:flutter_oembed/src/models/embed_cache_config.dart';
-import 'package:flutter_oembed/src/models/embed_constraints.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/embed_loader_param.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_renderer.dart';
-import 'package:flutter_oembed/src/models/embed_style.dart';
-import 'package:flutter_oembed/src/services/embed_service.dart';
-import 'package:flutter_oembed/src/models/embed_webview_controls.dart';
-import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/configs/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_constraints.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_loader_param.dart';
+import 'package:flutter_oembed/src/models/core/embed_renderer.dart';
+import 'package:flutter_oembed/src/models/core/embed_style.dart';
+import 'package:flutter_oembed/src/models/core/embed_webview_controls.dart';
+import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_data_loader.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
+import 'package:flutter_oembed/src/widgets/native_renderer_registry.dart';
 
 class EmbedWidgetLoader extends StatefulWidget {
   const EmbedWidgetLoader({
@@ -53,6 +53,8 @@ class EmbedWidgetLoader extends StatefulWidget {
 class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
   late EmbedController _controller;
   EmbedConfig? _scopeConfig;
+
+  Object get _contentKey => (widget.param, widget.preloadedData);
 
   @override
   void initState() {
@@ -99,17 +101,19 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
   }) {
     if (widget.controller != null) {
       widget.controller!.synchronize(
-        param: widget.param,
+        contentKey: _contentKey,
         config: config,
-        preloadedData: widget.preloadedData,
+        notify: false,
       );
       return widget.controller!;
     }
     return EmbedController(
-      param: widget.param,
       config: config,
-      preloadedData: widget.preloadedData,
-    );
+    )..synchronize(
+        contentKey: _contentKey,
+        config: config,
+        notify: false,
+      );
   }
 
   void _replaceController({
@@ -141,9 +145,11 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        final showErrorWidget =
+        final effectivePreloadedData =
+            _controller.embedData ?? widget.preloadedData;
+        final showErrorWidget = effectivePreloadedData == null &&
             _controller.loadingState == EmbedLoadingState.error &&
-                _controller.didRetry;
+            _controller.didRetry;
 
         if (showErrorWidget) {
           final errorWidget =
@@ -153,7 +159,7 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
 
         return LayoutBuilder(
           builder: (context, constraints) {
-            // Short-circuit for pre-fetched data (avoids a resolveRender call).
+            // Explicitly provided preloadedData overrides all native renderers.
             if (widget.preloadedData != null) {
               return EmbedWebView.data(
                 param: widget.param,
@@ -167,7 +173,9 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
               );
             }
 
-            final renderer = EmbedService.resolveRender(
+            final service =
+                config?.embedService ?? EmbedScope.serviceOf(context);
+            final renderer = service.resolveRender(
               widget.param.url,
               config: config,
               embedType: widget.param.embedType,
@@ -176,13 +184,20 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
               embedParams: widget.param.embedParams,
             );
 
+            // Native renderers manage their own data populating; don't bypass them.
+            if (renderer is NativeWidgetRenderer) {
+              return NativeRendererRegistry.build(
+                renderer.identifier,
+                context,
+                renderer.context,
+                constraints.maxWidth,
+                _controller,
+                widget.embedConstraints,
+              );
+            }
+
             return switch (renderer) {
-              NativeWidgetRenderer(:final builder) => builder(
-                  context,
-                  constraints.maxWidth,
-                  _controller,
-                  widget.embedConstraints,
-                ),
+              NativeWidgetRenderer() => const SizedBox.shrink(),
               IframeRenderer(:final iframeUrl) => EmbedWebView.url(
                   param: widget.param,
                   url: iframeUrl,

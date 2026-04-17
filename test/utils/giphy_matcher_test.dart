@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_oembed/src/utils/embed_matchers.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
 
 void main() {
   group('GIPHY Matchers', () {

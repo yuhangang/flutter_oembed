@@ -1,4 +1,4 @@
-import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
 
 // ---------------------------------------------------------------------------
 // Public helpers — called by [EmbedProviderStrategy.buildHtmlDocument]

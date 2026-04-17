@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/core/embed_cache_provider.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_style.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+
+import '../helpers/fake_embed_service.dart';
 
 class MockCacheProvider extends Mock implements EmbedCacheProvider {}
 
@@ -43,6 +45,28 @@ void main() {
       expect(capturedStyle, equals(config.style));
     });
 
+    testWidgets('serviceOf returns the configured embed service',
+        (tester) async {
+      final service = FakeEmbedService();
+      final config = EmbedConfig(embedService: service);
+
+      late Object? capturedService;
+
+      await tester.pumpWidget(
+        EmbedScope(
+          config: config,
+          child: Builder(
+            builder: (context) {
+              capturedService = EmbedScope.serviceOf(context, listen: false);
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+
+      expect(capturedService, same(service));
+    });
+
     test('updateShouldNotify', () {
       const config1 = EmbedConfig(facebookAppId: '1');
       const config2 = EmbedConfig(facebookAppId: '2');
@@ -66,18 +90,27 @@ void main() {
         'evictCacheForUrl removes the resolved entry from the configured cache provider',
         () async {
       when(() => mockCacheProvider.removeFile(any())).thenAnswer((_) async {});
+      final service = FakeEmbedService(
+        resolveCacheUriResponse:
+            Uri.parse('https://cache.example/custom-entry'),
+      );
+      final config = EmbedConfig(
+        cacheProvider: mockCacheProvider,
+        embedService: service,
+      );
 
       final didEvict = await EmbedScope.evictCacheForUrl(
         'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-        config: configWithCacheProvider,
+        config: config,
         embedType: EmbedType.youtube,
         width: 640,
       );
 
       expect(didEvict, isTrue);
+      expect(service.resolveCacheUriCallCount, 1);
       verify(
         () => mockCacheProvider.removeFile(
-          any(that: contains('https://www.youtube.com/oembed')),
+          any(that: contains('https://cache.example/custom-entry')),
         ),
       ).called(1);
     });

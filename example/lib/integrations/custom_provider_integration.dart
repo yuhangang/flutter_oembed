@@ -46,14 +46,13 @@ class _CustomProviderExample {
 EmbedScope(
   config: EmbedConfig(
     providers: EmbedProviderConfig(
-      enabledProviders: {'$providerName'},
-      customProviders: const [
+      providers: EmbedProviders.verified.append([
         EmbedProviderRule(
           providerName: '$providerName',
           pattern: r'$pattern',
           endpoint: '$endpoint',
         ),
-      ],
+      ]),
     ),
   ),
   child: EmbedCard.url('$initialUrl'),
@@ -156,19 +155,16 @@ class _CustomProviderIntegrationPageState
   Widget build(BuildContext context) {
     final parentConfig =
         EmbedScope.configOf(context, listen: false) ?? const EmbedConfig();
-    final parentProviders = parentConfig.providers;
-    final enabledProviders = parentProviders.enabledProviders;
-    final inheritedCustomProviders =
-        parentProviders.customProviders
+    final providerConfig = parentConfig.providers;
+    final currentRuleList = providerConfig.providers ?? EmbedProviders.verified;
+    final inheritedProviders =
+        currentRuleList
             .where((rule) => !_exampleProviderNames.contains(rule.providerName))
             .toList();
+
     final customConfig = parentConfig.copyWith(
-      providers: parentProviders.copyWith(
-        enabledProviders:
-            enabledProviders == null
-                ? null
-                : {...enabledProviders, _selectedExample.providerName},
-        customProviders: [...inheritedCustomProviders, _selectedExample.rule],
+      providers: providerConfig.copyWith(
+        providers: inheritedProviders.append([_selectedExample.rule]),
       ),
     );
 
@@ -196,7 +192,7 @@ class _CustomProviderIntegrationPageState
             const SizedBox(height: 8),
             Text(
               'These examples show how to register a provider manually with '
-              '`EmbedProviderConfig.customProviders`. Switch between recipes '
+              '`EmbedProviderConfig.providers`. Switch between recipes '
               'to see different patterns, endpoints, and sample URLs.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),

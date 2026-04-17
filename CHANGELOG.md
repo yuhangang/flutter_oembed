@@ -1,4 +1,32 @@
+## 1.0.1-alpha.5
+
+### Breaking Changes
+- **Cache Management**: The core library is now **zero-dependency** for storage. The mandatory `flutter_cache_manager` dependency has been removed.
+- **Default Cache**: The default `EmbedCacheProvider` is now an **in-memory** implementation (`InMemoryEmbedCacheProvider`). OEmbed responses will no longer persist across app restarts by default.
+
+### Improvements
+- **Storage Showcases**: Added showcase implementations for persistent caching using `hive_ce` and `flutter_cache_manager` in the `example/` project. Users can easily copy these into their projects if they need persistence.
+- **Memory Safety**: `InMemoryEmbedCacheProvider` includes TTL (time-to-live) logic to prevent indefinite memory growth.
+- **Service Injection**: Exported `IEmbedService` as public API and documented `EmbedConfig.embedService` so provider resolution and fetch behavior can be overridden per scope.
+
+## 1.0.1-alpha.4
+
+### Breaking Changes
+- **Provider Resolution**: Refactored `EmbedProviderConfig` to use an explicit `providers` list instead of implicitly concatenating `enabledProviders`, `customProviders`, and `includeUnverified`.
+- **Provider Registry**: The active providers list now defaults to `EmbedProviders.verified`. You can merge custom rules directly using `providers: EmbedProviders.verified.append([myRule])`. Dynamic discovery and `providers_snapshot.dart` have been removed.
+
+### Improvements
+- Refactored `EmbedController` into a runtime attachment controller so embed identity now lives with `EmbedWebView`/driver inputs instead of on the controller itself. This makes external controllers easier to reuse across rendered embeds without coupling them to a specific `SocialEmbedParam`.
+- Example: Cached controllers in the HTML integration demo so toggling non-content styling like the border switch does not unnecessarily reload embedded WebViews.
+- EmbedController: Added `setEmbedData()` / `clearEmbedData()` so controller-owned preloaded oEmbed data can seed the render pipeline without fetching the payload again.
+- Documentation: Clarified that current WebView reuse is driven by app-owned `EmbedController` caching rather than an `EmbedScope`-level pooling API.
+
 ## 1.0.1-alpha.3
+
+### Breaking Changes
+- Removed `seekTo` functionality from WebView entirely.
+- Removed `EmbedController.seekMediaTo(Duration position)`.
+- Removed `EmbedWebViewControls.seekTo(Duration position)`.
 
 ### Improvements
 
@@ -10,14 +38,6 @@
 * **EmbedController**: Added `EmbedConfig.heightUpdateDeltaThreshold` to tune how aggressively tiny downward WebView height changes are ignored.
 * **EmbedController**: Fixed external-controller embeds so changing `embedParams` resets the controller and forces the WebView to reload even when cache configuration is supplied from `EmbedScope`.
 * **Maintenance**: Refactored internal media control constants in `provider_strategies.dart` into their respective strategy classes for better namespacing and readability.
-
-
-## [Unreleased]
-
-### Breaking Changes
-- Removed `seekTo` functionality from WebView entirely.
-- Removed `EmbedController.seekMediaTo(Duration position)`.
-- Removed `EmbedWebViewControls.seekTo(Duration position)`.
 
 ## 1.0.1-alpha.2
 

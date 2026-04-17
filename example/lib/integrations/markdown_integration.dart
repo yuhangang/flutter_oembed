@@ -166,17 +166,6 @@ class MarkdownIntegrationPage extends StatefulWidget {
 }
 
 class _MarkdownIntegrationPageState extends State<MarkdownIntegrationPage> {
-  EmbedConfig _buildScopedConfig(BuildContext context) {
-    final settings = ExampleSettingsProvider.of(context).settings;
-    final parentConfig = EmbedScope.configOf(context, listen: false);
-    return (parentConfig ?? const EmbedConfig()).copyWith(
-      locale: settings.locale,
-      brightness: settings.brightness,
-      scrollable: settings.scrollable,
-      useDynamicDiscovery: settings.useDynamicDiscovery,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final settings = ExampleSettingsProvider.of(context).settings;
@@ -208,39 +197,36 @@ You can add any OEmbed-supported URL using `url`, `href`, `src`, `data-url`, as 
         title: const Text('Markdown Integration'),
         actions: const [ConfigMenuAction()],
       ),
-      body: EmbedScope(
-        config: _buildScopedConfig(context),
-        child: MarkdownWidget(
-          padding: EdgeInsets.only(
-            top: 16,
-            left: 16,
-            right: 16,
-            bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
-          ),
-          key: ValueKey('markdown_${settings.locale}-${settings.brightness}'),
-          data: markdownData,
-          config: (settings.brightness == Brightness.dark
-                  ? MarkdownConfig.darkConfig
-                  : MarkdownConfig.defaultConfig)
-              .copy(
-                configs: [
-                  SmartLinkConfig(
-                    style: TextStyle(
-                      color:
-                          settings.brightness == Brightness.dark
-                              ? Colors.lightBlueAccent
-                              : Colors.blue,
-                      decoration: TextDecoration.underline,
-                    ),
-                    onTap: (url) {},
+      body: MarkdownWidget(
+        padding: EdgeInsets.only(
+          top: 16,
+          left: 16,
+          right: 16,
+          bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
+        ),
+        key: ValueKey('markdown_${settings.locale}-${settings.brightness}'),
+        data: markdownData,
+        config: (settings.brightness == Brightness.dark
+                ? MarkdownConfig.darkConfig
+                : MarkdownConfig.defaultConfig)
+            .copy(
+              configs: [
+                SmartLinkConfig(
+                  style: TextStyle(
+                    color:
+                        settings.brightness == Brightness.dark
+                            ? Colors.lightBlueAccent
+                            : Colors.blue,
+                    decoration: TextDecoration.underline,
                   ),
-                ],
-              ),
-          markdownGenerator: MarkdownGenerator(
-            generators: [smartLinkGenerator, oembedGenerator],
-            blockSyntaxList: const [EmbedBlockSyntax()],
-            extensionSet: md.ExtensionSet.gitHubFlavored,
-          ),
+                  onTap: (url) {},
+                ),
+              ],
+            ),
+        markdownGenerator: MarkdownGenerator(
+          generators: [smartLinkGenerator, oembedGenerator],
+          blockSyntaxList: const [EmbedBlockSyntax()],
+          extensionSet: md.ExtensionSet.gitHubFlavored,
         ),
       ),
     );

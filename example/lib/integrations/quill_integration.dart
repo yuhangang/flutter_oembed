@@ -3,9 +3,9 @@ import 'package:embed_example/utils/settings_controller.dart';
 import 'package:embed_example/widgets/config_menu_action.dart';
 import 'package:embed_example/widgets/embed_placeholder.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_oembed/flutter_oembed.dart';
 import 'package:flutter_quill/flutter_quill.dart';
 import 'package:flutter_quill/quill_delta.dart';
-import 'package:flutter_oembed/flutter_oembed.dart';
 
 class OEmbedBlockEmbed extends CustomBlockEmbed {
   const OEmbedBlockEmbed(String url) : super('oembed', url);
@@ -50,17 +50,6 @@ class QuillIntegrationPage extends StatefulWidget {
 class _QuillIntegrationPageState extends State<QuillIntegrationPage> {
   late QuillController _controller;
   final FocusNode _focusNode = FocusNode();
-
-  EmbedConfig _buildScopedConfig(BuildContext context) {
-    final settings = ExampleSettingsProvider.of(context).settings;
-    final parentConfig = EmbedScope.configOf(context, listen: false);
-    return (parentConfig ?? const EmbedConfig()).copyWith(
-      locale: settings.locale,
-      brightness: settings.brightness,
-      scrollable: settings.scrollable,
-      useDynamicDiscovery: settings.useDynamicDiscovery,
-    );
-  }
 
   @override
   void initState() {
@@ -237,72 +226,69 @@ class _QuillIntegrationPageState extends State<QuillIntegrationPage> {
         title: const Text('Quill Integration'),
         actions: const [ConfigMenuAction()],
       ),
-      body: EmbedScope(
-        config: _buildScopedConfig(context),
-        child: Column(
-          children: [
-            QuillSimpleToolbar(
-              controller: _controller,
-              config: QuillSimpleToolbarConfig(
-                // Show basic buttons
-                showBoldButton: true,
-                showItalicButton: true,
-                showUnderLineButton: true,
-                showListNumbers: true,
-                showListBullets: true,
-                showLink: true,
-                showHeaderStyle: true,
+      body: Column(
+        children: [
+          QuillSimpleToolbar(
+            controller: _controller,
+            config: QuillSimpleToolbarConfig(
+              // Show basic buttons
+              showBoldButton: true,
+              showItalicButton: true,
+              showUnderLineButton: true,
+              showListNumbers: true,
+              showListBullets: true,
+              showLink: true,
+              showHeaderStyle: true,
 
-                // Keep others hidden for a cleaner look
-                showFontFamily: false,
-                showFontSize: false,
-                showStrikeThrough: false,
-                showColorButton: false,
-                showBackgroundColorButton: false,
-                showListCheck: false,
-                showCodeBlock: false,
-                showQuote: false,
-                showIndent: false,
-                showSearchButton: false,
-                showAlignmentButtons: false,
-                showClearFormat: false,
-                showSubscript: false,
-                showSuperscript: false,
-                showInlineCode: false,
-                showSmallButton: false,
-                showDirection: false,
-                showDividers: false,
+              // Keep others hidden for a cleaner look
+              showFontFamily: false,
+              showFontSize: false,
+              showStrikeThrough: false,
+              showColorButton: false,
+              showBackgroundColorButton: false,
+              showListCheck: false,
+              showCodeBlock: false,
+              showQuote: false,
+              showIndent: false,
+              showSearchButton: false,
+              showAlignmentButtons: false,
+              showClearFormat: false,
+              showSubscript: false,
+              showSuperscript: false,
+              showInlineCode: false,
+              showSmallButton: false,
+              showDirection: false,
+              showDividers: false,
 
-                // Add custom OEmbed button
-                customButtons: [
-                  QuillToolbarCustomButtonOptions(
-                    icon: const Icon(Icons.add_link, color: Colors.teal),
-                    tooltip: 'Insert OEmbed',
-                    onPressed: _showOEmbedMenu,
-                  ),
-                ],
-              ),
+              // Add custom OEmbed button
+              customButtons: [
+                QuillToolbarCustomButtonOptions(
+                  icon: const Icon(Icons.add_link, color: Colors.teal),
+                  tooltip: 'Insert OEmbed',
+                  onPressed: _showOEmbedMenu,
+                ),
+              ],
             ),
-            Expanded(
-              child: Container(
-                color: Theme.of(context).canvasColor,
-                child: QuillEditor.basic(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  config: QuillEditorConfig(
-                    padding: EdgeInsets.only(
-                      top: 16,
-                      left: 16,
-                      right: 16,
-                      bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
-                    ),
-                    embedBuilders: [OEmbedEmbedBuilder()],
+          ),
+          Expanded(
+            child: Container(
+              color: Theme.of(context).canvasColor,
+              child: QuillEditor.basic(
+                controller: _controller,
+                focusNode: _focusNode,
+                config: QuillEditorConfig(
+                  padding: EdgeInsets.only(
+                    top: 16,
+                    left: 16,
+                    right: 16,
+                    bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
                   ),
+                  embedBuilders: [OEmbedEmbedBuilder()],
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/embed_cache_config.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
-import 'package:flutter_oembed/src/models/embed_constraints.dart';
-import 'package:flutter_oembed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/configs/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_constraints.dart';
+import 'package:flutter_oembed/src/models/core/embed_style.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
-import 'package:flutter_oembed/src/models/social_embed_param.dart';
-import 'package:flutter_oembed/src/models/tiktok_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/params/tiktok_embed_params.dart';
 import 'package:flutter_oembed/src/utils/embed_matchers.dart';
 import 'package:flutter_oembed/src/widgets/embed_card.dart';
 import 'package:flutter_oembed/src/widgets/embed_renderer.dart';
@@ -49,6 +49,20 @@ class FakeWebViewPlatform extends WebViewPlatform {
   ) {
     return FakePlatformWebViewWidget(params);
   }
+}
+
+EmbedController buildController({
+  SocialEmbedParam? param,
+  EmbedConfig? config,
+}) {
+  final controller = EmbedController(config: config);
+  if (param != null) {
+    controller.synchronize(
+      contentKey: param,
+      config: config,
+    );
+  }
+  return controller;
 }
 
 class FakePlatformNavigationDelegate extends PlatformNavigationDelegate {
@@ -171,7 +185,7 @@ void main() {
   });
 
   testWidgets('EmbedCard.url factory forwards controller', (tester) async {
-    final controller = EmbedController(
+    final controller = buildController(
       param: SocialEmbedParam(
         url: 'https://vimeo.com/22439234',
         embedType: EmbedType.vimeo,
@@ -396,7 +410,7 @@ void main() {
   testWidgets(
       'embed params updates refresh the webview and external controller even with scope cache',
       (tester) async {
-    final controller = EmbedController(
+    final controller = buildController(
       param: SocialEmbedParam(
         url: 'https://www.tiktok.com/@user/video/123',
         embedType: EmbedType.tiktok_v1,
@@ -429,7 +443,10 @@ void main() {
         contains('autoplay=0'),
       );
       expect(
-        controller.param.embedParams,
+        tester
+            .widget<EmbedWebView>(find.byType(EmbedWebView))
+            .param
+            .embedParams,
         const TikTokEmbedParams(
           autoplay: false,
           controls: true,
@@ -464,7 +481,10 @@ void main() {
         contains('controls=0'),
       );
       expect(
-        controller.param.embedParams,
+        tester
+            .widget<EmbedWebView>(find.byType(EmbedWebView))
+            .param
+            .embedParams,
         const TikTokEmbedParams(
           autoplay: true,
           controls: false,

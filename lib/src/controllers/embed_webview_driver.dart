@@ -5,52 +5,37 @@ import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/controllers/embed_navigation_handler.dart';
 import 'package:flutter_oembed/src/core/provider_strategy.dart';
 import 'package:flutter_oembed/src/logging/embed_logger.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/provider_rule.dart';
+import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_oembed/src/services/embed_service.dart';
+import 'package:flutter_oembed/src/core/embed_service_interface.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter_oembed/src/utils/embed_webview_controller_utils.dart';
+import 'package:flutter_oembed/src/controllers/embed_driver_interface.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 /// Internal driver that manages the low-level [WebViewController] interactions.
 ///
 /// This class decouples the WebView lifecycle and platform-specific scripts
-/// from the high-level [EmbedController] state.
-class EmbedWebViewDriver {
+/// from the high-level [EmbedController] state. It handles loading HTML,
+/// executing provider-specific strategies, intercepting navigation requests,
+/// and coordinating media focus/playback when the widget enters or leaves
+/// the viewport or is covered by a route.
+class EmbedWebViewDriver implements IEmbedDriver {
   static const _initialRenderDelay = Duration(milliseconds: 300);
   static const _integrityRetryDelay = Duration(milliseconds: 700);
   static const _postLoadShiftDelay = Duration(milliseconds: 500);
 
-  // TODO: determine if this is still needed as now we have use Listener to handling use interaction with webview
-  /*
-  static const _navigationIntentTrackingScript = '''
-(() => {
-  if (window.__flutterOEmbedNavigationIntentBound) {
-    return;
-  }
-  window.__flutterOEmbedNavigationIntentBound = true;
-  document.addEventListener('click', function(event) {
-    let node = event.target;
-    while (node) {
-      if (node.tagName === 'A' && node.href) {
-        if (window.NavigationIntentChannel) {
-          NavigationIntentChannel.postMessage(node.href);
-        }
-        return;
-      }
-      node = node.parentElement;
-    }
-  }, true);
-})();
-''';
- */
-
+  @override
   final EmbedController controller;
+  final SocialEmbedParam param;
+  @override
   final WebViewController webViewController;
   late final EmbedNavigationHandler _navigationHandler;
   static final _focusCoordinator = _EmbedFocusCoordinator();
   static final Object _defaultFocusGroup = Object();
-  static const _twitterLoadedFallbackDelay = Duration(seconds: 2);
 
   EmbedProviderStrategy _strategy = const GenericEmbedProviderStrategy();
   Object _focusGroupKey = _defaultFocusGroup;
@@ -58,21 +43,33 @@ class EmbedWebViewDriver {
   bool _isFocused = false;
   bool _isRouteCovered = false;
   bool _isDisposed = false;
-  Timer? _twitterLoadedFallbackTimer;
-  bool _awaitingTwitterLoadedEvent = false;
 
   EmbedLogger get _logger =>
       controller.config?.logger ?? const EmbedLogger.disabled();
 
+  IEmbedService get _service =>
+      controller.config?.embedService ?? EmbedService.instance;
+
+  EmbedProviderCapabilities _resolveCapabilities(EmbedProviderRule? rule) {
+    return rule?.resolveCapabilities(
+          param.url,
+          embedParams: param.embedParams,
+          embedType: param.embedType,
+        ) ??
+        const EmbedProviderCapabilities();
+  }
+
   EmbedWebViewDriver({
     required this.controller,
+    required this.param,
     WebViewController? webViewController,
   }) : webViewController = webViewController ?? generateWebViewController() {
-    _strategy = EmbedService.resolveRule(
-          controller.param.url,
-          config: controller.config,
-        )?.strategy ??
-        const GenericEmbedProviderStrategy();
+    final rule = _service.resolveRule(
+      param.url,
+      config: controller.config,
+    );
+    controller.setMatchedProviderRule(rule);
+    _strategy = rule?.strategy ?? const GenericEmbedProviderStrategy();
 
     controller.bindMediaControls(
       pause: () => pauseMedias(),
@@ -81,15 +78,18 @@ class EmbedWebViewDriver {
       unmute: () => unmuteMedias(),
     );
     _navigationHandler = EmbedNavigationHandler(
-      param: controller.param,
+      param: param,
       config: controller.config,
+      providerRuleGetter: () => controller.matchedProviderRule,
     );
   }
 
+  /// Disposes of the driver resources, unbinding from the focus coordinator
+  /// and clearing the WebView if [preserveWebView] is false.
+  @override
   void dispose({bool preserveWebView = false}) {
     if (_isDisposed) return;
     _isDisposed = true;
-    _cancelTwitterLoadedFallback();
     controller.cancelLoadTimeout();
     controller.unbindMediaControls();
     _focusCoordinator.detach(this, groupKey: _focusGroupKey);
@@ -98,12 +98,18 @@ class EmbedWebViewDriver {
     }
   }
 
+  /// Updates the navigation focus group based on the target [route].
+  ///
+  /// Used by the overarching focus coordinator to group multiple embeds under
+  /// a single route, ensuring only the most visible one plays audio.
   void updateFocusGroup(ModalRoute<dynamic>? route) {
     if (_isDisposed) return;
     final nextGroupKey = route ?? _defaultFocusGroup;
     _updateFocusGroup(nextGroupKey);
   }
 
+  /// Informs the driver whether the current route is entirely occluded by
+  /// another full-screen overlay or route, pausing media if covered.
   Future<void> setRouteCovered(bool covered) async {
     if (_isDisposed || _isRouteCovered == covered) return;
     _isRouteCovered = covered;
@@ -113,6 +119,11 @@ class EmbedWebViewDriver {
     }
   }
 
+  /// Reports the visibility fraction of this embed's widget.
+  ///
+  /// Values range from 0.0 (completely hidden) to 1.0 (fully visible).
+  /// This value is used by [_EmbedFocusCoordinator] to automatically pause
+  /// or resume media.
   void updateVisibilityFraction(double visibleFraction) {
     if (_isDisposed) return;
     final normalized = visibleFraction.clamp(0.0, 1.0).toDouble();
@@ -127,6 +138,10 @@ class EmbedWebViewDriver {
     );
   }
 
+  /// Records a manual user interaction with the embed.
+  ///
+  /// This interaction state is maintained to distinguish automated clicks
+  /// from explicit user intent when evaluating navigation requests.
   void recordUserInteraction() {
     if (_isDisposed) return;
     _logger.debug('Recording user interaction');
@@ -134,6 +149,10 @@ class EmbedWebViewDriver {
   }
 
   /// Initialises and loads the WebView.
+  ///
+  /// Re-evaluates the [EmbedProviderStrategy] and prepares the [WebViewController]
+  /// environment (background color, zoom, user agent, channels, delegates)
+  /// before loading either raw HTML or a URL based on the provided parameters.
   Future<void> initEmbedWebview({
     required Color backgroundColor,
     required EmbedData? embedData,
@@ -143,22 +162,24 @@ class EmbedWebViewDriver {
     bool forceReload = false,
   }) async {
     if (_isDisposed) return;
-    _strategy = EmbedService.resolveRule(
-          controller.param.url,
-          config: controller.config,
-        )?.strategy ??
-        const GenericEmbedProviderStrategy();
+    final rule = _service.resolveRule(
+      param.url,
+      config: controller.config,
+    );
+    final capabilities = _resolveCapabilities(rule);
+    controller.setMatchedProviderRule(rule);
+    _strategy = rule?.strategy ?? const GenericEmbedProviderStrategy();
 
     if (!forceReload &&
         controller.loadingState == EmbedLoadingState.loaded &&
         (controller.height != null ||
-            controller.param.embedType == EmbedType.tiktok_v1)) {
+            capabilities.preserveLoadedStateWithoutMeasuredHeight)) {
       _logger.debug('Embed already loaded, skipping initEmbedWebview');
       return;
     }
 
     _logger.debug('Initializing WebView', data: {
-      'url': controller.param.url,
+      'url': param.url,
       'strategy': _strategy.runtimeType.toString(),
     });
 
@@ -186,8 +207,7 @@ class EmbedWebViewDriver {
     required String? embedUrl,
     bool scrollable = false,
   }) async {
-    final resolvedData = embedData ?? controller.preloadedData;
-    _navigationHandler.oembedData = resolvedData;
+    _navigationHandler.oembedData = embedData;
 
     await webViewController.setBackgroundColor(backgroundColor);
     if (_isDisposed) return;
@@ -202,12 +222,7 @@ class EmbedWebViewDriver {
       if (_isDisposed) return;
     }
 
-    await _strategy.onWebViewCreated(
-      webViewController,
-      onTwitterLoaded: () async {
-        await _handleTwitterLoaded();
-      },
-    );
+    await _strategy.onWebViewCreated(this);
     if (_isDisposed) return;
 
     await webViewController.addJavaScriptChannel(
@@ -230,7 +245,7 @@ class EmbedWebViewDriver {
           _logger.debug(
             'Ignoring non-fatal WebView JS error',
             data: {
-              'url': controller.param.url,
+              'url': param.url,
               'message': message.message,
             },
           );
@@ -238,7 +253,7 @@ class EmbedWebViewDriver {
         }
 
         _logger.warning('WebView JS error received', data: {
-          'url': controller.param.url,
+          'url': param.url,
           'message': message.message,
         });
 
@@ -264,7 +279,7 @@ class EmbedWebViewDriver {
 
     final baseUrl = embedData?.providerUrl;
     final trustedMainFrameUrls = <String>[
-      if (resolvedData?.url case final url? when url.isNotEmpty) url,
+      if (embedData?.url case final url? when url.isNotEmpty) url,
       if (embedUrl case final url? when url.isNotEmpty) url,
     ];
 
@@ -274,17 +289,16 @@ class EmbedWebViewDriver {
         trustedMainFrameUrls: trustedMainFrameUrls,
         loadingStateGetter: () => controller.loadingState,
         onPageStarted: (url) async {
-          _cancelTwitterLoadedFallback();
-          await _strategy.onPageStarted(webViewController);
+          await _strategy.onPageStarted(this);
         },
         onPageFinished: () async {
-          await _strategy.onPageFinished(webViewController);
-          await _handleEmbedPageFinishedWithFallback();
+          await _strategy.onPageFinished(this);
+          finalizePageFinished();
         },
         onWebResourceError: (error) {
           if (error.isForMainFrame == true) {
             _logger.warning('Main frame load error', data: {
-              'url': controller.param.url,
+              'url': param.url,
               'errorCode': error.errorCode,
               'description': error.description,
             });
@@ -334,75 +348,50 @@ class EmbedWebViewDriver {
     bool scrollable,
   ) async {
     if (_isDisposed) return;
-    final resolvedData = embedData ?? controller.preloadedData;
-    if (resolvedData != null) {
-      if (resolvedData.html.isNotEmpty) {
+    if (embedData != null) {
+      if (embedData.html.isNotEmpty) {
         await webViewController.loadHtmlString(
           _strategy.buildHtmlDocument(
-            resolvedData.html,
-            type: controller.param.embedType,
+            embedData.html,
+            type: param.embedType,
             maxWidth: maxWidth,
             scrollable: scrollable,
           ),
-          baseUrl: _strategy.resolveBaseUrl(resolvedData),
+          baseUrl: _strategy.resolveBaseUrl(embedData),
         );
-      } else if (resolvedData.url != null && resolvedData.url!.isNotEmpty) {
+      } else if (embedData.url != null && embedData.url!.isNotEmpty) {
         if (_isDisposed) return;
-        await webViewController.loadRequest(Uri.parse(resolvedData.url!));
+        await webViewController.loadRequest(Uri.parse(embedData.url!));
       }
     } else if (embedUrl != null) {
       if (_isDisposed) return;
       final embedUri = Uri.parse(embedUrl);
-      final refererHeader = controller.param.embedType == EmbedType.youtube &&
-              (embedUri.host.contains('youtube.com') ||
+      final rule = controller.matchedProviderRule ??
+          _service.resolveRule(
+            param.url,
+            config: controller.config,
+          );
+      final capabilities = _resolveCapabilities(rule);
+      final refererHeader = switch (capabilities.refererPolicy) {
+        EmbedRefererPolicy.contentUrl => param.url,
+        EmbedRefererPolicy.embedOriginWhenProviderHostedElseContentUrl =>
+          (embedUri.host.contains('youtube.com') ||
                   embedUri.host.contains('youtube-nocookie.com'))
-          ? embedUri.origin
-          : controller.param.url;
+              ? embedUri.origin
+              : param.url,
+        EmbedRefererPolicy.none => null,
+      };
       await webViewController.loadRequest(
         embedUri,
         headers: <String, String>{
-          if (controller.param.embedType == EmbedType.youtube ||
-              controller.param.embedType == EmbedType.spotify)
-            'Referer': refererHeader,
+          if (refererHeader != null) 'Referer': refererHeader,
         },
       );
     }
   }
 
-  Future<void> _handleEmbedPageFinishedWithFallback() async {
-    if (_usesTwitterLoadedFallback) {
-      _awaitingTwitterLoadedEvent = true;
-      _twitterLoadedFallbackTimer?.cancel();
-      _twitterLoadedFallbackTimer = Timer(
-        _twitterLoadedFallbackDelay,
-        () {
-          if (_isDisposed || !_awaitingTwitterLoadedEvent) return;
-          _awaitingTwitterLoadedEvent = false;
-          unawaited(_handleEmbedPageFinished());
-        },
-      );
-      return;
-    }
-
-    await _handleEmbedPageFinished();
-  }
-
-  Future<void> _handleTwitterLoaded() async {
-    if (_isDisposed || !_awaitingTwitterLoadedEvent) return;
-    _cancelTwitterLoadedFallback();
-    await _handleEmbedPageFinished();
-  }
-
-  void _cancelTwitterLoadedFallback() {
-    _awaitingTwitterLoadedEvent = false;
-    _twitterLoadedFallbackTimer?.cancel();
-    _twitterLoadedFallbackTimer = null;
-  }
-
-  bool get _usesTwitterLoadedFallback =>
-      controller.param.embedType == EmbedType.x;
-
-  Future<void> _handleEmbedPageFinished() async {
+  @override
+  Future<void> finalizePageFinished() async {
     // 1. URL Safety Check: If we end up on an error page or unexpected blank page, trigger error
     final url = await webViewController.currentUrl();
     if (_isDisposed) return;
@@ -410,7 +399,7 @@ class EmbedWebViewDriver {
         (url.startsWith('chrome-error:') ||
             (url.startsWith('file://') && url.contains('ERROR')))) {
       _logger.warning('WebView loaded an error page', data: {
-        'url': controller.param.url,
+        'url': param.url,
         'currentUrl': url,
       });
       controller.setLoadingState(
@@ -418,6 +407,16 @@ class EmbedWebViewDriver {
         error: StateError('WebView loaded an error page: $url'),
       );
       return;
+    }
+
+    final rule = _service.resolveRule(
+      param.url,
+      config: controller.config,
+    );
+    final capabilities = _resolveCapabilities(rule);
+
+    if (capabilities.muteMediaOnLoad) {
+      await muteMedias(reason: 'mute_on_load');
     }
 
     // 2. Small delay to allow initial rendering to start
@@ -448,12 +447,12 @@ class EmbedWebViewDriver {
       } else {
         _logger.warning('WebView load integrity failure: effectively 0 height',
             data: {
-              'url': controller.param.url,
+              'url': param.url,
             });
         controller.setLoadingState(
           EmbedLoadingState.error,
           error: StateError(
-            'WebView rendered with an invalid height for ${controller.param.url}.',
+            'WebView rendered with an invalid height for ${param.url}.',
           ),
         );
       }
@@ -465,6 +464,8 @@ class EmbedWebViewDriver {
     await updateEmbedPostHeight();
   }
 
+  /// Polls the document height from the WebView and updates the controller
+  /// if a change is detected.
   Future<void> updateEmbedPostHeight() async {
     try {
       final double? newHeight =
@@ -474,7 +475,7 @@ class EmbedWebViewDriver {
         _logger.debug(
           'Updated embed height',
           data: {
-            'url': controller.param.url,
+            'url': param.url,
             'height': newHeight,
           },
         );
@@ -483,13 +484,15 @@ class EmbedWebViewDriver {
     } catch (error, stackTrace) {
       _logger.debug(
         'Failed to read embed height',
-        data: {'url': controller.param.url},
+        data: {'url': param.url},
         error: error,
         stackTrace: stackTrace,
       );
     }
   }
 
+  /// Pauses active media playback via the provider-specific strategy.
+  @override
   Future<void> pauseMedias({String reason = 'manual'}) async {
     await _controlMedia(
       action: _MediaControlAction.pause,
@@ -497,6 +500,8 @@ class EmbedWebViewDriver {
     );
   }
 
+  /// Resumes media playback via the provider-specific strategy.
+  @override
   Future<void> resumeMedias({String reason = 'manual'}) async {
     await _controlMedia(
       action: _MediaControlAction.resume,
@@ -504,6 +509,8 @@ class EmbedWebViewDriver {
     );
   }
 
+  /// Mutes audio via the provider-specific strategy.
+  @override
   Future<void> muteMedias({String reason = 'manual'}) async {
     await _controlMedia(
       action: _MediaControlAction.mute,
@@ -511,6 +518,8 @@ class EmbedWebViewDriver {
     );
   }
 
+  /// Unmutes audio via the provider-specific strategy.
+  @override
   Future<void> unmuteMedias({String reason = 'manual'}) async {
     await _controlMedia(
       action: _MediaControlAction.unmute,
@@ -518,8 +527,9 @@ class EmbedWebViewDriver {
     );
   }
 
+  /// Reloads the underlying [WebViewController] to trigger a fresh page load.
   Future<void> refresh() async {
-    _logger.debug('Refreshing embed', data: {'url': controller.param.url});
+    _logger.debug('Refreshing embed', data: {'url': param.url});
     if (_isDisposed) return;
     await webViewController.reload();
     if (_isDisposed) return;
@@ -544,6 +554,8 @@ class EmbedWebViewDriver {
     }
   }
 
+  /// Called by the [_EmbedFocusCoordinator] to signal that this driver has
+  /// gained or lost dominant focus among its peers in the same route.
   void onFocusChanged(
     bool focused, {
     required String reason,
@@ -560,7 +572,7 @@ class EmbedWebViewDriver {
     _logger.info(
       'Embed focus changed',
       data: {
-        'url': controller.param.url,
+        'url': param.url,
         'focused': focused,
         'reason': reason,
         'visibleFraction': _visibleFraction,
@@ -588,7 +600,7 @@ class EmbedWebViewDriver {
     _logger.info(
       'Media control requested',
       data: {
-        'url': controller.param.url,
+        'url': param.url,
         'action': action.name,
         'reason': reason,
         'strategy': _strategy.runtimeType.toString(),
@@ -614,7 +626,7 @@ class EmbedWebViewDriver {
       _logger.warning(
         'Media control failed',
         data: {
-          'url': controller.param.url,
+          'url': param.url,
           'action': action.name,
           'reason': reason,
         },
@@ -630,7 +642,7 @@ class EmbedWebViewDriver {
     } catch (error, stackTrace) {
       _logger.debug(
         'Ignoring WebView cleanup load failure during dispose',
-        data: {'url': controller.param.url},
+        data: {'url': param.url},
         error: error,
         stackTrace: stackTrace,
       );
@@ -641,7 +653,7 @@ class EmbedWebViewDriver {
     } catch (error, stackTrace) {
       _logger.debug(
         'Ignoring NavigationDelegate cleanup failure during dispose',
-        data: {'url': controller.param.url},
+        data: {'url': param.url},
         error: error,
         stackTrace: stackTrace,
       );
@@ -668,6 +680,9 @@ class EmbedWebViewDriver {
 
 enum _MediaControlAction { pause, resume, mute, unmute }
 
+/// Internal coordinator that tracks visibility for multiple [EmbedWebViewDriver]s
+/// grouped by route/container. It automatically plays media for the single
+/// most visible embed and pauses the others.
 class _EmbedFocusCoordinator {
   final Map<Object, Map<EmbedWebViewDriver, double>> _visibleFractionsByGroup =
       <Object, Map<EmbedWebViewDriver, double>>{};

@@ -1,10 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:collection/collection.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
-import 'package:flutter_oembed/src/models/social_embed_param.dart';
-import 'package:flutter_oembed/src/logging/embed_logger.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/flutter_oembed.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -21,8 +16,16 @@ class EmbedNavigationHandler {
     milliseconds: 1500,
   );
 
+  /// The parameter configuration containing the URL and type of the embed.
   final SocialEmbedParam param;
+
+  /// The optional configuration provided by the user for customization.
   final EmbedConfig? config;
+
+  /// Returns the current resolved provider rule for internal navigation evaluation.
+  final EmbedProviderRule? Function() providerRuleGetter;
+
+  /// A function that returns the current time, used for tests to control time.
   final DateTime Function() _now;
 
   /// Resolved scaffold background color — captured at build time to avoid
@@ -34,12 +37,24 @@ class EmbedNavigationHandler {
 
   /// The OEmbed data being displayed, passed to link-click callbacks for analysis.
   EmbedData? oembedData;
+
+  /// The timestamp of the last recorded user interaction within the WebView.
   DateTime? _lastUserInteractionAt;
+
+  /// The most recent user intent to navigate outside the embed.
   _UserNavigationIntent? _lastUserNavigationIntent;
 
+  /// Creates an [EmbedNavigationHandler].
+  ///
+  /// [param] is required to identify the embed.
+  /// [config] provides optional customization for navigation and logging.
+  /// [providerRuleGetter] is used for provider-specific internal navigation handling.
+  /// [backgroundColor] helps determine the default background color during loading.
+  /// [now] is an optional override for [DateTime.now], primarily for testing.
   EmbedNavigationHandler({
     required this.param,
     required this.config,
+    required this.providerRuleGetter,
     this.backgroundColor,
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
@@ -184,10 +199,7 @@ class EmbedNavigationHandler {
 
         if (recentIntent == null && !_consumeRecentUserInteraction()) {
           // 4. Provider-specific internal navigation
-          final provider =
-              config?.providers.effectiveProviders.firstWhereOrNull(
-            (r) => r.matches(param.url),
-          );
+          final provider = providerRuleGetter();
           if (provider?.shouldAllowNavigation?.call(requestUrl) ?? false) {
             logger.debug(
               'Provider allowed internal navigation',
@@ -224,10 +236,25 @@ class EmbedNavigationHandler {
     );
   }
 
+  /// Determines the appropriate callback URL to pass to [config.onLinkTap].
+  ///
+  /// TikTok requires returning the original embed URL instead of the clicked URL
+  /// due to its specific tracking/navigation behavior.
   String _callbackUrlFor(String requestUrl) {
-    return param.embedType == EmbedType.tiktok ? param.url : requestUrl;
+    final provider = providerRuleGetter();
+    final capabilities = provider?.resolveCapabilities(
+          param.url,
+          embedParams: param.embedParams,
+          embedType: param.embedType,
+        ) ??
+        const EmbedProviderCapabilities();
+    return capabilities.useOriginalContentUrlForCallback
+        ? param.url
+        : requestUrl;
   }
 
+  /// Evaluates whether the [requestUrl] uses a core scheme like `data:` or `about:`
+  /// that should never be blocked by navigation rules.
   bool _isAlwaysAllowedNavigation(String requestUrl, Uri? uri) {
     if (requestUrl == 'about:blank') {
       return true;
@@ -237,6 +264,10 @@ class EmbedNavigationHandler {
     return scheme != null && _alwaysAllowedSchemes.contains(scheme);
   }
 
+  /// Captures an explicit intent by the user to navigate to [url].
+  ///
+  /// This registers both a general user interaction and a specific navigation
+  /// intent, which helps differentiate manual link taps from passive redirects.
   void recordUserNavigationIntent(String url) {
     if (url.isEmpty) return;
     _lastUserInteractionAt = _now();
@@ -246,10 +277,19 @@ class EmbedNavigationHandler {
     );
   }
 
+  /// Records a general touch or interaction within the WebView.
+  ///
+  /// Used primarily for heuristics that require proximity between an action
+  /// (like a redirect) and human interaction.
   void recordUserInteraction() {
     _lastUserInteractionAt = _now();
   }
 
+  /// Retrieves and consumes the most recently recorded navigation intent,
+  /// provided it falls within the allowed time window.
+  ///
+  /// Returns `null` if no recent, valid intent is found. Once read, the
+  /// intent is cleared to prevent reuse.
   _UserNavigationIntent? _takeRecentUserNavigationIntent() {
     final intent = _lastUserNavigationIntent;
     _lastUserNavigationIntent = null;
@@ -264,6 +304,10 @@ class EmbedNavigationHandler {
     return intent;
   }
 
+  /// Consumes the most recent user interaction timestamp and returns `true`
+  /// if an interaction occurred within the allowed window.
+  ///
+  /// The interaction history is cleared to ensure it is consumed exactly once.
   bool _consumeRecentUserInteraction() {
     final interactionAt = _lastUserInteractionAt;
     _lastUserInteractionAt = null;
@@ -274,20 +318,28 @@ class EmbedNavigationHandler {
     return _now().difference(interactionAt) <= _userNavigationIntentWindow;
   }
 
+  /// Returns `true` if there is a recent, valid user interaction recorded.
+  ///
+  /// Exposed only for testing without side-effecting internal state.
   bool get hasRecentUserInteractionForTesting {
     final interactionAt = _lastUserInteractionAt;
     return interactionAt != null &&
         _now().difference(interactionAt) <= _userNavigationIntentWindow;
   }
 
+  /// Checks if two URLs are identical, ignoring any trailing slash.
   bool _urlsMatch(String first, String second) {
     return _trimTrailingSlash(first) == _trimTrailingSlash(second);
   }
 
+  /// Removes the trailing slash from [url], if present.
   String _trimTrailingSlash(String url) {
     return url.endsWith('/') ? url.substring(0, url.length - 1) : url;
   }
 
+  /// Determines if a startup navigation belongs to the embed provider
+  /// (e.g., passing between subdomains or authentication redirects of the
+  /// native service).
   bool _isProviderOwnedStartupNavigation({
     required Uri? requestUri,
     required String? baseUrl,
@@ -307,6 +359,7 @@ class EmbedNavigationHandler {
     return trustedHosts.any((host) => _hostMatches(requestHost, host));
   }
 
+  /// Extracts explicitly defined, non-empty hosts from a list of [urls].
   Set<String> _collectHosts(List<String> urls) {
     return urls
         .map(Uri.tryParse)
@@ -316,6 +369,10 @@ class EmbedNavigationHandler {
         .toSet();
   }
 
+  /// Checks if [requestHost] is logically related to [trustedHost].
+  ///
+  /// This accommodates cases where platforms navigate through subdomains or
+  /// root domains owned by the same base provider.
   bool _hostMatches(String requestHost, String trustedHost) {
     return requestHost == trustedHost ||
         requestHost.endsWith('.$trustedHost') ||
@@ -323,6 +380,9 @@ class EmbedNavigationHandler {
         _baseDomain(requestHost) == _baseDomain(trustedHost);
   }
 
+  /// Extracts the base root domain for a given [host].
+  ///
+  /// Example: `www.tiktok.com` -> `tiktok.com`
   String _baseDomain(String host) {
     final parts = host.split('.');
     if (parts.length < 2) {
@@ -331,6 +391,8 @@ class EmbedNavigationHandler {
     return '${parts[parts.length - 2]}.${parts[parts.length - 1]}';
   }
 
+  /// Facilitates navigation out of the embedded WebView, either by calling
+  /// an external [config.onLinkTap] callback or launching the URL natively.
   Future<void> _handleExternalNavigation(
     Uri uri, {
     required String callbackUrl,
@@ -375,8 +437,12 @@ class EmbedNavigationHandler {
   }
 }
 
+/// Wrapper containing information about an explicit request to navigate externally.
 class _UserNavigationIntent {
+  /// The destination URL.
   final String url;
+
+  /// The time the navigation request was recorded.
   final DateTime recordedAt;
 
   const _UserNavigationIntent({

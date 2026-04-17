@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/meta_embed_params.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/params/meta_embed_params.dart';
 import 'package:flutter_oembed/src/services/api/meta_embed_api.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter_test/flutter_test.dart';

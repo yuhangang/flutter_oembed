@@ -2,11 +2,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
-import 'package:flutter_oembed/src/models/meta_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/meta_embed_params.dart';
 
 /// OEmbed API client for Meta platforms (Facebook + Instagram).
 class MetaEmbedApi extends BaseEmbedApi {
@@ -24,8 +24,8 @@ class MetaEmbedApi extends BaseEmbedApi {
   final String? endpoint;
   final EmbedType embedType;
   final double width;
-  final String appId;
-  final String clientToken;
+  final String? appId;
+  final String? clientToken;
   final MetaEmbedParams? metaParams;
 
   static const String pageEndPoint = 'embed_page';
@@ -37,7 +37,7 @@ class MetaEmbedApi extends BaseEmbedApi {
   String get baseUrl {
     if (proxyUrl != null) return proxyUrl!;
     if (embedType == EmbedType.threads) return 'https://graph.threads.net/v1.0';
-    return 'https://graph.facebook.com/v22.0';
+    return 'https://graph.facebook.com/v25.0';
   }
 
   @override
@@ -72,7 +72,7 @@ class MetaEmbedApi extends BaseEmbedApi {
 
     final params = {
       'url': url,
-      if (appId.isNotEmpty && clientToken.isNotEmpty)
+      if (appId != null && clientToken != null)
         'access_token': '$appId|$clientToken',
       if (metaParams?.maxwidth == null) 'maxwidth': width.toInt().toString(),
     };

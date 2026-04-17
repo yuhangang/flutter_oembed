@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_oembed/src/core/provider_strategy.dart';
+import 'package:flutter_oembed/src/controllers/embed_controller.dart';
+import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
 import 'package:flutter_oembed/src/core/provider_strategies.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_renderer.dart';
-import 'package:flutter_oembed/src/models/provider_rule.dart';
+import 'package:flutter_oembed/src/core/provider_strategy.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_renderer.dart';
+import 'package:flutter_oembed/src/models/core/provider_rule.dart';
+import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 import 'package:flutter_oembed/src/services/api/meta_embed_api.dart';
 import 'package:flutter_oembed/src/services/api/reddit_embed_api.dart';
@@ -19,6 +22,32 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 class MockWebViewController extends Mock implements WebViewController {}
 
+const _testRule = EmbedProviderRule(
+  pattern: r'https?://example\.com/.*',
+  endpoint: 'https://example.com/oembed',
+  providerName: 'Example',
+);
+
+EmbedWebViewDriver buildDriver(
+  WebViewController controller, {
+  SocialEmbedParam? param,
+}) {
+  final embedParam = param ??
+      SocialEmbedParam(
+        url: 'https://example.com',
+        embedType: EmbedType.other,
+      );
+  final embedController = EmbedController()
+    ..synchronize(
+      contentKey: embedParam,
+    );
+  return EmbedWebViewDriver(
+    controller: embedController,
+    param: embedParam,
+    webViewController: controller,
+  );
+}
+
 void main() {
   group('Provider Strategies', () {
     late MockWebViewController mockController;
@@ -26,18 +55,25 @@ void main() {
     setUp(() {
       mockController = MockWebViewController();
       registerFallbackValue(const JavaScriptMessage(message: ''));
+      when(() => mockController.currentUrl())
+          .thenAnswer((_) async => 'https://example.com');
+      when(() => mockController.runJavaScriptReturningResult(any()))
+          .thenAnswer((_) async => '300');
     });
 
     const defaultContext = EmbedProviderContext(
       url: 'https://example.com',
       resolvedEndpoint: 'https://example.com/oembed',
+      rule: _testRule,
       strategy: YouTubeProviderStrategy(),
       width: 640.0,
       locale: 'en',
       brightness: Brightness.light,
-      facebookAppId: '',
-      facebookClientToken: '',
+      facebookAppId: null,
+      facebookClientToken: null,
       providerName: 'YouTube',
+      variant: EmbedVariant.standard,
+      capabilities: EmbedProviderCapabilities(),
     );
 
     test('YouTubeProviderStrategy', () async {
@@ -79,8 +115,12 @@ void main() {
           .thenAnswer((invocation) async {
         scripts.add(invocation.positionalArguments.first as String);
       });
-      await strategy.onPageFinished(mockController);
-      expect(scripts, hasLength(2));
+      await strategy.onPageFinished(buildDriver(mockController));
+      expect(scripts, hasLength(1));
+      expect(
+        scripts.single,
+        contains("document.querySelectorAll('video, audio')"),
+      );
 
       clearInteractions(mockController);
       scripts.clear();
@@ -117,13 +157,25 @@ void main() {
       when(() => mockController.addJavaScriptChannel(any(),
               onMessageReceived: any(named: 'onMessageReceived')))
           .thenAnswer((_) async => {});
-      await strategy.onWebViewCreated(mockController, onTwitterLoaded: () {});
+      await strategy.onWebViewCreated(buildDriver(
+        mockController,
+        param: SocialEmbedParam(
+          url: 'https://twitter.com/user/status/1',
+          embedType: EmbedType.x,
+        ),
+      ));
       verify(() => mockController.addJavaScriptChannel(any(),
           onMessageReceived: any(named: 'onMessageReceived'))).called(1);
 
       when(() => mockController.runJavaScript(any()))
           .thenAnswer((_) async => {});
-      await strategy.onPageFinished(mockController);
+      await strategy.onPageFinished(buildDriver(
+        mockController,
+        param: SocialEmbedParam(
+          url: 'https://twitter.com/user/status/1',
+          embedType: EmbedType.x,
+        ),
+      ));
       verify(() => mockController.runJavaScript(any())).called(1);
     });
 

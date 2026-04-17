@@ -2,13 +2,14 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_oembed/src/utils/embed_link_utils.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_oembed/src/widgets/embed_surface.dart';
-import 'package:flutter_oembed/src/models/embed_constraints.dart';
+import 'package:flutter_oembed/src/models/core/embed_constraints.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
 
 /// A standalone player widget for YouTube's native iframe player.
@@ -221,12 +222,13 @@ class _YoutubeEmbedPlayerState extends State<YoutubeEmbedPlayer> {
         _isControllerInternal = false;
       } else {
         _controller = EmbedController(
-          param: _param,
           config: EmbedScope.configOf(context),
         );
         _isControllerInternal = true;
       }
     }
+
+    _synchronizeController();
   }
 
   void _initControllerIfNeeded() {
@@ -235,11 +237,36 @@ class _YoutubeEmbedPlayerState extends State<YoutubeEmbedPlayer> {
       _isControllerInternal = false;
     } else {
       _controller = EmbedController(
-        param: _param,
         config: EmbedScope.configOf(context),
       );
       _isControllerInternal = true;
     }
+
+    _synchronizeController();
+  }
+
+  Object _buildContentKey(EmbedConfig? config) => (
+        _param,
+        widget.controls,
+        widget.autoplay,
+        widget.loop,
+        widget.rel,
+        widget.host,
+        widget.useOriginExperiment,
+        widget.experimentalOrigin,
+        widget.theme,
+        widget.color,
+        config?.locale,
+        config?.brightness,
+      );
+
+  void _synchronizeController() {
+    final config = EmbedScope.configOf(context);
+    _controller.synchronize(
+      contentKey: _buildContentKey(config),
+      config: config,
+      notify: false,
+    );
   }
 
   @override

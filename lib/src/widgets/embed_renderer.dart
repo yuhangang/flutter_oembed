@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_constraints.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/embed_style.dart';
-import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_constraints.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_style.dart';
+import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_widget_loader.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
 import 'package:flutter_oembed/src/widgets/embed_surface.dart';

@@ -1,6 +1,10 @@
-import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/provider_rule.dart';
 import 'package:flutter_oembed/src/utils/embed_matchers.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../helpers/fake_embed_service.dart';
 
 void main() {
   group('EmbedMatchers', () {
@@ -65,6 +69,25 @@ void main() {
       test('should return EmbedType.other when an unknown URL is provided', () {
         expect(EmbedMatchers.getEmbedType('https://unknown.com'),
             equals(EmbedType.other));
+      });
+
+      test('should use the configured embed service when provided', () {
+        final service = FakeEmbedService(
+          resolveRuleResponse: const EmbedProviderRule(
+            pattern: r'https?://unknown\.com/.*',
+            endpoint: 'https://example.com/oembed',
+            providerName: 'Spotify',
+          ),
+        );
+
+        expect(
+          EmbedMatchers.getEmbedType(
+            'https://unknown.com/post/123',
+            config: EmbedConfig(embedService: service),
+          ),
+          equals(EmbedType.spotify),
+        );
+        expect(service.resolveRuleCallCount, 1);
       });
     });
 

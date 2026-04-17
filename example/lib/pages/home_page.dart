@@ -1,5 +1,5 @@
 import 'package:embed_example/integrations/custom_provider_integration.dart';
-import 'package:embed_example/integrations/discovery_integration.dart';
+
 import 'package:embed_example/integrations/html_integration.dart';
 import 'package:embed_example/integrations/markdown_integration.dart';
 import 'package:embed_example/integrations/quill_integration.dart';
@@ -94,14 +94,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   color: Colors.teal,
                   page: const QuillIntegrationPage(),
                 ),
-                _buildIntegrationCard(
-                  context,
-                  title: 'Discovery',
-                  subtitle: 'Try any OEmbed URL',
-                  icon: Icons.explore_rounded,
-                  color: Colors.purple,
-                  page: const DiscoveryIntegrationPage(),
-                ),
+
                 _buildIntegrationCard(
                   context,
                   title: 'Custom Provider',

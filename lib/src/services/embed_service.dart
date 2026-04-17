@@ -1,24 +1,26 @@
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:flutter_oembed/src/logging/embed_logger.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/embed_cache_config.dart';
-import 'package:flutter_oembed/src/models/base_embed_params.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_loader_param.dart';
-import 'package:flutter_oembed/src/models/embed_provider_config.dart';
-import 'package:flutter_oembed/src/models/provider_rule.dart';
+import 'package:flutter_oembed/src/models/params/base_embed_params.dart';
+import 'package:flutter_oembed/src/models/configs/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_loader_param.dart';
+import 'package:flutter_oembed/src/models/configs/embed_provider_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_renderer.dart';
+import 'package:flutter_oembed/src/models/core/provider_rule.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
-import 'package:flutter_oembed/src/services/provider_registry.dart';
-import 'package:flutter_oembed/src/services/providers_snapshot.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
-import 'package:flutter_oembed/src/models/embed_renderer.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_oembed/src/core/embed_service_interface.dart';
 
-class EmbedService {
-  /// Fetches OEmbed data using [EmbedConfig].
-  static Future<EmbedData> getResult({
+/// Default implementation of [IEmbedService].
+class EmbedServiceImpl implements IEmbedService {
+  const EmbedServiceImpl();
+
+  @override
+  Future<EmbedData> getResult({
     required EmbedLoaderParam param,
     EmbedConfig? config,
     EmbedLogger? logger,
@@ -40,7 +42,7 @@ class EmbedService {
       },
     );
 
-    final api = _resolveApi(
+    final api = resolveApi(
       param,
       config: config,
       logger: resolvedLogger,
@@ -58,18 +60,16 @@ class EmbedService {
     );
   }
 
-  /// Resolves the appropriate [BaseEmbedApi] for the given [param].
-  static BaseEmbedApi getEmbedApiByEmbedType(
+  @override
+  BaseEmbedApi getEmbedApiByEmbedType(
     EmbedLoaderParam param, {
     EmbedLogger? logger,
   }) {
-    return _resolveApi(param, logger: logger);
+    return resolveApi(param, logger: logger);
   }
 
-  /// Resolves the cache request URI used for a given content [url].
-  ///
-  /// Returns `null` when no matching provider can be resolved.
-  static Uri? resolveCacheUri(
+  @override
+  Uri? resolveCacheUri(
     String url, {
     EmbedConfig? config,
     EmbedType? embedType,
@@ -86,7 +86,7 @@ class EmbedService {
         queryParameters: queryParameters,
         embedParams: embedParams,
       );
-      final api = _resolveApi(param, config: config, logger: logger);
+      final api = resolveApi(param, config: config, logger: logger);
       return api.constructUrl(
         url,
         locale: config?.locale ?? 'en',
@@ -98,9 +98,8 @@ class EmbedService {
     }
   }
 
-  /// Resolves how to render [url] given [config], returning a [EmbedRenderer]
-  /// sealed type that callers can exhaustively pattern-match on.
-  static EmbedRenderer resolveRender(
+  @override
+  EmbedRenderer resolveRender(
     String url, {
     EmbedConfig? config,
     EmbedType? embedType,
@@ -111,6 +110,16 @@ class EmbedService {
     final rule = resolveRule(url, config: config);
     if (rule != null) {
       final endpoint = rule.resolveEndpoint(url);
+      final variant = rule.resolveVariant(
+        url,
+        embedParams: embedParams,
+        embedType: embedType,
+      );
+      final capabilities = rule.resolveCapabilities(
+        url,
+        embedParams: embedParams,
+        embedType: embedType,
+      );
 
       // Resolve iframe URL if requested in config
       final iframeUrl = resolveIframeUrl(
@@ -127,10 +136,13 @@ class EmbedService {
         width: 0,
         locale: config?.locale ?? 'en',
         brightness: config?.brightness ?? Brightness.light,
-        facebookAppId: config?.facebookAppId ?? '',
-        facebookClientToken: config?.facebookClientToken ?? '',
+        facebookAppId: config?.facebookAppId,
+        facebookClientToken: config?.facebookClientToken,
+        rule: rule,
         strategy: rule.strategy,
         providerName: rule.providerName,
+        variant: variant,
+        capabilities: capabilities,
         proxyUrl: config?.proxyUrl,
         embedParams: embedParams,
         iframeUrl: iframeUrl,
@@ -143,8 +155,8 @@ class EmbedService {
     return const OEmbedRenderer();
   }
 
-  /// Resolves the [EmbedProviderRule] for a given [url] and [config].
-  static EmbedProviderRule? resolveRule(
+  @override
+  EmbedProviderRule? resolveRule(
     String url, {
     EmbedConfig? config,
   }) {
@@ -155,100 +167,15 @@ class EmbedService {
       rule = config.resolvedProviders.matchRule(url);
     } else {
       // Fallback for when no config is provided
-      rule = kDefaultEmbedProviders.firstWhereOrNull(
+      rule = EmbedProviders.verified.firstWhereOrNull(
         (r) => r.matches(url),
       );
     }
-
-    // 2. Static discovery check
-    if (rule == null &&
-        (config?.useDynamicDiscovery == true ||
-            config?.providers.useDynamicDiscovery == true)) {
-      rule = _findRuleInSnapshot(url);
-    }
-
     return rule;
   }
 
-  static BaseEmbedApi _resolveApi(
-    EmbedLoaderParam param, {
-    EmbedConfig? config,
-    EmbedLogger? logger,
-  }) {
-    final resolvedLogger =
-        logger ?? config?.logger ?? const EmbedLogger.disabled();
-    final facebookAppId = config?.facebookAppId ?? '';
-    final facebookClientToken = config?.facebookClientToken ?? '';
-    final locale = config?.locale ?? 'en';
-    final brightness = config?.brightness ?? Brightness.light;
-
-    final rule = resolveRule(param.url, config: config);
-
-    // 3. Resolve using found rule
-    if (rule != null) {
-      final endpoint = rule.resolveEndpoint(param.url);
-      resolvedLogger.debug(
-        'Matched provider',
-        data: {
-          'url': param.url,
-          'provider': rule.providerName,
-          'endpoint': endpoint,
-        },
-      );
-      final ctx = EmbedProviderContext(
-        url: param.url,
-        resolvedEndpoint: endpoint,
-        width: param.width,
-        locale: locale,
-        brightness: brightness,
-        facebookAppId: facebookAppId,
-        facebookClientToken: facebookClientToken,
-        strategy: rule.strategy,
-        providerName: rule.providerName,
-        proxyUrl: config?.proxyUrl,
-        embedParams: param.embedParams,
-        embedType: param.embedType,
-      );
-
-      final api = rule.apiFactory?.call(ctx) ?? rule.strategy.createApi(ctx);
-      resolvedLogger.debug(
-        'Using API handler',
-        data: {
-          'url': param.url,
-          'api': api.runtimeType.toString(),
-        },
-      );
-      return api;
-    }
-
-    // 4. Default fallback: Only if it's a likely oEmbed endpoint
-    final isLikelyEndpoint =
-        param.url.contains('/oembed') || param.url.contains('oembed.');
-
-    if (isLikelyEndpoint) {
-      resolvedLogger.debug(
-        'Using generic oEmbed API for suspected endpoint',
-        data: {'url': param.url},
-      );
-      return GenericEmbedApi(
-        param.url,
-        proxyUrl: config?.proxyUrl,
-        width: param.width,
-      );
-    }
-
-    // If discovery failed and it's not a likely endpoint, we shouldn't attempt
-    // to use the content URL itself as an oEmbed endpoint.
-    resolvedLogger.warning(
-      'No oEmbed provider matched and URL does not look like an oEmbed endpoint',
-      data: {'url': param.url},
-    );
-    throw EmbedProviderNotFoundException(url: param.url);
-  }
-
-  /// Resolves the iframe URL for a given content URL if iframe mode is active.
-  /// Returns null if the provider doesn't support iframe mode or isn't enabled.
-  static String? resolveIframeUrl(
+  @override
+  String? resolveIframeUrl(
     String url, {
     EmbedConfig? config,
     EmbedLogger? logger,
@@ -298,27 +225,189 @@ class EmbedService {
     return iframeUrl;
   }
 
-  /// Performs an O(1) domain-based lookup in the static snapshot.
-  static EmbedProviderRule? _findRuleInSnapshot(String url) {
-    final uri = Uri.tryParse(url);
-    if (uri == null) return null;
+  /// Internal helper to resolve the API for a given parameter.
+  BaseEmbedApi resolveApi(
+    EmbedLoaderParam param, {
+    EmbedConfig? config,
+    EmbedLogger? logger,
+  }) {
+    final resolvedLogger =
+        logger ?? config?.logger ?? const EmbedLogger.disabled();
+    final facebookAppId = config?.facebookAppId;
+    final facebookClientToken = config?.facebookClientToken;
+    final locale = config?.locale ?? 'en';
+    final brightness = config?.brightness ?? Brightness.light;
 
-    final host = uri.host.toLowerCase();
-    final parts = host.split('.');
+    final rule = resolveRule(param.url, config: config);
 
-    // Check host and parent domains (e.g., 'www.youtube.com' -> 'youtube.com')
-    for (int i = 0; i < parts.length - 1; i++) {
-      final domain = parts.sublist(i).join('.');
+    // 3. Resolve using found rule
+    if (rule != null) {
+      final endpoint = rule.resolveEndpoint(param.url);
+      final variant = rule.resolveVariant(
+        param.url,
+        embedParams: param.embedParams,
+        embedType: param.embedType,
+      );
+      final capabilities = rule.resolveCapabilities(
+        param.url,
+        embedParams: param.embedParams,
+        embedType: param.embedType,
+      );
+      resolvedLogger.debug(
+        'Matched provider',
+        data: {
+          'url': param.url,
+          'provider': rule.providerName,
+          'endpoint': endpoint,
+        },
+      );
+      final ctx = EmbedProviderContext(
+        url: param.url,
+        resolvedEndpoint: endpoint,
+        width: param.width,
+        locale: locale,
+        brightness: brightness,
+        facebookAppId: facebookAppId,
+        facebookClientToken: facebookClientToken,
+        rule: rule,
+        strategy: rule.strategy,
+        providerName: rule.providerName,
+        variant: variant,
+        capabilities: capabilities,
+        proxyUrl: config?.proxyUrl,
+        embedParams: param.embedParams,
+        embedType: param.embedType,
+      );
 
-      // Try exact match (e.g. 'ted.com')
-      var rules = kEmbedProvidersSnapshot[domain];
-      rules ??= kEmbedProvidersSnapshot['*.$domain'];
-
-      if (rules != null && rules.isNotEmpty) {
-        final match = rules.firstWhereOrNull((r) => r.matches(url));
-        if (match != null) return match;
-      }
+      final api = rule.apiFactory?.call(ctx) ?? rule.strategy.createApi(ctx);
+      resolvedLogger.debug(
+        'Using API handler',
+        data: {
+          'url': param.url,
+          'api': api.runtimeType.toString(),
+        },
+      );
+      return api;
     }
-    return null;
+
+    // 4. Default fallback: Only if it's a likely oEmbed endpoint
+    final isLikelyEndpoint =
+        param.url.contains('/oembed') || param.url.contains('oembed.');
+
+    if (isLikelyEndpoint) {
+      resolvedLogger.debug(
+        'Using generic oEmbed API for suspected endpoint',
+        data: {'url': param.url},
+      );
+      return GenericEmbedApi(
+        param.url,
+        proxyUrl: config?.proxyUrl,
+        width: param.width,
+      );
+    }
+
+    // If discovery failed and it's not a likely endpoint, we shouldn't attempt
+    // to use the content URL itself as an oEmbed endpoint.
+    resolvedLogger.warning(
+      'No oEmbed provider matched and URL does not look like an oEmbed endpoint',
+      data: {'url': param.url},
+    );
+    throw EmbedProviderNotFoundException(url: param.url);
   }
+}
+
+/// Legacy static-access class for the embed service.
+///
+/// Prefer injecting [IEmbedService] or using [EmbedScope.serviceOf].
+class EmbedService {
+  /// The default global instance of [IEmbedService].
+  static const IEmbedService instance = EmbedServiceImpl();
+
+  /// Fetches OEmbed data using [EmbedConfig].
+  static Future<EmbedData> getResult({
+    required EmbedLoaderParam param,
+    EmbedConfig? config,
+    EmbedLogger? logger,
+    EmbedCacheConfig? cacheConfig,
+    http.Client? httpClient,
+  }) =>
+      instance.getResult(
+        param: param,
+        config: config,
+        logger: logger,
+        cacheConfig: cacheConfig,
+        httpClient: httpClient,
+      );
+
+  /// Resolves the appropriate [BaseEmbedApi] for the given [param].
+  static BaseEmbedApi getEmbedApiByEmbedType(
+    EmbedLoaderParam param, {
+    EmbedLogger? logger,
+  }) =>
+      instance.getEmbedApiByEmbedType(param, logger: logger);
+
+  /// Resolves the cache request URI used for a given content [url].
+  ///
+  /// Returns `null` when no matching provider can be resolved.
+  static Uri? resolveCacheUri(
+    String url, {
+    EmbedConfig? config,
+    EmbedType? embedType,
+    double? width,
+    Map<String, String>? queryParameters,
+    BaseEmbedParams? embedParams,
+    EmbedLogger? logger,
+  }) =>
+      instance.resolveCacheUri(
+        url,
+        config: config,
+        embedType: embedType,
+        width: width,
+        queryParameters: queryParameters,
+        embedParams: embedParams,
+        logger: logger,
+      );
+
+  /// Resolves how to render [url] given [config], returning a [EmbedRenderer]
+  /// sealed type that callers can exhaustively pattern-match on.
+  static EmbedRenderer resolveRender(
+    String url, {
+    EmbedConfig? config,
+    EmbedType? embedType,
+    EmbedLogger? logger,
+    Map<String, String>? queryParameters,
+    BaseEmbedParams? embedParams,
+  }) =>
+      instance.resolveRender(
+        url,
+        config: config,
+        embedType: embedType,
+        logger: logger,
+        queryParameters: queryParameters,
+        embedParams: embedParams,
+      );
+
+  /// Resolves the [EmbedProviderRule] for a given [url] and [config].
+  static EmbedProviderRule? resolveRule(
+    String url, {
+    EmbedConfig? config,
+  }) =>
+      instance.resolveRule(url, config: config);
+
+  /// Resolves the iframe URL for a given content URL if iframe mode is active.
+  /// Returns null if the provider doesn't support iframe mode or isn't enabled.
+  static String? resolveIframeUrl(
+    String url, {
+    EmbedConfig? config,
+    EmbedLogger? logger,
+    Map<String, String>? queryParameters,
+    bool silent = false,
+  }) =>
+      instance.resolveIframeUrl(
+        url,
+        config: config,
+        logger: logger,
+        queryParameters: queryParameters,
+        silent: silent,
+      );
 }

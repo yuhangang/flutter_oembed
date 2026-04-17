@@ -1,6 +1,6 @@
-import 'package:flutter_oembed/src/models/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
 import 'package:equatable/equatable.dart';
-import 'package:flutter_oembed/src/models/base_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/base_embed_params.dart';
 
 import 'package:flutter_oembed/src/utils/embed_matchers.dart';
 

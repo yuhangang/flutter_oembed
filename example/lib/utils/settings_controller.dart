@@ -6,7 +6,6 @@ class ExampleSettings {
   final Brightness brightness;
   final bool scrollable;
   final bool showFooter;
-  final bool useDynamicDiscovery;
 
   // Provider-specific params
   final VimeoEmbedParams vimeoParams;
@@ -21,7 +20,6 @@ class ExampleSettings {
     this.brightness = Brightness.light,
     this.scrollable = false,
     this.showFooter = false,
-    this.useDynamicDiscovery = false,
     this.vimeoParams = const VimeoEmbedParams(),
     this.xParams = const XEmbedParams(
       dnt: true,
@@ -42,7 +40,6 @@ class ExampleSettings {
     Brightness? brightness,
     bool? scrollable,
     bool? showFooter,
-    bool? useDynamicDiscovery,
     VimeoEmbedParams? vimeoParams,
     XEmbedParams? xParams,
     MetaEmbedParams? metaParams,
@@ -55,7 +52,6 @@ class ExampleSettings {
       brightness: brightness ?? this.brightness,
       scrollable: scrollable ?? this.scrollable,
       showFooter: showFooter ?? this.showFooter,
-      useDynamicDiscovery: useDynamicDiscovery ?? this.useDynamicDiscovery,
       vimeoParams: vimeoParams ?? this.vimeoParams,
       xParams: xParams ?? this.xParams,
       metaParams: metaParams ?? this.metaParams,
@@ -70,7 +66,6 @@ class ExampleSettings {
       locale: locale,
       brightness: brightness,
       scrollable: scrollable,
-      useDynamicDiscovery: useDynamicDiscovery,
     );
   }
 
@@ -92,14 +87,12 @@ class ExampleSettingsController extends ChangeNotifier {
     Brightness? brightness,
     bool? scrollable,
     bool? showFooter,
-    bool? useDynamicDiscovery,
   }) {
     _settings = _settings.copyWith(
       locale: locale,
       brightness: brightness,
       scrollable: scrollable,
       showFooter: showFooter,
-      useDynamicDiscovery: useDynamicDiscovery,
     );
     notifyListeners();
   }

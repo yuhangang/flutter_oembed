@@ -2,20 +2,34 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
-import 'package:flutter_oembed/src/models/embed_constant.dart';
-import 'package:flutter_oembed/src/models/embed_constraints.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_strings.dart';
-import 'package:flutter_oembed/src/models/embed_webview_controls.dart';
-import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_constant.dart';
+import 'package:flutter_oembed/src/models/core/embed_constraints.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_strings.dart';
+import 'package:flutter_oembed/src/models/core/embed_webview_controls.dart';
+import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../fake_webview_platform.dart';
+
+EmbedController buildController({
+  SocialEmbedParam? param,
+  EmbedConfig? config,
+}) {
+  final controller = EmbedController(config: config);
+  if (param != null) {
+    controller.synchronize(
+      contentKey: param,
+      config: config,
+    );
+  }
+  return controller;
+}
 
 void main() {
   final fakePlatform = FakeWebViewPlatform();
@@ -37,7 +51,7 @@ void main() {
         url: 'https://youtube.com/watch?v=123',
         embedType: EmbedType.youtube,
       );
-      controller = EmbedController(
+      controller = buildController(
         param: param,
         config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
       );
@@ -66,6 +80,96 @@ void main() {
       await tester.pump();
       expect(find.byType(WebViewWidget), findsOneWidget);
       await tester.pump(const Duration(seconds: 11));
+    });
+
+    testWidgets('changing maxWidth does not remount the WebView core',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 640,
+              child: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 640,
+                controller: controller,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      final initialPlatformController = fakePlatform.lastCreatedController;
+      final initialDriver = controller.boundDriver;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 480,
+              child: EmbedWebView.data(
+                param: param,
+                data: data,
+                maxWidth: 480,
+                controller: controller,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      expect(controller.boundDriver, same(initialDriver));
+      expect(
+          fakePlatform.lastCreatedController, same(initialPlatformController));
+      expect(fakePlatform.lastCreatedController?.loadHtmlCount, 1);
+
+      controller.dispose();
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump();
+    });
+
+    testWidgets(
+        'uses provider fallback height metadata when no height is known',
+        (tester) async {
+      final spotifyParam = SocialEmbedParam(
+        url: 'https://open.spotify.com/track/123',
+        embedType: EmbedType.spotify,
+      );
+      final spotifyController = buildController(
+        param: spotifyParam,
+        config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
+      );
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedWebView.data(
+                param: spotifyParam,
+                data: data,
+                maxWidth: 640,
+                controller: spotifyController,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+
+        expect(
+          tester
+              .widgetList<SizedBox>(find.byType(SizedBox))
+              .any((widget) => widget.height == 152),
+          isTrue,
+        );
+      } finally {
+        spotifyController.dispose();
+      }
     });
 
     testWidgets('records recent user interaction from the wrapper listener',
@@ -112,7 +216,7 @@ void main() {
               param: param,
               data: data,
               maxWidth: 640,
-              controller: EmbedController(
+              controller: buildController(
                 param: param,
                 config: EmbedConfig(
                   pauseOnRouteCover: true,
@@ -166,7 +270,7 @@ void main() {
                   param: param,
                   data: data,
                   maxWidth: 640,
-                  controller: EmbedController(
+                  controller: buildController(
                     param: param,
                     config: EmbedConfig(
                       pauseOnRouteCover: true,
@@ -208,7 +312,7 @@ void main() {
               param: param,
               data: data,
               maxWidth: 640,
-              controller: EmbedController(
+              controller: buildController(
                 param: param,
                 config: EmbedConfig(
                   pauseOnRouteCover: true,
@@ -276,7 +380,7 @@ void main() {
               param: param,
               data: data,
               maxWidth: 640,
-              controller: EmbedController(
+              controller: buildController(
                 param: param,
                 config: const EmbedConfig(pauseOnRouteCover: false),
               ),
@@ -325,7 +429,7 @@ void main() {
               param: param,
               data: data,
               maxWidth: 640,
-              controller: EmbedController(
+              controller: buildController(
                 param: param,
                 config: EmbedConfig(
                   pauseOnRouteCover: true,
@@ -491,7 +595,7 @@ void main() {
 
     testWidgets('uses configured strings for retry semantics', (tester) async {
       final semanticsHandle = tester.ensureSemantics();
-      final customController = EmbedController(
+      final customController = buildController(
         param: param,
         config: const EmbedConfig(
           strings: EmbedStrings(
@@ -502,7 +606,6 @@ void main() {
       );
 
       try {
-        customController.setLoadingState(EmbedLoadingState.error);
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
@@ -516,6 +619,8 @@ void main() {
           ),
         );
 
+        await tester.pump();
+        customController.setLoadingState(EmbedLoadingState.error);
         await tester.pump();
 
         expect(
@@ -585,7 +690,7 @@ void main() {
         expect(fakePlatform.createdControllers.length, 1);
 
         controller.synchronize(
-          param: SocialEmbedParam(
+          contentKey: SocialEmbedParam(
             url: 'https://youtube.com/watch?v=456',
             embedType: EmbedType.youtube,
           ),
@@ -676,8 +781,6 @@ void main() {
         (tester) async {
       final semanticsHandle = tester.ensureSemantics();
       try {
-        controller.setLoadingState(EmbedLoadingState.error);
-
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
@@ -691,6 +794,8 @@ void main() {
           ),
         );
 
+        await tester.pump();
+        controller.setLoadingState(EmbedLoadingState.error);
         await tester.pump();
         final refreshIcon = find.byIcon(Icons.refresh);
         expect(refreshIcon, findsOneWidget);
@@ -710,14 +815,12 @@ void main() {
     testWidgets(
         'should restart guarded retry logic when the controller is in noConnection state',
         (tester) async {
-      final customController = EmbedController(
+      final customController = buildController(
         param: param,
         config: const EmbedConfig(loadTimeout: Duration(milliseconds: 100)),
       );
 
       try {
-        customController.setLoadingState(EmbedLoadingState.noConnection);
-
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
@@ -731,6 +834,8 @@ void main() {
           ),
         );
 
+        await tester.pump();
+        customController.setLoadingState(EmbedLoadingState.noConnection);
         await tester.pump();
 
         await tester.tap(find.byIcon(Icons.refresh));
@@ -762,7 +867,7 @@ void main() {
         ),
       );
 
-      final newController = EmbedController(param: param);
+      final newController = buildController(param: param);
 
       await tester.pumpWidget(
         MaterialApp(
@@ -816,7 +921,7 @@ void main() {
         url: 'https://example.com/post/1',
         embedType: EmbedType.other,
       );
-      final genericController = EmbedController(
+      final genericController = buildController(
         param: genericParam,
         config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
       );
@@ -903,7 +1008,7 @@ void main() {
 
     testWidgets('prefers measured WebView height over oEmbed aspect ratio',
         (tester) async {
-      final measuredController = EmbedController(
+      final measuredController = buildController(
         param: param,
         config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
       )..setHeight(260);
@@ -939,7 +1044,7 @@ void main() {
 
     testWidgets('clamps scrollable embeds to the default max height',
         (tester) async {
-      final scrollableController = EmbedController(
+      final scrollableController = buildController(
         param: param,
         config: const EmbedConfig(loadTimeout: Duration(seconds: 5)),
       )..setHeight(900);

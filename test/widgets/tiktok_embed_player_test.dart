@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/tiktok_embed_player.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
-import 'package:flutter_oembed/src/models/tiktok_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/tiktok_embed_params.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
 import '../fake_webview_platform.dart';
+
+EmbedController buildController({SocialEmbedParam? param}) {
+  final controller = EmbedController();
+  if (param != null) {
+    controller.synchronize(contentKey: param);
+  }
+  return controller;
+}
 
 void main() {
   final fakePlatform = FakeWebViewPlatform();
@@ -120,7 +128,7 @@ void main() {
     testWidgets(
         'recreates the inner WebView when embed params change without a manual key',
         (tester) async {
-      final controller = EmbedController(
+      final controller = buildController(
         param: SocialEmbedParam(
           url: 'https://www.tiktok.com/@user/video/123',
           embedType: EmbedType.tiktok_v1,
@@ -180,7 +188,10 @@ void main() {
           contains('controls=0'),
         );
         expect(
-          controller.param.embedParams,
+          tester
+              .widget<EmbedWebView>(find.byType(EmbedWebView))
+              .param
+              .embedParams,
           const TikTokEmbedParams(
             autoplay: true,
             controls: false,

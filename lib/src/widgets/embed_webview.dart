@@ -6,14 +6,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
-import 'package:flutter_oembed/src/models/embed_constant.dart';
-import 'package:flutter_oembed/src/models/embed_constraints.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_strings.dart';
-import 'package:flutter_oembed/src/models/embed_style.dart';
-import 'package:flutter_oembed/src/models/embed_webview_controls.dart';
-import 'package:flutter_oembed/src/models/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/core/embed_constant.dart';
+import 'package:flutter_oembed/src/models/core/embed_constraints.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_strings.dart';
+import 'package:flutter_oembed/src/models/core/embed_style.dart';
+import 'package:flutter_oembed/src/models/core/embed_webview_controls.dart';
+import 'package:flutter_oembed/src/models/core/provider_rule.dart';
+import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -25,7 +26,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 ///
 ///  * Controller identity (via [identityHashCode])
 ///  * [EmbedController.embedRevision] (bumped by [EmbedController.synchronize])
-///  * [param], [data], [url], [maxWidth], [scrollable]
+///  * [param], [data], [url], [scrollable]
 ///
 /// When any of these change, Flutter tears down the old [_EmbedWebViewCore]
 /// state and creates a fresh one — giving a clean [State.initState] with no
@@ -91,9 +92,9 @@ class EmbedWebView extends StatelessWidget {
   Widget build(BuildContext context) {
     // ListenableBuilder rebuilds when controller notifies (e.g. synchronize).
     // The composite ValueKey on the inner widget causes a full state reset
-    // whenever the controller identity, embed revision, or content-affecting
-    // props change — eliminating the need for didUpdateWidget or staleness
-    // detection entirely.
+    // whenever the controller identity, embed revision, or content identity
+    // props change. Layout-only changes such as maxWidth are intentionally
+    // excluded so parent relayouts do not remount the WebView.
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
@@ -104,7 +105,6 @@ class EmbedWebView extends StatelessWidget {
             param,
             data,
             url,
-            maxWidth,
             scrollable,
           )),
           param: param,
@@ -166,8 +166,6 @@ class _EmbedWebViewCore extends StatefulWidget {
 
 class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
   static const _defaultVideoAspectRatio = 16 / 9;
-  static const _defaultSpotifyHeight = 152.0;
-  static const _defaultSoundCloudHeight = 166.0;
   static const _defaultContentFallbackHeight = 320.0;
 
   /// The driver is created once in [initState] and never reassigned.
@@ -175,10 +173,16 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
   /// for the core widget, causing Flutter to destroy this state and create a
   /// fresh one with a new driver.
   late final EmbedWebViewDriver _driver;
+  late final Object _driverContentKey;
 
   @override
   void initState() {
     super.initState();
+    _driverContentKey = (
+      widget.param,
+      widget.data,
+      widget.url,
+    );
     _driver = _createDriver();
     _scheduleVisibilityCheck();
     _scheduleInit();
@@ -191,21 +195,22 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
 
   EmbedWebViewDriver _createDriver() {
     final existing = widget.controller.boundDriver;
-    final controllerParam = widget.controller.param;
     if (existing is EmbedWebViewDriver) {
-      if (existing.controller.param == controllerParam) {
+      if (widget.controller.boundDriverContentKey == _driverContentKey) {
         return existing;
       }
-      // Parameters mismatch: unbind and dispose the old driver.
+      // Content mismatch: unbind and dispose the old driver.
       widget.controller.unbindDriver();
       existing.dispose();
     }
 
     final driver = EmbedWebViewDriver(
       controller: widget.controller,
+      param: widget.param,
     );
     widget.controller.bindDriver(
       driver,
+      contentKey: _driverContentKey,
       onDispose: () => driver.dispose(),
     );
     return driver;
@@ -213,7 +218,12 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
 
   void _scheduleInit() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Mirror the active payload onto the controller without notifying the
+      // parent loader; otherwise the parent can swap branches and remount this
+      // widget during the initial fetch-to-render handoff.
+      widget.controller.setEmbedData(widget.data, notify: false);
       if (!mounted) return;
+      // TODO: allow user to configure background color
       final bg = Theme.of(context).scaffoldBackgroundColor;
       await _driver.initEmbedWebview(
         backgroundColor: bg,
@@ -284,17 +294,28 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
   }
 
   double _fallbackHeight() {
-    switch (widget.param.embedType) {
-      case EmbedType.spotify:
-        return _defaultSpotifyHeight;
-      case EmbedType.soundcloud:
-        return _defaultSoundCloudHeight;
-      default:
-        if (widget.param.embedType.isVideo) {
-          return widget.maxWidth / _defaultVideoAspectRatio;
-        }
-        return math.min(widget.maxWidth, _defaultContentFallbackHeight);
+    final config = widget.controller.config ?? EmbedScope.configOf(context);
+    final service = config?.embedService ?? EmbedScope.serviceOf(context);
+    final rule = service.resolveRule(
+      widget.param.url,
+      config: config,
+    );
+    final capabilities = rule?.resolveCapabilities(
+          widget.param.url,
+          embedParams: widget.param.embedParams,
+          embedType: widget.param.embedType,
+        ) ??
+        const EmbedProviderCapabilities();
+
+    if (capabilities.fallbackHeight case final fallbackHeight?) {
+      return fallbackHeight;
     }
+
+    if (capabilities.isVideo) {
+      return widget.maxWidth / _defaultVideoAspectRatio;
+    }
+
+    return math.min(widget.maxWidth, _defaultContentFallbackHeight);
   }
 
   EmbedConstraints? get _effectiveEmbedConstraints =>
@@ -308,15 +329,13 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
     return AnimatedBuilder(
       animation: widget.controller,
       builder: (context, child) {
-        final effectiveParam = widget.controller.param;
         final config = widget.controller.config ?? EmbedScope.configOf(context);
         final style = widget.style ?? config?.style;
         final strings = config?.strings ?? const EmbedStrings();
         final loadingState = widget.controller.loadingState;
         final embedConstraints = _effectiveEmbedConstraints;
         final measuredHeight = widget.controller.height;
-        final double? aspectRatio = widget.data?.aspectRatio ??
-            widget.controller.preloadedData?.aspectRatio;
+        final double? aspectRatio = widget.data?.aspectRatio;
 
         double height = embedConstraints?.preferredHeight ??
             measuredHeight ??
@@ -397,7 +416,7 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
 
         return VisibilityDetector(
           key: ValueKey(
-            'embed_webview_${widget.controller.embedRevision}_${effectiveParam.key}',
+            'embed_webview_${widget.controller.embedRevision}_${widget.param.key}',
           ),
           onVisibilityChanged: (info) {
             widget.controller.updateVisibility(

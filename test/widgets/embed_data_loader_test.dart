@@ -3,13 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
-import 'package:flutter_oembed/src/models/embed_cache_config.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_loader_param.dart';
-import 'package:flutter_oembed/src/models/embed_strings.dart';
-import 'package:flutter_oembed/src/models/social_embed_param.dart';
-import 'package:flutter_oembed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/models/configs/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_loader_param.dart';
+import 'package:flutter_oembed/src/models/core/embed_strings.dart';
+import 'package:flutter_oembed/src/models/core/embed_style.dart';
+import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
 import 'package:flutter_oembed/src/widgets/embed_data_loader.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -18,8 +19,23 @@ import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
 
 import '../fake_webview_platform.dart';
+import '../helpers/fake_embed_service.dart';
 
 class MockHttpClient extends Mock implements http.Client {}
+
+EmbedController buildController({
+  SocialEmbedParam? param,
+  EmbedConfig? config,
+}) {
+  final controller = EmbedController(config: config);
+  if (param != null) {
+    controller.synchronize(
+      contentKey: param,
+      config: config,
+    );
+  }
+  return controller;
+}
 
 void main() {
   setUpAll(() {
@@ -48,7 +64,7 @@ void main() {
         url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         embedType: EmbedType.youtube,
       );
-      controller = EmbedController(param: param, config: testConfig);
+      controller = buildController(param: param, config: testConfig);
       loaderParam = EmbedLoaderParam(
         url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         embedType: EmbedType.youtube,
@@ -107,7 +123,8 @@ void main() {
 
       await tester.pump();
       completer.complete(http.Response('{}', 200));
-      await tester.pump(const Duration(seconds: 11));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 1));
     });
 
     testWidgets('exposes loading semantics while fetching embed data',
@@ -218,7 +235,51 @@ void main() {
       );
 
       await tester.pump();
-      await tester.pump(const Duration(seconds: 11));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('uses the configured embed service from EmbedScope',
+        (tester) async {
+      final service = FakeEmbedService(
+        getResultResponse: const EmbedData(
+          type: 'rich',
+          html: '<div>Injected Service Result</div>',
+        ),
+      );
+      final config = EmbedConfig(
+        embedService: service,
+        cache: const EmbedCacheConfig(enabled: false),
+      );
+      final scopedController = buildController(param: param, config: config);
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: EmbedScope(
+              config: config,
+              child: Scaffold(
+                body: EmbedDataLoader(
+                  param: param,
+                  loaderParam: loaderParam,
+                  controller: scopedController,
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        expect(service.getResultCallCount, 1);
+        expect(service.lastGetResultConfig, same(config));
+        expect(
+          scopedController.embedData?.html,
+          equals('<div>Injected Service Result</div>'),
+        );
+      } finally {
+        scopedController.dispose();
+      }
     });
 
     testWidgets('trigger build branches', (tester) async {

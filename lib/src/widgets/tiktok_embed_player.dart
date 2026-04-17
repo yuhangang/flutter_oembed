@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/social_embed_param.dart';
-import 'package:flutter_oembed/src/models/embed_constraints.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
+import 'package:flutter_oembed/src/models/core/embed_constraints.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_oembed/src/widgets/embed_surface.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
 
 /// A standalone player widget for TikTok's native embedded player (v1).
 ///
 /// Unlike the standard [EmbedCard] which relies on the oEmbed API or standard
 /// iframe fallbacks, this uses the `tiktok.com/player/v1/` endpoint which
 /// supports advanced customization.
-import 'package:flutter_oembed/src/models/tiktok_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/tiktok_embed_params.dart';
 
 class TikTokEmbedPlayer extends StatefulWidget {
   /// The TikTok video URL or video ID.
@@ -136,29 +136,24 @@ class _TikTokEmbedPlayerState extends State<TikTokEmbedPlayer> {
 
   void _initControllerIfNeeded({bool forceReplace = false}) {
     final config = EmbedScope.configOf(context);
-    final param = _buildParam();
 
     if (widget.controller != null) {
       _controller = widget.controller!;
       _isControllerInternal = false;
-      _controller.synchronize(
-        param: param,
-        config: config,
-      );
     } else {
       if (!_isControllerInternal || forceReplace) {
         _controller = EmbedController(
-          param: param,
           config: config,
         );
         _isControllerInternal = true;
-      } else {
-        _controller.synchronize(
-          param: param,
-          config: config,
-        );
       }
     }
+
+    _controller.synchronize(
+      contentKey: _buildContentKey(config),
+      config: config,
+      notify: false,
+    );
   }
 
   @override
@@ -195,6 +190,25 @@ class _TikTokEmbedPlayerState extends State<TikTokEmbedPlayer> {
       embedParams: widget.embedParams,
     );
   }
+
+  Object _buildContentKey(EmbedConfig? config) => (
+        _buildParam(),
+        widget.controls,
+        widget.progressBar,
+        widget.playButton,
+        widget.volumeControl,
+        widget.fullscreenButton,
+        widget.timestamp,
+        widget.autoplay,
+        widget.loop,
+        widget.musicInfo,
+        widget.description,
+        widget.rel,
+        widget.nativeContextMenu,
+        widget.closedCaption,
+        widget.muted,
+        config?.locale,
+      );
 
   String _buildPlayerUrl(String videoId, {EmbedConfig? config}) {
     var uri = Uri.parse('https://www.tiktok.com/player/v1/$videoId');

@@ -1,4 +1,4 @@
-import 'package:flutter_oembed/src/models/tiktok_embed_params.dart';
+import 'package:flutter_oembed/src/models/params/tiktok_embed_params.dart';
 import 'package:flutter_oembed/src/services/api/tiktok_embed_api.dart';
 import 'package:flutter_test/flutter_test.dart';
 

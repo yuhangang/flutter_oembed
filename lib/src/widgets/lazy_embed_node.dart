@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 
-import '../models/embed_constraints.dart';
-import '../models/embed_style.dart';
+import '../models/core/embed_constraints.dart';
+import '../models/core/embed_style.dart';
 
 /// A wrapper widget that defers rendering its [child] until it becomes visible
 /// in the viewport.
@@ -14,6 +14,7 @@ class LazyEmbedNode extends StatefulWidget {
   final String url;
   final EmbedStyle? style;
   final EmbedConstraints? embedConstraints;
+  final bool isInitialVisible;
 
   const LazyEmbedNode({
     super.key,
@@ -21,6 +22,7 @@ class LazyEmbedNode extends StatefulWidget {
     required this.url,
     this.style,
     this.embedConstraints,
+    this.isInitialVisible = false,
   });
 
   @override
@@ -28,7 +30,7 @@ class LazyEmbedNode extends StatefulWidget {
 }
 
 class _LazyEmbedNodeState extends State<LazyEmbedNode> {
-  bool _isVisible = false;
+  late bool _isVisible = widget.isInitialVisible;
 
   @override
   void initState() {
@@ -37,7 +39,7 @@ class _LazyEmbedNodeState extends State<LazyEmbedNode> {
     // We call it twice (immediately and after a short delay) to ensure
     // that it catches the visible state even if the first one is too early.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
+      if (mounted && !_isVisible) {
         VisibilityDetectorController.instance.notifyNow();
         Future.delayed(const Duration(milliseconds: 50), () {
           if (mounted && !_isVisible) {

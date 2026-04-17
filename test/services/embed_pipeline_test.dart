@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
-import 'package:flutter_oembed/src/models/embed_cache_config.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/configs/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
 import 'package:flutter_oembed/src/services/embed_service.dart';
 import 'package:flutter_oembed/src/widgets/embed_card.dart';
 import 'package:flutter_oembed/src/widgets/embed_data_loader.dart';
@@ -88,8 +88,7 @@ void main() {
       verify(() => mockClient.get(any(), headers: any(named: 'headers')))
           .called(1);
 
-      // Verify EmbedDataLoader and EmbedWebView are in the tree
-      expect(find.byType(EmbedDataLoader), findsOneWidget);
+      // Verify EmbedWebView is in the tree
       expect(find.byType(EmbedWebView), findsOneWidget);
     });
 

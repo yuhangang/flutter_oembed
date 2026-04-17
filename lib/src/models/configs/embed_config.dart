@@ -1,13 +1,14 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/core/embed_cache_provider.dart';
-import 'package:flutter_oembed/src/models/embed_cache_config.dart';
-import 'package:flutter_oembed/src/models/embed_constant.dart';
-import 'package:flutter_oembed/src/models/embed_provider_config.dart';
-import 'package:flutter_oembed/src/models/embed_strings.dart';
-import 'package:flutter_oembed/src/models/embed_style.dart';
+import 'package:flutter_oembed/src/core/embed_service_interface.dart';
+import 'package:flutter_oembed/src/models/configs/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_constant.dart';
+import 'package:flutter_oembed/src/models/configs/embed_provider_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_strings.dart';
+import 'package:flutter_oembed/src/models/core/embed_style.dart';
 import 'package:flutter_oembed/src/logging/embed_logger.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
@@ -23,7 +24,9 @@ import 'dart:async';
 ///     facebookClientToken: 'YOUR_CLIENT_TOKEN',
 ///     cache: EmbedCacheConfig(enabled: false),
 ///     providers: EmbedProviderConfig(
-///       enabledProviders: {'YouTube', 'Spotify', 'Vimeo'},
+///       providers: EmbedProviders.verified
+///           .where((rule) => {'YouTube', 'Spotify', 'Vimeo'}.contains(rule.providerName))
+///           .toList(),
 ///       providerRenderModes: {
 ///         'YouTube': EmbedRenderMode.iframe,
 ///       },
@@ -48,17 +51,17 @@ class EmbedConfig extends Equatable {
 
   /// Optional cache backend used for OEmbed response storage.
   ///
-  /// Leave this null to use the package default cache provider.
+  /// Defaults to [InMemoryEmbedCacheProvider.instance].
   final EmbedCacheProvider? cacheProvider;
 
   /// Global visual customization. Can be overridden per-widget via [EmbedCard.style].
   final EmbedStyle? style;
 
   /// Facebook App ID — required for Facebook and Instagram embeds.
-  final String facebookAppId;
+  final String? facebookAppId;
 
   /// Facebook Client Token — required for Facebook and Instagram embeds.
-  final String facebookClientToken;
+  final String? facebookClientToken;
 
   /// Optional proxy URL to route API requests (e.g. Meta) through.
   /// If provided, [facebookAppId] and [facebookClientToken] become optional.
@@ -103,10 +106,6 @@ class EmbedConfig extends Equatable {
   ///
   /// This is easier to use than [onNavigationRequest] as it only provides the URL.
   final void Function(String url, EmbedData? data)? onLinkTap;
-
-  /// Whether to use dynamic discovery via the official OEmbed providers.json registry.
-  /// Defaults to `false`.
-  final bool useDynamicDiscovery;
 
   /// Timeout duration for the WebView to finish loading before showing an error.
   /// Defaults to [kDefaultEmbedLoadTimeout].
@@ -154,6 +153,11 @@ class EmbedConfig extends Equatable {
   /// This is useful for testing or providing custom configurations (e.g., custom headers).
   final http.Client? httpClient;
 
+  /// Optional custom embed service implementation.
+  ///
+  /// If provided, this instance will be used instead of the default [EmbedService].
+  final IEmbedService? embedService;
+
   const EmbedConfig({
     this.providers = const EmbedProviderConfig(),
     this.cache = const EmbedCacheConfig(),
@@ -167,7 +171,6 @@ class EmbedConfig extends Equatable {
     this.strings = const EmbedStrings(),
     this.onNavigationRequest,
     this.onLinkTap,
-    this.useDynamicDiscovery = false,
     this.loadTimeout = kDefaultEmbedLoadTimeout,
     this.heightUpdateDeltaThreshold = kDefaultHeightUpdateDeltaThreshold,
     this.scrollable = false,
@@ -176,6 +179,7 @@ class EmbedConfig extends Equatable {
     this.routeObserver,
     this.logger = const EmbedLogger.disabled(),
     this.httpClient,
+    this.embedService,
   });
 
   /// Equality props — intentionally excludes function fields.
@@ -199,7 +203,6 @@ class EmbedConfig extends Equatable {
         locale,
         brightness,
         strings,
-        useDynamicDiscovery,
         loadTimeout,
         heightUpdateDeltaThreshold,
         scrollable,
@@ -207,13 +210,11 @@ class EmbedConfig extends Equatable {
         pauseOnRouteCover,
         routeObserver,
         logger,
+        embedService,
       ];
 
-  /// Internal getter that returns the providers config with the discovery flag synced.
-  EmbedProviderConfig get resolvedProviders =>
-      providers.useDynamicDiscovery == useDynamicDiscovery
-          ? providers
-          : providers.copyWith(useDynamicDiscovery: useDynamicDiscovery);
+  /// Internal getter that returns the providers config.
+  EmbedProviderConfig get resolvedProviders => providers;
 
   /// Returns `true` when all runtime-relevant fields match.
   ///
@@ -235,7 +236,6 @@ class EmbedConfig extends Equatable {
         strings == other.strings &&
         identical(onNavigationRequest, other.onNavigationRequest) &&
         identical(onLinkTap, other.onLinkTap) &&
-        useDynamicDiscovery == other.useDynamicDiscovery &&
         loadTimeout == other.loadTimeout &&
         heightUpdateDeltaThreshold == other.heightUpdateDeltaThreshold &&
         scrollable == other.scrollable &&
@@ -243,7 +243,8 @@ class EmbedConfig extends Equatable {
         pauseOnRouteCover == other.pauseOnRouteCover &&
         routeObserver == other.routeObserver &&
         logger == other.logger &&
-        identical(httpClient, other.httpClient);
+        identical(httpClient, other.httpClient) &&
+        identical(embedService, other.embedService);
   }
 
   static bool runtimeEqualsNullable(EmbedConfig? a, EmbedConfig? b) {
@@ -266,7 +267,6 @@ class EmbedConfig extends Equatable {
     FutureOr<NavigationDecision>? Function(NavigationRequest)?
         onNavigationRequest,
     void Function(String url, EmbedData? data)? onLinkTap,
-    bool? useDynamicDiscovery,
     Duration? loadTimeout,
     double? heightUpdateDeltaThreshold,
     bool? scrollable,
@@ -275,6 +275,7 @@ class EmbedConfig extends Equatable {
     RouteObserver<ModalRoute<dynamic>>? routeObserver,
     EmbedLogger? logger,
     http.Client? httpClient,
+    IEmbedService? embedService,
   }) {
     return EmbedConfig(
       providers: providers ?? this.providers,
@@ -289,7 +290,6 @@ class EmbedConfig extends Equatable {
       strings: strings ?? this.strings,
       onNavigationRequest: onNavigationRequest ?? this.onNavigationRequest,
       onLinkTap: onLinkTap ?? this.onLinkTap,
-      useDynamicDiscovery: useDynamicDiscovery ?? this.useDynamicDiscovery,
       loadTimeout: loadTimeout ?? this.loadTimeout,
       heightUpdateDeltaThreshold:
           heightUpdateDeltaThreshold ?? this.heightUpdateDeltaThreshold,
@@ -299,6 +299,7 @@ class EmbedConfig extends Equatable {
       routeObserver: routeObserver ?? this.routeObserver,
       logger: logger ?? this.logger,
       httpClient: httpClient ?? this.httpClient,
+      embedService: embedService ?? this.embedService,
     );
   }
 }

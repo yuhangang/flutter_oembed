@@ -1,17 +1,17 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:flutter_oembed/src/models/social_embed_param.dart';
-import 'package:flutter_oembed/src/models/embed_constant.dart';
-import 'package:flutter_oembed/src/models/embed_enums.dart';
-import 'package:flutter_oembed/src/models/embed_data.dart';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_oembed/src/controllers/embed_driver_interface.dart';
 import 'package:flutter_oembed/src/logging/embed_logger.dart';
-import 'package:flutter_oembed/src/models/embed_config.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
+import 'package:flutter_oembed/src/models/core/embed_constant.dart';
+import 'package:flutter_oembed/src/models/core/embed_data.dart';
+import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/provider_rule.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 
 class EmbedController extends ChangeNotifier {
-  SocialEmbedParam param;
   EmbedConfig? config;
-  EmbedData? preloadedData;
 
   EmbedLoadingState loadingState = EmbedLoadingState.loading;
   bool didRetry = false;
@@ -25,18 +25,22 @@ class EmbedController extends ChangeNotifier {
   Future<void> Function()? _resumeMediaHandler;
   Future<void> Function()? _muteMediaHandler;
   Future<void> Function()? _unmuteMediaHandler;
+  Object? _contentKey;
+  EmbedData? _embedData;
+  EmbedProviderRule? _matchedProviderRule;
 
   /// Internal slot used by [EmbedWebView] to persist a driver across remounts.
-  Object? _boundDriver;
+  IEmbedDriver? _boundDriver;
+  Object? _boundDriverContentKey;
   void Function()? _onDriverDispose;
   int get embedRevision => _embedRevision;
+  EmbedData? get embedData => _embedData;
+  EmbedProviderRule? get matchedProviderRule => _matchedProviderRule;
 
   EmbedLogger get _logger => config?.logger ?? const EmbedLogger.disabled();
 
   EmbedController({
-    required this.param,
     this.config,
-    this.preloadedData,
   });
 
   @override
@@ -46,6 +50,7 @@ class EmbedController extends ChangeNotifier {
     _onDriverDispose?.call();
     _onDriverDispose = null;
     _boundDriver = null;
+    _boundDriverContentKey = null;
     _unbindMediaControls();
     cancelLoadTimeout();
     super.dispose();
@@ -78,33 +83,59 @@ class EmbedController extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setEmbedData(EmbedData? value, {bool notify = true}) {
+    if (_isDisposed || _embedData == value) return;
+    _embedData = value;
+    didRetry = false;
+    lastError = null;
+    if (loadingState != EmbedLoadingState.loading) {
+      loadingState = EmbedLoadingState.loading;
+    }
+    if (notify) {
+      notifyListeners();
+    }
+  }
+
+  void clearEmbedData() {
+    setEmbedData(null);
+  }
+
+  void setMatchedProviderRule(EmbedProviderRule? value) {
+    if (_isDisposed || identical(_matchedProviderRule, value)) return;
+    _matchedProviderRule = value;
+  }
+
   void synchronize({
-    required SocialEmbedParam param,
+    required Object contentKey,
     EmbedConfig? config,
-    EmbedData? preloadedData,
+    bool notify = true,
   }) {
     if (_isDisposed) return;
 
-    final paramChanged = this.param != param;
-    final preloadedDataChanged = this.preloadedData != preloadedData;
+    final previousContentKey = _contentKey;
+    final contentChanged = _contentKey != contentKey;
     final configChanged =
         !EmbedConfig.runtimeEqualsNullable(this.config, config);
 
-    if (!paramChanged && !preloadedDataChanged && !configChanged) {
+    if (!contentChanged && !configChanged) {
       return;
     }
 
-    this.param = param;
-    this.preloadedData = preloadedData;
+    _contentKey = contentKey;
     this.config = config;
 
-    if (paramChanged || preloadedDataChanged) {
+    if (contentChanged || configChanged) {
       _disposeBoundDriver();
       _embedRevision++;
-      _resetRuntimeStateForReload();
+      _matchedProviderRule = null;
+      _resetRuntimeStateForReload(
+        clearEmbedData: contentChanged ? previousContentKey != null : true,
+      );
     }
 
-    notifyListeners();
+    if (notify) {
+      notifyListeners();
+    }
   }
 
   void updateVisibility(
@@ -150,7 +181,7 @@ class EmbedController extends ChangeNotifier {
     final timeout = config?.loadTimeout ?? kDefaultEmbedLoadTimeout;
     _timeoutTimer = Timer(timeout, () {
       if (!_isDisposed && loadingState != EmbedLoadingState.loaded) {
-        _logger.warning('Embed load timed out after $timeout for ${param.url}');
+        _logger.warning('Embed load timed out after $timeout');
         setLoadingState(
           EmbedLoadingState.error,
           error: EmbedTimeoutException(timeout: timeout),
@@ -214,25 +245,37 @@ class EmbedController extends ChangeNotifier {
   }
 
   /// Internal: Gets the currently bound driver (usually an EmbedWebViewDriver).
-  Object? get boundDriver => _boundDriver;
+  IEmbedDriver? get boundDriver => _boundDriver;
+  Object? get boundDriverContentKey => _boundDriverContentKey;
 
   /// Internal: Binds a driver to this controller for persistence.
-  void bindDriver(Object driver, {required void Function() onDispose}) {
+  void bindDriver(
+    IEmbedDriver driver, {
+    required Object contentKey,
+    required void Function() onDispose,
+  }) {
     if (_isDisposed) return;
     _onDriverDispose?.call();
     _boundDriver = driver;
+    _boundDriverContentKey = contentKey;
     _onDriverDispose = onDispose;
   }
 
   /// Internal: Unbinds the current driver without necessarily disposing it.
   void unbindDriver() {
     _boundDriver = null;
+    _boundDriverContentKey = null;
     _onDriverDispose = null;
   }
 
-  void _resetRuntimeStateForReload() {
+  void _resetRuntimeStateForReload({
+    bool clearEmbedData = true,
+  }) {
     cancelLoadTimeout();
     _unbindMediaControls();
+    if (clearEmbedData) {
+      _embedData = null;
+    }
     loadingState = EmbedLoadingState.loading;
     didRetry = false;
     height = null;
@@ -243,5 +286,6 @@ class EmbedController extends ChangeNotifier {
     _onDriverDispose?.call();
     _onDriverDispose = null;
     _boundDriver = null;
+    _boundDriverContentKey = null;
   }
 }
