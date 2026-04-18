@@ -51,6 +51,23 @@ class _LazyEmbedNodeState extends State<LazyEmbedNode> {
   }
 
   @override
+  void didUpdateWidget(covariant LazyEmbedNode oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    final shouldBeVisible = widget.isInitialVisible;
+    final shouldResetVisibility =
+        oldWidget.url != widget.url && _isVisible != shouldBeVisible;
+    final shouldPromoteVisibility =
+        !_isVisible && shouldBeVisible && oldWidget.url == widget.url;
+
+    if (shouldResetVisibility || shouldPromoteVisibility) {
+      setState(() {
+        _isVisible = shouldBeVisible;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     if (_isVisible) {
       return widget.child;

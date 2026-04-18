@@ -51,6 +51,14 @@ void main() {
         expect(rule?.providerName, equals('TikTok'));
       });
 
+      test('should return a rule for TikTok creator profile URLs', () {
+        const url = 'https://www.tiktok.com/@scout2015';
+        final rule = EmbedService.resolveRule(url);
+
+        expect(rule, isNotNull);
+        expect(rule?.providerName, equals('TikTok'));
+      });
+
       test('should return null for unknown URLs', () {
         const url = 'https://example.com/unknown';
         final rule = EmbedService.resolveRule(url);

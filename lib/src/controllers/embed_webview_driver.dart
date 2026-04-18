@@ -531,9 +531,9 @@ class EmbedWebViewDriver implements IEmbedDriver {
   Future<void> refresh() async {
     _logger.debug('Refreshing embed', data: {'url': param.url});
     if (_isDisposed) return;
-    await webViewController.reload();
-    if (_isDisposed) return;
+    controller.setLoadingState(EmbedLoadingState.loading);
     controller.startLoadTimeout();
+    await webViewController.reload();
   }
 
   Future<bool> _delayWhileActive(Duration duration) async {

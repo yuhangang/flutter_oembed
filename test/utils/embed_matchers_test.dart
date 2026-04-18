@@ -20,6 +20,8 @@ void main() {
       test('should return EmbedType.tiktok when a TikTok URL is provided', () {
         expect(EmbedMatchers.getEmbedType('https://tiktok.com/@u/video/1'),
             equals(EmbedType.tiktok));
+        expect(EmbedMatchers.getEmbedType('https://www.tiktok.com/@scout2015'),
+            equals(EmbedType.tiktok));
       });
 
       test('should return EmbedType.x when a Twitter or X URL is provided', () {

@@ -6,8 +6,13 @@
 
 ### Improvements
 - **Storage Showcases**: Added showcase implementations for persistent caching using `hive_ce` and `flutter_cache_manager` in the `example/` project. Users can easily copy these into their projects if they need persistence.
+- **TikTok Example**: Added a TikTok creator profile sample to the example app, reusing the existing TikTok oEmbed provider flow that already handles `https://www.tiktok.com/@handle` profile URLs.
 - **Memory Safety**: `InMemoryEmbedCacheProvider` includes TTL (time-to-live) logic to prevent indefinite memory growth.
 - **Service Injection**: Exported `IEmbedService` as public API and documented `EmbedConfig.embedService` so provider resolution and fetch behavior can be overridden per scope.
+- **WebView refresh**: Fixed manual WebView reloads so they re-enter the loading lifecycle before the existing navigation delegate evaluates the next main-frame request, preventing trusted refresh navigations from being misrouted as external links.
+- **Lazy loading**: Fixed `LazyEmbedNode` so reused `EmbedCard` instances reset lazy visibility when their URL changes and can become immediately visible when a preloaded controller is already loaded.
+- **Config reloads**: Fixed `EmbedDataLoader` so swapping runtime-only config identities such as `httpClient` invalidates the active fetch instead of reusing stale request state.
+- **Accessibility**: Restored semantics labels for terminal embed errors surfaced by `EmbedWidgetLoader` after retry exhaustion.
 
 ## 1.0.1-alpha.4
 

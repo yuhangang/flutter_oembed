@@ -12,8 +12,9 @@ flutter run
 ## What To Check
 
 1. Main list shows direct `EmbedCard` usage across providers.
-2. App bar document icon opens Markdown integration (`markdown_widget`).
-3. App bar code icon opens HTML integration (`flutter_html`).
+2. TikTok samples include both a video embed and a creator profile embed using the same TikTok oEmbed pipeline.
+3. App bar document icon opens Markdown integration (`markdown_widget`).
+4. App bar code icon opens HTML integration (`flutter_html`).
 
 ## Markdown Integration Notes
 
