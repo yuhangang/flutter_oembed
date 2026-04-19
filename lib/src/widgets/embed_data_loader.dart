@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
@@ -61,9 +59,10 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final config = widget.config ?? EmbedScope.configOf(context);
+    final config = _effectiveConfig();
 
-    if (!_isInitialized || _resolvedConfig != config) {
+    if (!_isInitialized ||
+        !EmbedConfig.runtimeEqualsNullable(_resolvedConfig, config)) {
       _isInitialized = true;
       _resolvedConfig = config;
       _loadData(config: config);
@@ -73,12 +72,13 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
   @override
   void didUpdateWidget(covariant EmbedDataLoader oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final nextConfig = _effectiveConfig();
     if (oldWidget.loaderParam != widget.loaderParam ||
-        oldWidget.config != widget.config ||
+        !EmbedConfig.runtimeEqualsNullable(oldWidget.config, widget.config) ||
         oldWidget.cacheConfig != widget.cacheConfig) {
+      _resolvedConfig = nextConfig;
       _loadData(
-        config:
-            widget.config ?? _resolvedConfig ?? EmbedScope.configOf(context),
+        config: nextConfig,
       );
     }
   }
@@ -92,17 +92,38 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
       return;
     }
 
-    final service = config?.embedService ?? EmbedScope.serviceOf(context);
+    final effectiveConfig = config ?? _effectiveConfig();
+    effectiveConfig?.logger.debug('EmbedDataLoader starting fetch', data: {
+      'url': widget.loaderParam.url,
+      'widgetConfigProxyUrl': widget.config?.proxyUrl,
+      'controllerConfigProxyUrl': widget.controller.config?.proxyUrl,
+      'resolvedConfigProxyUrl': _resolvedConfig?.proxyUrl,
+      'effectiveProxyUrl': effectiveConfig.proxyUrl,
+    });
+    final service =
+        effectiveConfig?.embedService ?? EmbedScope.serviceOf(context);
     _embedFeature = service.getResult(
       param: widget.loaderParam,
-      config: config,
-      logger: config?.logger,
+      config: effectiveConfig,
+      logger: effectiveConfig?.logger,
       cacheConfig: widget.cacheConfig,
-      httpClient: config?.httpClient,
+      httpClient: effectiveConfig?.httpClient,
     );
     // Prevent "Uncaught error in zone" during the microtask gap before
     // FutureBuilder subscribes to the future, which crashes widget tests.
     _embedFeature?.ignore();
+  }
+
+  EmbedConfig? _effectiveConfig() {
+    return widget.config ??
+        widget.controller.config ??
+        _resolvedConfig ??
+        EmbedScope.configOf(context);
+  }
+
+  bool _isNetworkError(Object? error) {
+    return error is EmbedNetworkException ||
+        error.runtimeType.toString() == 'SocketException';
   }
 
   String _errorSemanticsLabel(Object? error, EmbedStrings strings) {
@@ -112,7 +133,7 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
     if (error is EmbedDataRestrictedAccessException) {
       return strings.restrictedSemanticsLabel;
     }
-    if (error is SocketException) {
+    if (_isNetworkError(error)) {
       return strings.networkErrorSemanticsLabel;
     }
     return strings.genericLoadErrorSemanticsLabel;
@@ -172,14 +193,12 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
                   hint: strings.retryHint,
                   child: GestureDetector(
                     onTap: () {
-                      if (error is! SocketException) {
+                      if (!_isNetworkError(error)) {
                         widget.controller.setDidRetry();
                       }
                       setState(() {
                         _loadData(
-                          config: widget.config ??
-                              _resolvedConfig ??
-                              EmbedScope.configOf(context),
+                          config: _effectiveConfig(),
                         );
                       });
                     },

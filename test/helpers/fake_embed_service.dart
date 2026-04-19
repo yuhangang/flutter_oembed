@@ -14,6 +14,7 @@ import 'package:http/http.dart' as http;
 class FakeEmbedService extends EmbedServiceImpl implements IEmbedService {
   FakeEmbedService({
     this.getResultResponse,
+    this.getResultError,
     this.resolveRenderResponse,
     this.resolveRuleResponse,
     this.resolveCacheUriResponse,
@@ -21,6 +22,7 @@ class FakeEmbedService extends EmbedServiceImpl implements IEmbedService {
   });
 
   final EmbedData? getResultResponse;
+  final Object? getResultError;
   final EmbedRenderer? resolveRenderResponse;
   final EmbedProviderRule? resolveRuleResponse;
   final Uri? resolveCacheUriResponse;
@@ -47,6 +49,9 @@ class FakeEmbedService extends EmbedServiceImpl implements IEmbedService {
   }) async {
     getResultCallCount += 1;
     lastGetResultConfig = config;
+    if (getResultError != null) {
+      throw getResultError!;
+    }
     return getResultResponse ??
         super.getResult(
           param: param,

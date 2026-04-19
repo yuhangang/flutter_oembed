@@ -23,16 +23,25 @@ String buildGenericHtmlDocument(
       padding: 0;
       padding-bottom: 8px; /* Breathing room to prevent clipping */
       width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       $scrollStyles
     }
+    #embed-container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
     img, video {
-      width: 100% !important;
+      max-width: 100% !important;
       height: auto !important;
       display: block;
       margin: 0 auto;
     }
     iframe {
-      width: 100% !important;
+      max-width: 100% !important;
       display: block;
       margin: 0 auto;
       border: none;
@@ -66,12 +75,18 @@ String buildXHtmlDocument(
       margin: 0;
       padding: 0;
       padding-bottom: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       $scrollStyles
+    }
+    .twitter-tweet {
+      margin: 0 auto !important;
     }
   </style>
 </head>
 <body>
-  <div>
+  <div style="width: 100%; display: flex; flex-direction: column; align-items: center;">
     $embedHtml
   </div>
   $resizeObserverScript
@@ -86,7 +101,6 @@ String buildTikTokHtmlDocument(
   required double maxWidth,
   bool scrollable = false,
 }) {
-  // TODO: Fix extra padding for tiktok oembed
   final scrollStyles = !scrollable ? 'overflow: hidden;' : '';
   return '''
 <!DOCTYPE html><html>
@@ -97,26 +111,36 @@ String buildTikTokHtmlDocument(
     html, body {
       margin: 0;
       padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       $scrollStyles
     }
     blockquote.tiktok-embed {
-      margin: 0;
-      padding: 0;
+      margin: 0 auto !important;
+      padding: 0 !important;
       max-width: ${maxWidth}px !important;
       min-width: auto !important;
       width: 100%;
+      border: none !important;
+    }
+    .tiktok-embed iframe {
+      padding: 0 !important;
+      margin: 0 auto !important;
+      display: block;
     }
     .embed-container {
-    width: 100vw;
-    display: block;
-    margin: 0;
-    padding: 0;
-  }
-    
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 0;
+    }
   </style>
 </head>
 <body>
-  <div>
+  <div class="embed-container">
     $embedHtml
   </div>
   <script>
@@ -204,17 +228,23 @@ String buildMetaHtmlDocument(
     html, body {
       margin: 0;
       padding: 0;
-      width:${maxWidth}px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       ${!isFacebookVideo ? 'background-color: white;' : ''}
       $scrollStyles
     }
     iframe {
-      width: ${maxWidth}px !important;
+      max-width: ${maxWidth}px !important;
+      width: 100% !important;
     }
   </style>
 </head>
 <body>
-  $embedHtml
+  <div style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+    $embedHtml
+  </div>
   $resizeObserverScript
 </body>
 </html>
@@ -237,12 +267,17 @@ String buildInstagramHtmlDocument(
     html, body {
       margin: 0;
       padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       $scrollStyles
     }
   </style>
 </head>
 <body>
-  $embedHtml
+  <div style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+    $embedHtml
+  </div>
   $resizeObserverScript
 </body>
 </html>
@@ -267,12 +302,17 @@ String buildYouTubeHtmlDocument(
     html, body {
       margin: 0;
       padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       $scrollStyles
     }
   </style>
 </head>
 <body>
-  $processedHtml
+  <div style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+    $processedHtml
+  </div>
   $resizeObserverScript
 </body>
 </html>
@@ -371,8 +411,14 @@ const _errorBridgeScript = '''
 <script>
   (function() {
     const report = (type, details) => {
+      const message = type + ': ' + (details || 'Unknown');
       if (window.ErrorChannel) {
-        window.ErrorChannel.postMessage(type + ': ' + (details || 'Unknown'));
+        window.ErrorChannel.postMessage(message);
+      } else if (window.parent && window.parent !== window) {
+        window.parent.postMessage(JSON.stringify({
+          type: 'error',
+          payload: message
+        }), '*');
       }
     };
     window.onerror = (msg, url, line, col, error) => {
@@ -393,15 +439,22 @@ $_errorBridgeScript
 <script>
   (function() {
     const reportHeight = () => {
+       const height = Math.ceil(Math.max(
+         document.body.scrollHeight, 
+         document.body.offsetHeight, 
+         document.documentElement.clientHeight, 
+         document.documentElement.scrollHeight, 
+         document.documentElement.offsetHeight
+       ));
+       
+       const heightStr = height.toString();
        if (window.HeightChannel) {
-         const height = Math.ceil(Math.max(
-           document.body.scrollHeight, 
-           document.body.offsetHeight, 
-           document.documentElement.clientHeight, 
-           document.documentElement.scrollHeight, 
-           document.documentElement.offsetHeight
-         ));
-         window.HeightChannel.postMessage(height.toString());
+         window.HeightChannel.postMessage(heightStr);
+       } else if (window.parent && window.parent !== window) {
+         window.parent.postMessage(JSON.stringify({
+           type: 'height',
+           payload: heightStr
+         }), '*');
        }
     };
 

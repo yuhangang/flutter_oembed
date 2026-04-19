@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/controllers/embed_webview_driver.dart';
+import 'package:flutter_oembed/src/core/provider_strategy.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
 import 'package:flutter_oembed/src/models/core/embed_constant.dart';
 import 'package:flutter_oembed/src/models/core/embed_constraints.dart';
@@ -15,8 +16,12 @@ import 'package:flutter_oembed/src/models/core/embed_style.dart';
 import 'package:flutter_oembed/src/models/core/embed_webview_controls.dart';
 import 'package:flutter_oembed/src/models/core/provider_rule.dart';
 import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
+import 'package:flutter_oembed/src/utils/embed_errors.dart';
+import 'package:flutter_oembed/src/utils/embed_web_document.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+
+import 'platform_embed_view.dart';
 
 /// Renders embedded social media content in a platform WebView.
 ///
@@ -172,7 +177,7 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
   /// When content-affecting props change, [EmbedWebView] generates a new key
   /// for the core widget, causing Flutter to destroy this state and create a
   /// fresh one with a new driver.
-  late final EmbedWebViewDriver _driver;
+  EmbedWebViewDriver? _driver;
   late final Object _driverContentKey;
 
   @override
@@ -183,13 +188,23 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
       widget.data,
       widget.url,
     );
-    _driver = _createDriver();
+    if (!kIsWeb) {
+      _driver = _createDriver();
+    } else {
+      widget.controller.setEmbedData(widget.data, notify: false);
+      widget.controller.setLoadingState(EmbedLoadingState.loading);
+      widget.controller.startLoadTimeout();
+    }
     _scheduleVisibilityCheck();
     _scheduleInit();
   }
 
   @override
   void dispose() {
+    if (kIsWeb) {
+      widget.controller.cancelLoadTimeout();
+      widget.controller.unbindMediaControls();
+    }
     super.dispose();
   }
 
@@ -223,9 +238,15 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
       // widget during the initial fetch-to-render handoff.
       widget.controller.setEmbedData(widget.data, notify: false);
       if (!mounted) return;
-      // TODO: allow user to configure background color
-      final bg = Theme.of(context).scaffoldBackgroundColor;
-      await _driver.initEmbedWebview(
+      if (kIsWeb) {
+        return;
+      }
+      // Use custom background color if configured, fallback to scaffold background
+      final config = widget.controller.config ?? EmbedScope.configOf(context);
+      final style = widget.style ?? config?.style;
+      final bg =
+          style?.backgroundColor ?? Theme.of(context).scaffoldBackgroundColor;
+      await _driver!.initEmbedWebview(
         backgroundColor: bg,
         embedData: widget.data,
         embedUrl: widget.url,
@@ -263,6 +284,10 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
     EmbedStyle? style,
     EmbedStrings strings,
   ) {
+    if (kIsWeb) {
+      return _buildPlatformEmbedView(context, strings);
+    }
+
     final gestureRecognizers = widget.scrollable
         ? <Factory<OneSequenceGestureRecognizer>>{
             const Factory<OneSequenceGestureRecognizer>(
@@ -276,11 +301,81 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
       label: strings.contentSemanticsLabel,
       child: Listener(
         behavior: HitTestBehavior.translucent,
-        onPointerDown: (_) => _driver.recordUserInteraction(),
+        onPointerDown: (_) => _driver?.recordUserInteraction(),
         child: WebViewWidget(
-          controller: _driver.webViewController,
+          controller: _driver!.webViewController,
           gestureRecognizers: gestureRecognizers,
         ),
+      ),
+    );
+  }
+
+  ({EmbedProviderRule? rule, EmbedProviderStrategy strategy}) _resolveStrategy(
+    BuildContext context,
+  ) {
+    final config = widget.controller.config ?? EmbedScope.configOf(context);
+    final service = config?.embedService ?? EmbedScope.serviceOf(context);
+    final rule = service.resolveRule(
+      widget.param.url,
+      config: config,
+    );
+    widget.controller.setMatchedProviderRule(rule);
+    return (
+      rule: rule,
+      strategy: rule?.strategy ?? const GenericEmbedProviderStrategy(),
+    );
+  }
+
+  Widget _buildPlatformEmbedView(BuildContext context, EmbedStrings strings) {
+    final resolved = _resolveStrategy(context);
+    final srcDoc = switch (widget.data) {
+      final EmbedData data when data.html.isNotEmpty => buildEmbedWebSrcDoc(
+          data: data,
+          strategy: resolved.strategy,
+          type: widget.param.embedType,
+          maxWidth: widget.maxWidth,
+          scrollable: widget.scrollable,
+        ),
+      _ => null,
+    };
+    final url = widget.url ??
+        ((widget.data?.url?.isNotEmpty ?? false) ? widget.data!.url : null);
+
+    if ((srcDoc == null || srcDoc.isEmpty) && (url == null || url.isEmpty)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        widget.controller.cancelLoadTimeout();
+        widget.controller.setLoadingState(
+          EmbedLoadingState.error,
+          error: const EmbedApiException(
+            message:
+                'The embed did not provide HTML or a URL to render on web.',
+          ),
+        );
+      });
+      return const SizedBox.shrink();
+    }
+
+    return Semantics(
+      container: true,
+      label: strings.contentSemanticsLabel,
+      child: PlatformEmbedView(
+        url: url,
+        srcDoc: srcDoc,
+        onHeightUpdate: (height) {
+          widget.controller.setHeight(height);
+        },
+        onLoaded: () {
+          widget.controller.cancelLoadTimeout();
+          widget.controller.setLoadingState(EmbedLoadingState.loaded);
+        },
+        onError: (error) {
+          widget.controller.cancelLoadTimeout();
+          widget.controller.setLoadingState(
+            EmbedLoadingState.error,
+            error: error,
+          );
+        },
       ),
     );
   }
@@ -383,7 +478,7 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
                       if (loadingState == EmbedLoadingState.error ||
                           loadingState == EmbedLoadingState.noConnection) {
                         widget.controller.setDidRetry();
-                        _driver.refresh();
+                        _driver?.refresh();
                       }
                     },
                     child: style?.errorBuilder?.call(
@@ -398,10 +493,24 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
         );
 
         if (effectiveWebViewBuilder != null) {
+          if (kIsWeb) {
+            return VisibilityDetector(
+              key: ValueKey(
+                'embed_webview_${widget.controller.embedRevision}_${widget.param.key}',
+              ),
+              onVisibilityChanged: (info) {
+                widget.controller.updateVisibility(
+                  info.visibleFraction > 0,
+                  onVisibilityChange: (_) {},
+                );
+              },
+              child: webViewContainer,
+            );
+          }
           final controls = EmbedWebViewControls(
-            controller: _driver.webViewController,
-            onReload: () => _driver.refresh(),
-            onUpdateHeight: () => _driver.updateEmbedPostHeight(),
+            controller: _driver!.webViewController,
+            onReload: () => _driver!.refresh(),
+            onUpdateHeight: () => _driver!.updateEmbedPostHeight(),
             onPause: () => widget.controller.pauseMedia(),
             onResume: () => widget.controller.resumeMedia(),
             onMute: () => widget.controller.muteMedia(),
@@ -423,7 +532,7 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
               info.visibleFraction > 0,
               onVisibilityChange: (_) {},
             );
-            _driver.updateVisibilityFraction(info.visibleFraction);
+            _driver?.updateVisibilityFraction(info.visibleFraction);
           },
           child: webViewContainer,
         );
@@ -433,7 +542,7 @@ class _EmbedWebViewCoreState extends State<_EmbedWebViewCore> {
 }
 
 class _EmbedWebviewObserver extends StatefulWidget {
-  final EmbedWebViewDriver driver;
+  final EmbedWebViewDriver? driver;
   final EmbedController controller;
 
   const _EmbedWebviewObserver({
@@ -484,10 +593,10 @@ class _EmbedWebviewObserverState extends State<_EmbedWebviewObserver>
     }
 
     if (wasPauseOnRouteCover && !pauseOnRouteCover) {
-      widget.driver.setRouteCovered(false);
+      widget.driver?.setRouteCovered(false);
     }
 
-    widget.driver.updateFocusGroup(route);
+    widget.driver?.updateFocusGroup(route);
   }
 
   @override
@@ -499,13 +608,13 @@ class _EmbedWebviewObserverState extends State<_EmbedWebviewObserver>
   @override
   void didPushNext() {
     if (!_pauseOnRouteCover) return;
-    widget.driver.setRouteCovered(true);
+    widget.driver?.setRouteCovered(true);
   }
 
   @override
   void didPopNext() {
     if (!_pauseOnRouteCover) return;
-    widget.driver.setRouteCovered(false);
+    widget.driver?.setRouteCovered(false);
   }
 
   @override

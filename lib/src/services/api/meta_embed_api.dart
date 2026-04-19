@@ -15,12 +15,10 @@ class MetaEmbedApi extends BaseEmbedApi {
     this.width,
     this.appId,
     this.clientToken, {
-    this.proxyUrl,
     this.endpoint,
     this.metaParams,
   });
 
-  final String? proxyUrl;
   final String? endpoint;
   final EmbedType embedType;
   final double width;
@@ -35,7 +33,6 @@ class MetaEmbedApi extends BaseEmbedApi {
 
   @override
   String get baseUrl {
-    if (proxyUrl != null) return proxyUrl!;
     if (embedType == EmbedType.threads) return 'https://graph.threads.net/v1.0';
     return 'https://graph.facebook.com/v25.0';
   }

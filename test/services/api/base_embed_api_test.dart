@@ -81,12 +81,6 @@ void main() {
     });
 
     group('baseUrl', () {
-      test('should correctly handle and prepend a proxyUrl if provided', () {
-        const api = GenericEmbedApi(endpoint, proxyUrl: 'https://proxy.com');
-        expect(api.baseUrl,
-            equals('https://proxy.com/https://example.com/oembed'));
-      });
-
       test('should correctly handle the {format} placeholder in the endpoint',
           () {
         const api = GenericEmbedApi('https://test.com/oembed.{format}');

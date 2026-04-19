@@ -35,6 +35,24 @@ class _SettingsSheet extends StatefulWidget {
 }
 
 class _SettingsSheetState extends State<_SettingsSheet> {
+  late final TextEditingController _proxyController = TextEditingController();
+  bool _didInitializeProxy = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didInitializeProxy) return;
+    _proxyController.text =
+        ExampleSettingsProvider.of(context).settings.proxyUrl ?? '';
+    _didInitializeProxy = true;
+  }
+
+  @override
+  void dispose() {
+    _proxyController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -170,6 +188,89 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                             },
                             contentPadding: EdgeInsets.zero,
                           ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    _buildSection(
+                      context,
+                      title: 'Web Proxy',
+                      icon: Icons.shield_outlined,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'On web, some providers need a CORS proxy for oEmbed requests. '
+                            'Use `example/tool/local_cors_proxy.dart` for local development.',
+                            style: theme.textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _proxyController,
+                            decoration: InputDecoration(
+                              labelText: 'CORS Proxy URL',
+                              hintText: 'http://localhost:8080/',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              isDense: true,
+                              suffixIcon: IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  _proxyController.clear();
+                                  controller.updateProxyUrl(null);
+                                  setState(() {});
+                                },
+                              ),
+                            ),
+                            onChanged: (value) {
+                              controller.updateProxyUrl(
+                                value.trim().isEmpty ? null : value.trim(),
+                              );
+                              setState(() {});
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () {
+                                    const localProxy = 'http://localhost:8080/';
+                                    _proxyController.text = localProxy;
+                                    controller.updateProxyUrl(localProxy);
+                                    setState(() {});
+                                  },
+                                  icon: const Icon(Icons.computer, size: 16),
+                                  label: const Text('Local Proxy'),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () {
+                                    const testProxy =
+                                        'https://cors-anywhere.herokuapp.com/';
+                                    _proxyController.text = testProxy;
+                                    controller.updateProxyUrl(testProxy);
+                                    setState(() {});
+                                  },
+                                  icon: const Icon(Icons.public, size: 16),
+                                  label: const Text('Test Proxy'),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if ((settings.proxyUrl ?? '').isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Text(
+                              'Active proxy: ${settings.proxyUrl}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),

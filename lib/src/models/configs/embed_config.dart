@@ -13,6 +13,8 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 
+const Object _embedConfigCopyWithSentinel = Object();
+
 /// Unified configuration for the OEmbed library.
 ///
 /// Pass this to [EmbedScope] to configure the entire embed system in one place.
@@ -256,50 +258,72 @@ class EmbedConfig extends Equatable {
   EmbedConfig copyWith({
     EmbedProviderConfig? providers,
     EmbedCacheConfig? cache,
-    EmbedCacheProvider? cacheProvider,
-    EmbedStyle? style,
-    String? facebookAppId,
-    String? facebookClientToken,
-    String? proxyUrl,
+    Object? cacheProvider = _embedConfigCopyWithSentinel,
+    Object? style = _embedConfigCopyWithSentinel,
+    Object? facebookAppId = _embedConfigCopyWithSentinel,
+    Object? facebookClientToken = _embedConfigCopyWithSentinel,
+    Object? proxyUrl = _embedConfigCopyWithSentinel,
     String? locale,
     Brightness? brightness,
     EmbedStrings? strings,
-    FutureOr<NavigationDecision>? Function(NavigationRequest)?
-        onNavigationRequest,
-    void Function(String url, EmbedData? data)? onLinkTap,
+    Object? onNavigationRequest = _embedConfigCopyWithSentinel,
+    Object? onLinkTap = _embedConfigCopyWithSentinel,
     Duration? loadTimeout,
     double? heightUpdateDeltaThreshold,
     bool? scrollable,
     bool? lazyLoad,
     bool? pauseOnRouteCover,
-    RouteObserver<ModalRoute<dynamic>>? routeObserver,
+    Object? routeObserver = _embedConfigCopyWithSentinel,
     EmbedLogger? logger,
-    http.Client? httpClient,
-    IEmbedService? embedService,
+    Object? httpClient = _embedConfigCopyWithSentinel,
+    Object? embedService = _embedConfigCopyWithSentinel,
   }) {
     return EmbedConfig(
       providers: providers ?? this.providers,
       cache: cache ?? this.cache,
-      cacheProvider: cacheProvider ?? this.cacheProvider,
-      style: style ?? this.style,
-      facebookAppId: facebookAppId ?? this.facebookAppId,
-      facebookClientToken: facebookClientToken ?? this.facebookClientToken,
-      proxyUrl: proxyUrl ?? this.proxyUrl,
+      cacheProvider: identical(cacheProvider, _embedConfigCopyWithSentinel)
+          ? this.cacheProvider
+          : cacheProvider as EmbedCacheProvider?,
+      style: identical(style, _embedConfigCopyWithSentinel)
+          ? this.style
+          : style as EmbedStyle?,
+      facebookAppId: identical(facebookAppId, _embedConfigCopyWithSentinel)
+          ? this.facebookAppId
+          : facebookAppId as String?,
+      facebookClientToken:
+          identical(facebookClientToken, _embedConfigCopyWithSentinel)
+              ? this.facebookClientToken
+              : facebookClientToken as String?,
+      proxyUrl: identical(proxyUrl, _embedConfigCopyWithSentinel)
+          ? this.proxyUrl
+          : proxyUrl as String?,
       locale: locale ?? this.locale,
       brightness: brightness ?? this.brightness,
       strings: strings ?? this.strings,
-      onNavigationRequest: onNavigationRequest ?? this.onNavigationRequest,
-      onLinkTap: onLinkTap ?? this.onLinkTap,
+      onNavigationRequest:
+          identical(onNavigationRequest, _embedConfigCopyWithSentinel)
+              ? this.onNavigationRequest
+              : onNavigationRequest as FutureOr<NavigationDecision>? Function(
+                  NavigationRequest)?,
+      onLinkTap: identical(onLinkTap, _embedConfigCopyWithSentinel)
+          ? this.onLinkTap
+          : onLinkTap as void Function(String url, EmbedData? data)?,
       loadTimeout: loadTimeout ?? this.loadTimeout,
       heightUpdateDeltaThreshold:
           heightUpdateDeltaThreshold ?? this.heightUpdateDeltaThreshold,
       scrollable: scrollable ?? this.scrollable,
       lazyLoad: lazyLoad ?? this.lazyLoad,
       pauseOnRouteCover: pauseOnRouteCover ?? this.pauseOnRouteCover,
-      routeObserver: routeObserver ?? this.routeObserver,
+      routeObserver: identical(routeObserver, _embedConfigCopyWithSentinel)
+          ? this.routeObserver
+          : routeObserver as RouteObserver<ModalRoute<dynamic>>?,
       logger: logger ?? this.logger,
-      httpClient: httpClient ?? this.httpClient,
-      embedService: embedService ?? this.embedService,
+      httpClient: identical(httpClient, _embedConfigCopyWithSentinel)
+          ? this.httpClient
+          : httpClient as http.Client?,
+      embedService: identical(embedService, _embedConfigCopyWithSentinel)
+          ? this.embedService
+          : embedService as IEmbedService?,
     );
   }
 }

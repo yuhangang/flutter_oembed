@@ -48,7 +48,44 @@ void main() {
         providerRenderModes: {'YouTube': EmbedRenderMode.iframe},
       );
       expect(config.getRenderMode('YouTube'), equals(EmbedRenderMode.iframe));
-      expect(config.getRenderMode('Vimeo'), equals(EmbedRenderMode.oembed));
+      expect(
+        resolveEmbedRenderMode('Vimeo', overrides: const {}, isWeb: false),
+        equals(EmbedRenderMode.oembed),
+      );
+    });
+
+    test('Flutter Web defaults iframe-friendly providers to iframe mode', () {
+      expect(
+        resolveEmbedRenderMode('YouTube', overrides: const {}, isWeb: true),
+        equals(EmbedRenderMode.iframe),
+      );
+      expect(
+        resolveEmbedRenderMode('Vimeo', overrides: const {}, isWeb: true),
+        equals(EmbedRenderMode.iframe),
+      );
+      expect(
+        resolveEmbedRenderMode('Spotify', overrides: const {}, isWeb: true),
+        equals(EmbedRenderMode.iframe),
+      );
+      expect(
+        resolveEmbedRenderMode('TikTok', overrides: const {}, isWeb: true),
+        equals(EmbedRenderMode.iframe),
+      );
+      expect(
+        resolveEmbedRenderMode('Reddit', overrides: const {}, isWeb: true),
+        equals(EmbedRenderMode.oembed),
+      );
+    });
+
+    test('explicit render mode overrides win on Flutter Web', () {
+      expect(
+        resolveEmbedRenderMode(
+          'YouTube',
+          overrides: const {'YouTube': EmbedRenderMode.oembed},
+          isWeb: true,
+        ),
+        equals(EmbedRenderMode.oembed),
+      );
     });
 
     test('copyWith', () {
@@ -185,6 +222,18 @@ void main() {
 
       expect(first.runtimeEquals(second), isTrue);
       expect(first.runtimeEquals(third), isFalse);
+    });
+
+    test('copyWith preserves and can clear proxyUrl', () {
+      const first = EmbedConfig(proxyUrl: 'http://localhost:8080/');
+
+      final preserved = first.copyWith(
+        onLinkTap: (url, data) {},
+      );
+      final cleared = first.copyWith(proxyUrl: null);
+
+      expect(preserved.proxyUrl, 'http://localhost:8080/');
+      expect(cleared.proxyUrl, isNull);
     });
   });
 

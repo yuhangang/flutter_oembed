@@ -11,6 +11,7 @@ import 'package:flutter_oembed/src/models/core/embed_loader_param.dart';
 import 'package:flutter_oembed/src/models/core/embed_strings.dart';
 import 'package:flutter_oembed/src/models/core/embed_style.dart';
 import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
+import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter_oembed/src/widgets/embed_data_loader.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -282,6 +283,50 @@ void main() {
       }
     });
 
+    testWidgets('uses controller config when widget config is null',
+        (tester) async {
+      final service = FakeEmbedService(
+        getResultResponse: const EmbedData(
+          type: 'rich',
+          html: '<div>Controller Config</div>',
+        ),
+      );
+      final controllerConfig = EmbedConfig(
+        proxyUrl: 'http://localhost:8080/',
+        embedService: service,
+        cache: const EmbedCacheConfig(enabled: false),
+      );
+      final controllerWithConfig = buildController(
+        param: param,
+        config: controllerConfig,
+      );
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedDataLoader(
+                param: param,
+                loaderParam: loaderParam,
+                controller: controllerWithConfig,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        expect(service.getResultCallCount, 1);
+        expect(
+          service.lastGetResultConfig?.proxyUrl,
+          equals('http://localhost:8080/'),
+        );
+      } finally {
+        controllerWithConfig.dispose();
+      }
+    });
+
     testWidgets('trigger build branches', (tester) async {
       when(() => mockClient.get(any(), headers: any(named: 'headers')))
           .thenAnswer((_) async => http.Response('{}', 200));
@@ -337,6 +382,64 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       await tester.pump(const Duration(seconds: 1));
+    });
+
+    testWidgets('reloads when only the http client changes', (tester) async {
+      final firstClient = MockHttpClient();
+      final secondClient = MockHttpClient();
+      final firstCompleter = Completer<http.Response>();
+
+      when(() => firstClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer((_) => firstCompleter.future);
+      when(() => secondClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer((_) async => http.Response('{}', 200));
+
+      final config1 = EmbedConfig(
+        httpClient: firstClient,
+        cache: const EmbedCacheConfig(enabled: false),
+      );
+      final config2 = EmbedConfig(
+        httpClient: secondClient,
+        cache: const EmbedCacheConfig(enabled: false),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedDataLoader(
+              param: param,
+              loaderParam: loaderParam,
+              controller: controller,
+              config: config1,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      verify(() => firstClient.get(any(), headers: any(named: 'headers')))
+          .called(1);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedDataLoader(
+              param: param,
+              loaderParam: loaderParam,
+              controller: controller,
+              config: config2,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      verify(() => secondClient.get(any(), headers: any(named: 'headers')))
+          .called(1);
+
+      firstCompleter.complete(http.Response('{}', 200));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('shows custom loading widget', (tester) async {
@@ -500,6 +603,41 @@ void main() {
 
         expect(
           find.bySemanticsLabel('Embedded content failed to load'),
+          findsOneWidget,
+        );
+      } finally {
+        semanticsHandle.dispose();
+      }
+    });
+
+    testWidgets('shows network semantics for EmbedNetworkException',
+        (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+      final service = FakeEmbedService(
+        getResultError: const EmbedNetworkException(),
+      );
+      final config = testConfig.copyWith(embedService: service);
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedDataLoader(
+                param: param,
+                loaderParam: loaderParam,
+                controller: controller,
+                config: config,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(
+          find.bySemanticsLabel(
+            'Embedded content failed to load because of a network error',
+          ),
           findsOneWidget,
         );
       } finally {

@@ -18,6 +18,8 @@ class MockWebViewController extends Mock implements WebViewController {}
 
 class MockWebResourceError extends Mock implements WebResourceError {}
 
+class MockNavigationRequest extends Mock implements NavigationRequest {}
+
 EmbedController buildController({
   SocialEmbedParam? param,
   EmbedConfig? config,
@@ -496,6 +498,53 @@ void main() {
 
         // Should not crash
       });
+    });
+
+    test('refresh reloads and re-enters loading state', () async {
+      final driver = EmbedWebViewDriver(
+        controller: controller,
+        param: param,
+        webViewController: mockWebViewController,
+      );
+      controller.setLoadingState(EmbedLoadingState.loaded);
+
+      await driver.refresh();
+
+      expect(controller.loadingState, EmbedLoadingState.loading);
+      verify(() => mockWebViewController.reload()).called(1);
+    });
+
+    test('refresh keeps trusted reload navigation inside the WebView',
+        () async {
+      NavigationDelegate? capturedDelegate;
+      when(() => mockWebViewController.setNavigationDelegate(any()))
+          .thenAnswer((invocation) {
+        capturedDelegate = invocation.positionalArguments.first;
+        return Future.value();
+      });
+
+      final driver = EmbedWebViewDriver(
+        controller: controller,
+        param: param,
+        webViewController: mockWebViewController,
+      );
+
+      await driver.initEmbedWebview(
+        backgroundColor: Colors.white,
+        embedData: null,
+        embedUrl: 'https://platform.twitter.com/embed',
+        maxWidth: 400,
+      );
+      controller.setLoadingState(EmbedLoadingState.loaded);
+
+      await driver.refresh();
+
+      final request = MockNavigationRequest();
+      when(() => request.url).thenReturn('https://platform.twitter.com/embed');
+      when(() => request.isMainFrame).thenReturn(true);
+
+      final decision = await capturedDelegate!.onNavigationRequest!(request);
+      expect(decision, NavigationDecision.navigate);
     });
 
     test('dispose ignores cleanup failures', () async {

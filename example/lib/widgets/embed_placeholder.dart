@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/flutter_oembed.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -242,8 +243,13 @@ class _PlatformTheme {
 
 class SocialEmbedErrorPlaceholder extends StatelessWidget {
   final EmbedType embedType;
+  final String? hint;
 
-  const SocialEmbedErrorPlaceholder({super.key, required this.embedType});
+  const SocialEmbedErrorPlaceholder({
+    super.key,
+    required this.embedType,
+    this.hint,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -339,7 +345,6 @@ class SocialEmbedErrorPlaceholder extends StatelessWidget {
                       letterSpacing: -0.2,
                     ),
                   ),
-                  const SizedBox(height: 4),
                   Text(
                     'Tap to try again',
                     style: TextStyle(
@@ -348,6 +353,42 @@ class SocialEmbedErrorPlaceholder extends StatelessWidget {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
+                  if (kIsWeb && hint == null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: errorColor.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.web_rounded, size: 14, color: errorColor),
+                          SizedBox(width: 8),
+                          Text(
+                            'Web CORS: Try adding a proxy in settings',
+                            style: TextStyle(
+                              color: errorColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (hint != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      hint!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.grey, fontSize: 10),
+                    ),
+                  ],
                 ],
               ),
             ),

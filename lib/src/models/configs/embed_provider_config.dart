@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_oembed/src/models/core/provider_rule.dart';
 import 'package:flutter_oembed/src/services/provider_registry.dart';
 
@@ -20,6 +21,31 @@ extension EmbedProvidersExtension on List<EmbedProviderRule> {
   List<EmbedProviderRule> append(List<EmbedProviderRule> custom) {
     return [...this, ...custom];
   }
+}
+
+const Set<String> _defaultWebIframeProviders = {
+  'YouTube',
+  'Vimeo',
+  'Spotify',
+  'TikTok',
+};
+
+@visibleForTesting
+EmbedRenderMode resolveEmbedRenderMode(
+  String providerName, {
+  required Map<String, EmbedRenderMode> overrides,
+  bool isWeb = kIsWeb,
+}) {
+  final explicit = overrides[providerName];
+  if (explicit != null) {
+    return explicit;
+  }
+
+  if (isWeb && _defaultWebIframeProviders.contains(providerName)) {
+    return EmbedRenderMode.iframe;
+  }
+
+  return EmbedRenderMode.oembed;
 }
 
 /// Controls which OEmbed providers are active and how they render content.
@@ -55,8 +81,15 @@ class EmbedProviderConfig extends Equatable {
 
   /// Returns the render mode for the given provider. Defaults to
   /// [EmbedRenderMode.oembed] if not explicitly overridden.
+  ///
+  /// On Flutter Web, iframe-capable providers default to
+  /// [EmbedRenderMode.iframe] to avoid browser-side CORS failures when their
+  /// oEmbed endpoints do not allow direct fetches from the app origin.
   EmbedRenderMode getRenderMode(String providerName) {
-    return providerRenderModes[providerName] ?? EmbedRenderMode.oembed;
+    return resolveEmbedRenderMode(
+      providerName,
+      overrides: providerRenderModes,
+    );
   }
 
   /// Returns a copy of this configuration with the given fields replaced.

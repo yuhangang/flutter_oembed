@@ -6,8 +6,19 @@
 
 ### Improvements
 - **Storage Showcases**: Added showcase implementations for persistent caching using `hive_ce` and `flutter_cache_manager` in the `example/` project. Users can easily copy these into their projects if they need persistence.
-- **Memory Safety**: `InMemoryEmbedCacheProvider` includes TTL (time-to-live) logic to prevent indefinite memory growth.
-- **Service Injection**: Exported `IEmbedService` as public API and documented `EmbedConfig.embedService` so provider resolution and fetch behavior can be overridden per scope.
+- **TikTok Example**: Added a TikTok creator profile sample to the example app, reusing the existing TikTok oEmbed provider flow that already handles `https://www.tiktok.com/@handle` profile URLs.
+- **Flutter Web**: Added an experimental iframe-backed render path so standard embeds can compile and render on Flutter Web without going through `webview_flutter`. This first pass keeps reduced parity with mobile for navigation interception, media controls, and `webViewBuilder`.
+- **Flutter Web**: Added support for a configurable `proxyUrl` in `EmbedConfig` to bypass browser-side CORS restrictions for providers like Reddit and TikTok.
+- **Example App**: Added a proxy status indicator to the home page and quick-set options for local and test proxies in the settings menu.
+- **Traceability**: Improved proxy logic robustness and added detailed debug logging for CORS-proxied requests.
+- **Accessibility**: Restored semantics labels for terminal embed errors surfaced by `EmbedWidgetLoader` after retry exhaustion.
+
+## 1.0.1-alpha.5
+
+- **Web Support**: Officially initialized Flutter Web support.
+- **Modernization**: Migrated web implementation from `dart:html` to `package:web` and `dart:js_interop` for Wasm compatibility.
+- **Example App**: Added web platform files (`index.html`, `manifest.json`) to the example app.
+- **Documentation**: Updated README to reflect supported web status.
 
 ## 1.0.1-alpha.4
 

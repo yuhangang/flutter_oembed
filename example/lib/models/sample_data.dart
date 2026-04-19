@@ -14,6 +14,12 @@ const List<Map<String, dynamic>> samples = [
     'category': 'verified',
   },
   {
+    'url': 'https://www.tiktok.com/@scout2015',
+    'type': EmbedType.tiktok,
+    'source': 'TikTok Creator Profile',
+    'category': 'verified',
+  },
+  {
     'url': 'https://www.tiktok.com/@scout2015/video/6718335390845095173',
     'type': EmbedType.tiktok_v1,
     'source': 'TikTok (v1 Player)',

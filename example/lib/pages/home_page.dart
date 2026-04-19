@@ -12,6 +12,7 @@ import 'package:embed_example/utils/platform_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_oembed/flutter_oembed.dart';
+import 'package:embed_example/utils/settings_controller.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -38,7 +39,44 @@ class _MyHomePageState extends State<MyHomePage> {
         elevation: 0,
         backgroundColor: Theme.of(context).colorScheme.surface,
         foregroundColor: Theme.of(context).colorScheme.onSurface,
-        actions: const [ConfigMenuAction()],
+        actions: [
+          ListenableBuilder(
+            listenable: ExampleSettingsProvider.of(context),
+            builder: (context, _) {
+              final proxyUrl =
+                  ExampleSettingsProvider.of(context).settings.proxyUrl;
+              if (proxyUrl == null || proxyUrl.isEmpty) {
+                return const SizedBox.shrink();
+              }
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Tooltip(
+                  message: 'CORS Proxy Active: $proxyUrl',
+                  child: Chip(
+                    visualDensity: VisualDensity.compact,
+                    backgroundColor:
+                        Theme.of(context).colorScheme.primaryContainer,
+                    side: BorderSide.none,
+                    label: Text(
+                      'Proxy',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      ),
+                    ),
+                    avatar: Icon(
+                      Icons.shield_rounded,
+                      size: 12,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          const ConfigMenuAction(),
+        ],
       ),
       body: CustomScrollView(
         slivers: [

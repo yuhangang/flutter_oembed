@@ -36,6 +36,7 @@ class _MyAppState extends State<MyApp> {
             config: EmbedConfig(
               locale: settings.locale,
               brightness: settings.brightness,
+              proxyUrl: settings.proxyUrl,
               providers: EmbedProviderConfig(
                 // Overriding providers list (e.g. tracking only certain providers)
                 // providers: EmbedProviders.verified.where((r) => {'YouTube', 'Spotify'}.contains(r.providerName)).toList(),
@@ -118,6 +119,14 @@ class _MyAppState extends State<MyApp> {
                 Locale('zh'),
                 Locale('ms'),
               ],
+              builder: (context, child) {
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    child: child!,
+                  ),
+                );
+              },
               home: const MyHomePage(),
             ),
           );

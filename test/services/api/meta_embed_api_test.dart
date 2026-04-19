@@ -40,13 +40,12 @@ void main() {
       expect(uri.path, contains('oembed'));
     });
 
-    test('constructUrl with proxyUrl', () {
-      const api = MetaEmbedApi(
-          EmbedType.facebook_post, width, appId, clientToken,
-          proxyUrl: 'https://myproxy.com');
+    test('constructUrl is not affected by proxy configuration', () {
+      const api =
+          MetaEmbedApi(EmbedType.facebook_post, width, appId, clientToken);
       final uri = api.constructUrl('https://facebook.com/post/1');
 
-      expect(uri.toString(), startsWith('https://myproxy.com'));
+      expect(uri.host, equals('graph.facebook.com'));
     });
 
     test('constructUrl with metaParams', () {
