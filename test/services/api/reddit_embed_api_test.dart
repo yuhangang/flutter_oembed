@@ -3,6 +3,16 @@ import 'package:flutter_oembed/src/services/api/reddit_embed_api.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:mocktail/mocktail.dart';
+
+class MockHttpClient extends Mock implements http.Client {}
+
+class WebTestRedditEmbedApi extends RedditEmbedApi {
+  const WebTestRedditEmbedApi({super.width});
+
+  @override
+  bool get isWeb => true;
+}
 
 void main() {
   group('RedditEmbedApi', () {
@@ -29,10 +39,36 @@ void main() {
           isA<EmbedApisException>());
     });
 
-    test('should correctly store and expose proxyUrl', () {
-      const proxy = 'https://my-proxy.com';
-      const api = RedditEmbedApi(proxyUrl: proxy);
-      expect(api.proxyUrl, equals(proxy));
+    test('routes web requests through proxyUrl when provided', () async {
+      const api = WebTestRedditEmbedApi(width: 568);
+      final mockClient = MockHttpClient();
+      registerFallbackValue(Uri.parse('https://example.com'));
+
+      when(() => mockClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer(
+              (_) async => http.Response('{"type":"rich","html":""}', 200));
+
+      await api.getEmbedData(
+        'https://www.reddit.com/r/flutterdev/comments/17yv8y8/how_to_implement_embed_in_flutter/',
+        brightness: Brightness.light,
+        proxyUrl: 'http://localhost:8080/',
+        httpClient: mockClient,
+      );
+
+      final capturedUri = verify(
+        () => mockClient.get(captureAny(), headers: any(named: 'headers')),
+      ).captured.first as Uri;
+
+      expect(
+        capturedUri.toString(),
+        startsWith('http://localhost:8080/https://www.reddit.com/oembed?'),
+      );
+      expect(
+        capturedUri.query,
+        contains(
+          'url=https%3A%2F%2Fwww.reddit.com%2Fr%2Fflutterdev%2Fcomments%2F17yv8y8%2Fhow_to_implement_embed_in_flutter%2F',
+        ),
+      );
     });
   });
 }

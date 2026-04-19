@@ -7,7 +7,7 @@ import 'package:flutter_oembed/src/utils/embed_errors.dart';
 
 /// OEmbed API client for Vimeo.
 class VimeoEmbedApi extends BaseEmbedApi {
-  const VimeoEmbedApi(this.width, {this.vimeoParams, super.proxyUrl});
+  const VimeoEmbedApi(this.width, {this.vimeoParams});
 
   final double width;
   final VimeoEmbedParams? vimeoParams;

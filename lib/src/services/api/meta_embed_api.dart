@@ -17,7 +17,6 @@ class MetaEmbedApi extends BaseEmbedApi {
     this.clientToken, {
     this.endpoint,
     this.metaParams,
-    super.proxyUrl,
   });
 
   final String? endpoint;

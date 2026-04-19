@@ -283,6 +283,50 @@ void main() {
       }
     });
 
+    testWidgets('uses controller config when widget config is null',
+        (tester) async {
+      final service = FakeEmbedService(
+        getResultResponse: const EmbedData(
+          type: 'rich',
+          html: '<div>Controller Config</div>',
+        ),
+      );
+      final controllerConfig = EmbedConfig(
+        proxyUrl: 'http://localhost:8080/',
+        embedService: service,
+        cache: const EmbedCacheConfig(enabled: false),
+      );
+      final controllerWithConfig = buildController(
+        param: param,
+        config: controllerConfig,
+      );
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedDataLoader(
+                param: param,
+                loaderParam: loaderParam,
+                controller: controllerWithConfig,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        expect(service.getResultCallCount, 1);
+        expect(
+          service.lastGetResultConfig?.proxyUrl,
+          equals('http://localhost:8080/'),
+        );
+      } finally {
+        controllerWithConfig.dispose();
+      }
+    });
+
     testWidgets('trigger build branches', (tester) async {
       when(() => mockClient.get(any(), headers: any(named: 'headers')))
           .thenAnswer((_) async => http.Response('{}', 200));

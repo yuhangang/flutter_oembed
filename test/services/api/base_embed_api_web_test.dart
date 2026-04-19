@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter_oembed/src/models/configs/embed_cache_config.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -10,7 +11,7 @@ class MockHttpClient extends Mock implements http.Client {}
 class WebTestEmbedApi extends GenericEmbedApi {
   final bool _mockIsWeb;
 
-  const WebTestEmbedApi(super.endpoint, {super.proxyUrl, bool mockIsWeb = true})
+  const WebTestEmbedApi(super.endpoint, {bool mockIsWeb = true})
       : _mockIsWeb = mockIsWeb;
 
   @override
@@ -30,13 +31,18 @@ void main() {
 
     test('should prepend proxyUrl on Web when provided', () async {
       const proxy = 'http://localhost:8080/';
-      const api = WebTestEmbedApi(endpoint, proxyUrl: proxy);
+      const api = WebTestEmbedApi(endpoint);
 
       when(() => mockClient.get(any(), headers: any(named: 'headers')))
           .thenAnswer((_) async =>
               http.Response(jsonEncode({'type': 'rich', 'html': ''}), 200));
 
-      await api.getEmbedData(contentUrl, httpClient: mockClient);
+      await api.getEmbedData(
+        contentUrl,
+        proxyUrl: proxy,
+        cacheConfig: const EmbedCacheConfig(enabled: false),
+        httpClient: mockClient,
+      );
 
       final capturedUri = verify(() =>
               mockClient.get(captureAny(), headers: any(named: 'headers')))
@@ -51,13 +57,18 @@ void main() {
     });
 
     test('should NOT prepend proxyUrl on Web if proxyUrl is empty', () async {
-      const api = WebTestEmbedApi(endpoint, proxyUrl: '');
+      const api = WebTestEmbedApi(endpoint);
 
       when(() => mockClient.get(any(), headers: any(named: 'headers')))
           .thenAnswer((_) async =>
               http.Response(jsonEncode({'type': 'rich', 'html': ''}), 200));
 
-      await api.getEmbedData(contentUrl, httpClient: mockClient);
+      await api.getEmbedData(
+        contentUrl,
+        proxyUrl: '',
+        cacheConfig: const EmbedCacheConfig(enabled: false),
+        httpClient: mockClient,
+      );
 
       final capturedUri = verify(() =>
               mockClient.get(captureAny(), headers: any(named: 'headers')))
@@ -69,13 +80,18 @@ void main() {
 
     test('should NOT prepend proxyUrl if not on Web', () async {
       const proxy = 'http://localhost:8080/';
-      const api = WebTestEmbedApi(endpoint, proxyUrl: proxy, mockIsWeb: false);
+      const api = WebTestEmbedApi(endpoint, mockIsWeb: false);
 
       when(() => mockClient.get(any(), headers: any(named: 'headers')))
           .thenAnswer((_) async =>
               http.Response(jsonEncode({'type': 'rich', 'html': ''}), 200));
 
-      await api.getEmbedData(contentUrl, httpClient: mockClient);
+      await api.getEmbedData(
+        contentUrl,
+        proxyUrl: proxy,
+        cacheConfig: const EmbedCacheConfig(enabled: false),
+        httpClient: mockClient,
+      );
 
       final capturedUri = verify(() =>
               mockClient.get(captureAny(), headers: any(named: 'headers')))

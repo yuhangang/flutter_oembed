@@ -47,7 +47,6 @@ class YouTubeProviderStrategy extends GenericEmbedProviderStrategy {
     return GenericEmbedApi(
       'https://www.youtube.com/oembed',
       width: context.width,
-      proxyUrl: context.proxyUrl,
     );
   }
 
@@ -108,7 +107,6 @@ class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
   BaseEmbedApi createApi(EmbedProviderContext context) {
     return TikTokEmbedApi(
       tiktokParams: context.embedParams as TikTokEmbedParams?,
-      proxyUrl: context.proxyUrl,
     );
   }
 
@@ -146,7 +144,6 @@ class XProviderStrategy extends GenericEmbedProviderStrategy {
   BaseEmbedApi createApi(EmbedProviderContext context) {
     return XEmbedApi(
       xParams: context.embedParams as XEmbedParams?,
-      proxyUrl: context.proxyUrl,
     );
   }
 
@@ -209,7 +206,6 @@ class MetaProviderStrategy extends GenericEmbedProviderStrategy {
       context.width,
       context.facebookAppId,
       context.facebookClientToken,
-      proxyUrl: context.proxyUrl,
       metaParams: context.embedParams as MetaEmbedParams?,
     );
   }
@@ -226,7 +222,6 @@ class VimeoProviderStrategy extends GenericEmbedProviderStrategy {
     return VimeoEmbedApi(
       context.width,
       vimeoParams: context.embedParams as VimeoEmbedParams?,
-      proxyUrl: context.proxyUrl,
     );
   }
 }
@@ -242,7 +237,6 @@ class SoundCloudProviderStrategy extends GenericEmbedProviderStrategy {
     return SoundCloudEmbedApi(
       context.width,
       soundCloudParams: context.embedParams as SoundCloudEmbedParams?,
-      proxyUrl: context.proxyUrl,
     );
   }
 }
@@ -260,7 +254,7 @@ class SpotifyProviderStrategy extends GenericEmbedProviderStrategy {
 
   @override
   BaseEmbedApi createApi(EmbedProviderContext context) {
-    return SpotifyEmbedApi(proxyUrl: context.proxyUrl);
+    return const SpotifyEmbedApi();
   }
 }
 
@@ -309,7 +303,6 @@ class DailymotionProviderStrategy extends GenericEmbedProviderStrategy {
   BaseEmbedApi createApi(EmbedProviderContext context) {
     return GenericEmbedApi(
       context.resolvedEndpoint,
-      proxyUrl: context.proxyUrl,
       width: context.width,
     );
   }
@@ -336,7 +329,6 @@ class RedditProviderStrategy extends GenericEmbedProviderStrategy {
   BaseEmbedApi createApi(EmbedProviderContext context) {
     return RedditEmbedApi(
       width: context.width,
-      proxyUrl: context.proxyUrl,
     );
   }
 }

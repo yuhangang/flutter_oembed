@@ -158,7 +158,9 @@ class _HtmlIntegrationPageState extends State<HtmlIntegrationPage> {
           bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
         ),
         child: Html(
-          key: ValueKey('html_${settings.locale}-${settings.brightness}'),
+          key: ValueKey(
+            'html_${settings.locale}-${settings.brightness}-${settings.proxyUrl}',
+          ),
           data: htmlData,
           extensions: [EmbedExtension(controllerForUrl: _controllerForUrl)],
           style:

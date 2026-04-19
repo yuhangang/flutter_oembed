@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/flutter_oembed.dart';
 
+const Object _unset = Object();
+
 class ExampleSettings {
   final String locale;
   final Brightness brightness;
@@ -48,7 +50,7 @@ class ExampleSettings {
     SoundCloudEmbedParams? soundCloudParams,
     TikTokEmbedParams? tiktokParams,
     YoutubeEmbedParams? youtubeParams,
-    String? proxyUrl,
+    Object? proxyUrl = _unset,
   }) {
     return ExampleSettings(
       locale: locale ?? this.locale,
@@ -61,7 +63,8 @@ class ExampleSettings {
       soundCloudParams: soundCloudParams ?? this.soundCloudParams,
       tiktokParams: tiktokParams ?? this.tiktokParams,
       youtubeParams: youtubeParams ?? this.youtubeParams,
-      proxyUrl: proxyUrl ?? this.proxyUrl,
+      proxyUrl:
+          identical(proxyUrl, _unset) ? this.proxyUrl : proxyUrl as String?,
     );
   }
 

@@ -81,12 +81,6 @@ void main() {
     });
 
     group('baseUrl', () {
-      test('should correctly handle and prepend a proxyUrl if provided', () {
-        const api = GenericEmbedApi(endpoint, proxyUrl: 'https://proxy.com');
-        expect(api.baseUrl,
-            equals('https://proxy.com/https://example.com/oembed'));
-      });
-
       test('should correctly handle the {format} placeholder in the endpoint',
           () {
         const api = GenericEmbedApi('https://test.com/oembed.{format}');
@@ -267,14 +261,6 @@ void main() {
         const api = GenericEmbedApi(endpoint);
         expect(api.handleErrorResponse(http.Response('', 500)),
             isA<EmbedApisException>());
-      });
-    });
-
-    group('proxyUrl', () {
-      test('should correctly store and expose proxyUrl in GenericEmbedApi', () {
-        const proxy = 'https://my-proxy.com';
-        const api = GenericEmbedApi(endpoint, proxyUrl: proxy);
-        expect(api.proxyUrl, equals(proxy));
       });
     });
   });

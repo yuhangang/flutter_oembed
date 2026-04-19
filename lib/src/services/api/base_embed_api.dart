@@ -1,12 +1,12 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_oembed/src/cache/in_memory_cache_provider.dart';
 import 'package:flutter_oembed/src/core/embed_cache_provider.dart';
 import 'package:flutter_oembed/src/logging/embed_logger.dart';
 import 'package:flutter_oembed/src/models/configs/embed_cache_config.dart';
 import 'package:flutter_oembed/src/models/core/embed_constant.dart';
 import 'package:flutter_oembed/src/models/core/embed_data.dart';
-import 'package:flutter_oembed/src/cache/in_memory_cache_provider.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:http/http.dart' as http;
 
@@ -16,10 +16,7 @@ import 'package:http/http.dart' as http;
 /// provider-specific behaviour. The [getEmbedData] method handles caching
 /// and HTTP execution, so subclasses rarely need to override it.
 abstract class BaseEmbedApi {
-  const BaseEmbedApi({this.proxyUrl});
-
-  /// Optional proxy URL to route API requests through.
-  final String? proxyUrl;
+  const BaseEmbedApi();
 
   /// The base URL of the provider's OEmbed endpoint.
   String get baseUrl;
@@ -113,6 +110,7 @@ abstract class BaseEmbedApi {
     String url, {
     String locale = 'en',
     Brightness brightness = Brightness.light,
+    String? proxyUrl,
     EmbedCacheProvider? cacheProvider,
     EmbedCacheConfig? cacheConfig,
     EmbedLogger? logger,
@@ -161,10 +159,10 @@ abstract class BaseEmbedApi {
       var requestUri = uri;
       final bool effectivelyWeb = isWeb;
 
-      if (effectivelyWeb && proxyUrl != null && proxyUrl!.isNotEmpty) {
-        final String baseUrl = proxyUrl!.endsWith('/')
-            ? proxyUrl!.substring(0, proxyUrl!.length - 1)
-            : proxyUrl!;
+      if (effectivelyWeb && proxyUrl != null && proxyUrl.isNotEmpty) {
+        final String baseUrl = proxyUrl.endsWith('/')
+            ? proxyUrl.substring(0, proxyUrl.length - 1)
+            : proxyUrl;
         final String fullUrl = uri.toString();
         // Construct the proxied URL. We ensure there is exactly one slash between proxy and target.
         requestUri = Uri.parse('$baseUrl/$fullUrl');
@@ -178,6 +176,13 @@ abstract class BaseEmbedApi {
           'proxyUrl': proxyUrl,
         });
       }
+
+      logger?.debug('Executing OEmbed HTTP GET', data: {
+        'originalUri': uri.toString(),
+        'requestUri': requestUri.toString(),
+        'isWeb': effectivelyWeb,
+        'proxyUrl': proxyUrl,
+      });
 
       final response = await client.get(requestUri, headers: requestHeaders);
 
@@ -246,7 +251,6 @@ class GenericEmbedApi extends BaseEmbedApi {
     this.endpoint, {
     Map<String, String>? headers,
     this.width,
-    super.proxyUrl,
   }) : _headers = headers ?? const {};
 
   final String endpoint;

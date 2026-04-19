@@ -5,7 +5,7 @@ import 'package:flutter_oembed/src/utils/embed_errors.dart';
 
 /// OEmbed API client for Spotify.
 class SpotifyEmbedApi extends BaseEmbedApi {
-  const SpotifyEmbedApi({super.proxyUrl});
+  const SpotifyEmbedApi();
 
   @override
   String get baseUrl => 'https://open.spotify.com/oembed';

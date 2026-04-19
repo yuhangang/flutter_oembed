@@ -8,7 +8,7 @@ import 'package:flutter_oembed/src/utils/embed_errors.dart';
 class TikTokEmbedApi extends BaseEmbedApi {
   final TikTokEmbedParams? tiktokParams;
 
-  const TikTokEmbedApi({this.tiktokParams, super.proxyUrl});
+  const TikTokEmbedApi({this.tiktokParams});
 
   @override
   String get baseUrl => 'https://www.tiktok.com/oembed';

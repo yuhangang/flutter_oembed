@@ -221,6 +221,8 @@ class _QuillIntegrationPageState extends State<QuillIntegrationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final settings = ExampleSettingsProvider.of(context).settings;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Quill Integration'),
@@ -272,6 +274,9 @@ class _QuillIntegrationPageState extends State<QuillIntegrationPage> {
           ),
           Expanded(
             child: Container(
+              key: ValueKey(
+                'quill_${settings.locale}-${settings.brightness}-${settings.proxyUrl}',
+              ),
               color: Theme.of(context).canvasColor,
               child: QuillEditor.basic(
                 controller: _controller,

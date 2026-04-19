@@ -223,6 +223,18 @@ void main() {
       expect(first.runtimeEquals(second), isTrue);
       expect(first.runtimeEquals(third), isFalse);
     });
+
+    test('copyWith preserves and can clear proxyUrl', () {
+      const first = EmbedConfig(proxyUrl: 'http://localhost:8080/');
+
+      final preserved = first.copyWith(
+        onLinkTap: (url, data) {},
+      );
+      final cleared = first.copyWith(proxyUrl: null);
+
+      expect(preserved.proxyUrl, 'http://localhost:8080/');
+      expect(cleared.proxyUrl, isNull);
+    });
   });
 
   group('EmbedConstraints', () {

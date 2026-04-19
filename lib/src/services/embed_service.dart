@@ -39,6 +39,7 @@ class EmbedServiceImpl implements IEmbedService {
       data: {
         'url': param.url,
         'embedType': param.embedType.name,
+        'proxyUrl': config?.proxyUrl,
       },
     );
 
@@ -52,6 +53,7 @@ class EmbedServiceImpl implements IEmbedService {
       param.url,
       locale: locale,
       brightness: brightness,
+      proxyUrl: config?.proxyUrl,
       cacheProvider: resolvedCacheProvider,
       cacheConfig: resolvedCacheConfig,
       logger: resolvedLogger,
@@ -143,7 +145,6 @@ class EmbedServiceImpl implements IEmbedService {
         providerName: rule.providerName,
         variant: variant,
         capabilities: capabilities,
-        proxyUrl: config?.proxyUrl,
         embedParams: embedParams,
         iframeUrl: iframeUrl,
         embedType: embedType,
@@ -240,6 +241,14 @@ class EmbedServiceImpl implements IEmbedService {
 
     final rule = resolveRule(param.url, config: config);
 
+    resolvedLogger.debug(
+      'Resolving API config snapshot',
+      data: {
+        'url': param.url,
+        'proxyUrl': config?.proxyUrl,
+      },
+    );
+
     // 3. Resolve using found rule
     if (rule != null) {
       final endpoint = rule.resolveEndpoint(param.url);
@@ -274,7 +283,6 @@ class EmbedServiceImpl implements IEmbedService {
         providerName: rule.providerName,
         variant: variant,
         capabilities: capabilities,
-        proxyUrl: config?.proxyUrl,
         embedParams: param.embedParams,
         embedType: param.embedType,
       );
@@ -302,7 +310,6 @@ class EmbedServiceImpl implements IEmbedService {
       );
       return GenericEmbedApi(
         param.url,
-        proxyUrl: config?.proxyUrl,
         width: param.width,
       );
     }

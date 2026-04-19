@@ -158,6 +158,15 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
     final logger = config?.logger;
     final strings = config?.strings ?? const EmbedStrings();
 
+    logger?.debug('EmbedWidgetLoader resolved config', data: {
+      'url': widget.param.url,
+      'widgetConfigProxyUrl': widget.config?.proxyUrl,
+      'controllerConfigProxyUrl': _controller.config?.proxyUrl,
+      'scopeConfigProxyUrl':
+          EmbedScope.configOf(context, listen: false)?.proxyUrl,
+      'effectiveProxyUrl': config?.proxyUrl,
+    });
+
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {

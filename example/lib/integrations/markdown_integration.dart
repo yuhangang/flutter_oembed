@@ -204,7 +204,9 @@ You can add any OEmbed-supported URL using `url`, `href`, `src`, `data-url`, as 
           right: 16,
           bottom: 16 + MediaQuery.viewPaddingOf(context).bottom,
         ),
-        key: ValueKey('markdown_${settings.locale}-${settings.brightness}'),
+        key: ValueKey(
+          'markdown_${settings.locale}-${settings.brightness}-${settings.proxyUrl}',
+        ),
         data: markdownData,
         config: (settings.brightness == Brightness.dark
                 ? MarkdownConfig.darkConfig
