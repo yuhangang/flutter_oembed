@@ -269,5 +269,13 @@ void main() {
             isA<EmbedApisException>());
       });
     });
+
+    group('proxyUrl', () {
+      test('should correctly store and expose proxyUrl in GenericEmbedApi', () {
+        const proxy = 'https://my-proxy.com';
+        const api = GenericEmbedApi(endpoint, proxyUrl: proxy);
+        expect(api.proxyUrl, equals(proxy));
+      });
+    });
   });
 }

@@ -16,7 +16,10 @@ import 'package:http/http.dart' as http;
 /// provider-specific behaviour. The [getEmbedData] method handles caching
 /// and HTTP execution, so subclasses rarely need to override it.
 abstract class BaseEmbedApi {
-  const BaseEmbedApi();
+  const BaseEmbedApi({this.proxyUrl});
+
+  /// Optional proxy URL to route API requests through.
+  final String? proxyUrl;
 
   /// The base URL of the provider's OEmbed endpoint.
   String get baseUrl;
@@ -144,12 +147,39 @@ abstract class BaseEmbedApi {
       logger?.debug('Cache disabled', data: {'url': url});
     }
 
+    // Capture headers in a local map to allow modification without re-invoking the getter
+    final Map<String, String> requestHeaders = Map.from(headers);
+
     try {
       logger?.debug('Fetching OEmbed response from network', data: {
         'url': url,
         'uri': uri.toString(),
+        if (proxyUrl != null) 'proxy': proxyUrl,
       });
-      final response = await client.get(uri, headers: headers);
+
+      // On Web, if a proxyUrl is provided, we prepend it to the URI to bypass CORS.
+      var requestUri = uri;
+      final bool effectivelyWeb = isWeb;
+
+      if (effectivelyWeb && proxyUrl != null && proxyUrl!.isNotEmpty) {
+        final String baseUrl = proxyUrl!.endsWith('/')
+            ? proxyUrl!.substring(0, proxyUrl!.length - 1)
+            : proxyUrl!;
+        final String fullUrl = uri.toString();
+        // Construct the proxied URL. We ensure there is exactly one slash between proxy and target.
+        requestUri = Uri.parse('$baseUrl/$fullUrl');
+
+        // Add a standard header for identifying AJAX requests to the proxy
+        requestHeaders['X-Requested-With'] = 'XMLHttpRequest';
+
+        logger?.debug('Using CORS proxy for Web request', data: {
+          'originalUri': uri.toString(),
+          'requestUri': requestUri.toString(),
+          'proxyUrl': proxyUrl,
+        });
+      }
+
+      final response = await client.get(requestUri, headers: requestHeaders);
 
       if (response.statusCode == 200) {
         logger?.debug('OEmbed response received', data: {
@@ -193,6 +223,9 @@ abstract class BaseEmbedApi {
     }
   }
 
+  @visibleForTesting
+  bool get isWeb => kIsWeb;
+
   @internal
   EmbedCacheProvider resolveCacheProvider([EmbedCacheProvider? cacheProvider]) {
     return _resolveCacheProvider(cacheProvider);
@@ -213,19 +246,17 @@ class GenericEmbedApi extends BaseEmbedApi {
     this.endpoint, {
     Map<String, String>? headers,
     this.width,
-    this.proxyUrl,
+    super.proxyUrl,
   }) : _headers = headers ?? const {};
 
   final String endpoint;
-  final String? proxyUrl;
   final Map<String, String> _headers;
   final double? width;
 
   @override
   String get baseUrl {
     // Standardize URL by handling format placeholder
-    final resolved = endpoint.replaceAll('{format}', 'json');
-    return proxyUrl != null ? '$proxyUrl/$resolved' : resolved;
+    return endpoint.replaceAll('{format}', 'json');
   }
 
   @override

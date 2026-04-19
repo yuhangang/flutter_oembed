@@ -1,8 +1,10 @@
+import 'dart:math' as math;
 import 'package:embed_example/utils/settings_controller.dart';
 import 'package:embed_example/utils/url_launcher_utils.dart';
 import 'package:embed_example/widgets/config_menu_action.dart';
 import 'package:embed_example/widgets/embed_placeholder.dart';
 import 'package:embed_example/widgets/settings_sheet.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/flutter_oembed.dart';
 
@@ -215,6 +217,36 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
                   ],
                 ),
               ),
+            if (kIsWeb && embedType == EmbedType.reddit)
+              Container(
+                margin: const EdgeInsets.only(bottom: 24),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.orange.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.orange,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Web Notice: Reddit does not allow CORS. If loading fails, set a CORS proxy from the toolbar settings.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.orange.shade900,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             Text(
               _constraintsStatusLabel(),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -229,7 +261,7 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
               embedType: embedType,
               controller: _controller,
               key: ValueKey(
-                '${widget.sample['url']}-${settings.locale}-${settings.brightness}-$embedParams-${_constraintPreset.name}',
+                '${widget.sample['url']}-${settings.locale}-${settings.brightness}-${settings.proxyUrl}-$embedParams-${_constraintPreset.name}',
               ),
               embedConstraints: embedConstraints,
               scrollable: settings.scrollable,
@@ -368,7 +400,7 @@ class _EmbedDetailsPageState extends State<EmbedDetailsPage> {
   }
 
   EmbedConstraints? _resolvedConstraints(ExampleSettings settings) {
-    final width = MediaQuery.sizeOf(context).width - 32;
+    final width = math.min(MediaQuery.sizeOf(context).width - 32, 568.0);
 
     switch (_constraintPreset) {
       case _ConstraintPreset.auto:

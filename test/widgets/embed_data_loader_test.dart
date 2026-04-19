@@ -11,6 +11,7 @@ import 'package:flutter_oembed/src/models/core/embed_loader_param.dart';
 import 'package:flutter_oembed/src/models/core/embed_strings.dart';
 import 'package:flutter_oembed/src/models/core/embed_style.dart';
 import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
+import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter_oembed/src/widgets/embed_data_loader.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -558,6 +559,41 @@ void main() {
 
         expect(
           find.bySemanticsLabel('Embedded content failed to load'),
+          findsOneWidget,
+        );
+      } finally {
+        semanticsHandle.dispose();
+      }
+    });
+
+    testWidgets('shows network semantics for EmbedNetworkException',
+        (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+      final service = FakeEmbedService(
+        getResultError: const EmbedNetworkException(),
+      );
+      final config = testConfig.copyWith(embedService: service);
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: EmbedDataLoader(
+                param: param,
+                loaderParam: loaderParam,
+                controller: controller,
+                config: config,
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(
+          find.bySemanticsLabel(
+            'Embedded content failed to load because of a network error',
+          ),
           findsOneWidget,
         );
       } finally {

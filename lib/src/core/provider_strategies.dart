@@ -47,6 +47,7 @@ class YouTubeProviderStrategy extends GenericEmbedProviderStrategy {
     return GenericEmbedApi(
       'https://www.youtube.com/oembed',
       width: context.width,
+      proxyUrl: context.proxyUrl,
     );
   }
 
@@ -107,6 +108,7 @@ class TikTokProviderStrategy extends GenericEmbedProviderStrategy {
   BaseEmbedApi createApi(EmbedProviderContext context) {
     return TikTokEmbedApi(
       tiktokParams: context.embedParams as TikTokEmbedParams?,
+      proxyUrl: context.proxyUrl,
     );
   }
 
@@ -142,7 +144,10 @@ class XProviderStrategy extends GenericEmbedProviderStrategy {
 
   @override
   BaseEmbedApi createApi(EmbedProviderContext context) {
-    return XEmbedApi(xParams: context.embedParams as XEmbedParams?);
+    return XEmbedApi(
+      xParams: context.embedParams as XEmbedParams?,
+      proxyUrl: context.proxyUrl,
+    );
   }
 
   @override
@@ -221,6 +226,7 @@ class VimeoProviderStrategy extends GenericEmbedProviderStrategy {
     return VimeoEmbedApi(
       context.width,
       vimeoParams: context.embedParams as VimeoEmbedParams?,
+      proxyUrl: context.proxyUrl,
     );
   }
 }
@@ -236,6 +242,7 @@ class SoundCloudProviderStrategy extends GenericEmbedProviderStrategy {
     return SoundCloudEmbedApi(
       context.width,
       soundCloudParams: context.embedParams as SoundCloudEmbedParams?,
+      proxyUrl: context.proxyUrl,
     );
   }
 }
@@ -253,7 +260,7 @@ class SpotifyProviderStrategy extends GenericEmbedProviderStrategy {
 
   @override
   BaseEmbedApi createApi(EmbedProviderContext context) {
-    return const SpotifyEmbedApi();
+    return SpotifyEmbedApi(proxyUrl: context.proxyUrl);
   }
 }
 
@@ -327,7 +334,10 @@ class RedditProviderStrategy extends GenericEmbedProviderStrategy {
 
   @override
   BaseEmbedApi createApi(EmbedProviderContext context) {
-    return RedditEmbedApi(width: context.width);
+    return RedditEmbedApi(
+      width: context.width,
+      proxyUrl: context.proxyUrl,
+    );
   }
 }
 

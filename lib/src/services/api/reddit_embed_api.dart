@@ -5,7 +5,7 @@ import 'package:flutter_oembed/src/utils/embed_errors.dart';
 
 /// OEmbed API client for Reddit.
 class RedditEmbedApi extends BaseEmbedApi {
-  const RedditEmbedApi({this.width});
+  const RedditEmbedApi({this.width, super.proxyUrl});
 
   final double? width;
 

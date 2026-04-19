@@ -2,7 +2,7 @@
 
 ## Architectural Overview
 
-`flutter_oembed` is a Flutter package that enables rendering rich social media and media content using oEmbed APIs and WebView-based rendering. The architecture is designed to handle fetching data from various oEmbed providers, caching API responses, managing dynamic layout configurations, and coordinating interactions with the native platform WebView.
+`flutter_oembed` is a Flutter package that enables rendering rich social media and media content using oEmbed APIs. On Android and iOS it renders through a platform WebView; on Flutter Web it renders through an iframe-backed platform view. The architecture is designed to handle fetching data from various oEmbed providers, caching API responses, managing dynamic layout configurations, and coordinating interactions with the active platform renderer.
 
 ### Core Components
 
@@ -13,8 +13,9 @@
 
 2. **Control & Coordination Layer**
    - **`EmbedController`**: Serves as the mutable state object over the lifecycle of an embed. It observes network loading states, records internal errors, manages embed dimension parameters resulting from UI mutations, and exposes high-level, best-effort commands to control media instances (e.g., playing, pausing, muting).
-   - **`EmbedWebView` & `EmbedWebViewControls`**: Encapsulates `webview_flutter` instances. Responsible for registering callbacks, dispatching user interaction metrics, and interpreting Javascript channel signals directly from within the inner DOM tree.
-   - **`EmbedWebViewDriver`**: Provides a robust abstraction bridging the gap between web interactions and Flutter's widget lifecycle. It deals robustly with lifecycle events such as route-cover pausing behavior and active focus polling strategies.
+   - **`EmbedWebView`**: The shared render surface used by the standard pipeline. It selects a platform-native WebView path on mobile and an iframe-backed `HtmlElementView` path on Flutter Web.
+   - **`EmbedWebViewControls`**: Mobile-only controls exposed to `webViewBuilder`. These remain backed by `webview_flutter` and are not currently surfaced on Flutter Web.
+   - **`EmbedWebViewDriver`**: Mobile-only driver that bridges `webview_flutter` with Flutter lifecycle events such as route-cover pausing, JavaScript channel events, and focus polling strategies.
 
 3. **Service / Network / Routing Layer**
    - **`EmbedService`**: The core data dispatcher deciding how a specific URL should be mapped and fetched algorithmically.
@@ -37,7 +38,7 @@ sequenceDiagram
     participant Cache as EmbedCacheProvider
     participant API as OEmbed Endpoint
     participant Native as Native Widget Player
-    participant WebView as EmbedWebView
+    participant Surface as EmbedWebView
     
     UserApp->>Loader: EmbedCard.url('https://...')
     Loader->>Controller: Synchronize Controller parameters (notify: false)
@@ -59,24 +60,36 @@ sequenceDiagram
         end
         Cache-->>Service: Yield EmbedData model
         Service-->>DataLoader: Return EmbedData
-        DataLoader->>WebView: Emplace Content (HTML) via EmbedWebView.data
+        DataLoader->>Surface: Emplace Content (HTML) via EmbedWebView.data
     else Iframe Direct Mode
         Service-->>Loader: Yield IframeRenderer
-        Loader->>WebView: Emplace Content (URL) via EmbedWebView.url
+        Loader->>Surface: Emplace Content (URL) via EmbedWebView.url
     else Native Mode
         Service-->>Loader: Yield NativeWidgetRenderer
         Loader->>Native: Construct native player (e.g. YouTube/TikTok)
     end
     
-    opt WebView Path
-        WebView->>WebView: Initiate platform-native WebView engine
-        WebView->>WebView: Inject Scripts / Load representations
-        WebView->>Controller: Emit content height metrics derived via JS
-        WebView->>Controller: Transition sequence to Loaded state (if changed)
+    opt Renderer Path
+        alt Mobile
+            Surface->>Surface: Initiate platform-native WebView engine
+            Surface->>Surface: Inject scripts / load representations
+            Surface->>Controller: Emit content height metrics derived via JS
+        else Flutter Web
+            Surface->>Surface: Create iframe-backed platform view
+            Surface->>Surface: Load src or srcdoc payload
+            Surface->>Controller: Transition sequence to Loaded state when the iframe reports load
+        end
+        Surface->>Controller: Transition sequence to Loaded state (if changed)
         Controller-->>Loader: Notify dimension deltas (Constraints update cycle)
         Loader-->>UserApp: Display correctly scaled Embed payload
     end
 ```
+
+## Platform Notes
+
+- **Mobile**: The driver-backed WebView path is still the reference implementation. It owns JavaScript channels, navigation interception, media control, and post-load height measurement.
+- **Flutter Web**: The iframe-backed path is intentionally lighter. It can render direct iframe URLs and provider HTML through `srcdoc`, but it does not currently expose `EmbedWebViewControls`, full navigation interception parity, or the same media-control guarantees as the mobile driver.
+- **Flutter Web default render mode**: Providers with stable direct iframe builders (`YouTube`, `Vimeo`, `Spotify`, and `TikTok`) now default to iframe mode on web so the pipeline can skip CORS-blocked oEmbed fetches unless the app explicitly overrides that provider back to `oembed`.
 
 ---
 

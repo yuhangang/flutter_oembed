@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_oembed/src/controllers/embed_controller.dart';
 import 'package:flutter_oembed/src/core/embed_scope.dart';
@@ -108,6 +106,11 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
     _embedFeature?.ignore();
   }
 
+  bool _isNetworkError(Object? error) {
+    return error is EmbedNetworkException ||
+        error.runtimeType.toString() == 'SocketException';
+  }
+
   String _errorSemanticsLabel(Object? error, EmbedStrings strings) {
     if (error is EmbedDataNotFoundException) {
       return strings.notFoundSemanticsLabel;
@@ -115,7 +118,7 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
     if (error is EmbedDataRestrictedAccessException) {
       return strings.restrictedSemanticsLabel;
     }
-    if (error is SocketException) {
+    if (_isNetworkError(error)) {
       return strings.networkErrorSemanticsLabel;
     }
     return strings.genericLoadErrorSemanticsLabel;
@@ -175,7 +178,7 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
                   hint: strings.retryHint,
                   child: GestureDetector(
                     onTap: () {
-                      if (error is! SocketException) {
+                      if (!_isNetworkError(error)) {
                         widget.controller.setDidRetry();
                       }
                       setState(() {

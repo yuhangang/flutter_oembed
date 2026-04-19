@@ -60,6 +60,10 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
   late String? _ytTheme;
   late String? _ytColor;
 
+  // Global state
+  late String? _proxyUrl;
+  late final TextEditingController _proxyController = TextEditingController();
+
   bool _isInitialized = false;
 
   @override
@@ -121,6 +125,9 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
 
     _ytTheme = settings.youtubeParams.theme;
     _ytColor = settings.youtubeParams.color;
+
+    _proxyUrl = settings.proxyUrl;
+    _proxyController.text = _proxyUrl ?? '';
 
     _isInitialized = true;
   }
@@ -191,6 +198,18 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
       );
     }
 
+    controller.updateProxyUrl(
+      _proxyController.text.isEmpty ? null : _proxyController.text,
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Settings applied successfully'),
+        behavior: SnackBarBehavior.floating,
+        duration: Duration(seconds: 2),
+      ),
+    );
+
     Navigator.pop(context);
   }
 
@@ -233,6 +252,8 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
                     if (widget.embedType.isTikTok) ..._buildTikTokSettings(),
                     if (widget.embedType == EmbedType.youtube)
                       ..._buildYoutubeSettings(),
+                    const Divider(height: 32),
+                    ..._buildGlobalSettings(),
                   ],
                 ),
               ),
@@ -571,6 +592,66 @@ class _VideoSettingsSheetState extends State<VideoSettingsSheet> {
           ],
           onChanged: (v) => setState(() => _ytColor = v),
         ),
+      ),
+    ];
+  }
+
+  List<Widget> _buildGlobalSettings() {
+    return [
+      Text(
+        'Global / Web Settings',
+        style: Theme.of(
+          context,
+        ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+      ),
+      const SizedBox(height: 8),
+      const Text(
+        'On Web, some providers (like Reddit) require a CORS proxy to fetch oEmbed data. '
+        'You can use the provided script at example/tool/local_cors_proxy.dart for local development.',
+        style: TextStyle(color: Colors.grey, fontSize: 12),
+      ),
+      const SizedBox(height: 12),
+      TextField(
+        controller: _proxyController,
+        decoration: InputDecoration(
+          labelText: 'CORS Proxy URL',
+          hintText: 'https://cors-anywhere.herokuapp.com',
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          isDense: true,
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.clear),
+            onPressed: () => _proxyController.clear(),
+          ),
+        ),
+      ),
+      const SizedBox(height: 8),
+      Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.computer, size: 16),
+              onPressed: () {
+                setState(() {
+                  _proxyController.text = 'http://localhost:8080/';
+                });
+              },
+              label: const Text('Local Proxy'),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.public, size: 16),
+              onPressed: () {
+                setState(() {
+                  _proxyController.text =
+                      'https://cors-anywhere.herokuapp.com/';
+                });
+              },
+              label: const Text('Test Proxy'),
+            ),
+          ),
+        ],
       ),
     ];
   }

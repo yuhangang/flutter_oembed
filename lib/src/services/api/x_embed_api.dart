@@ -6,7 +6,7 @@ import 'package:flutter_oembed/src/utils/embed_errors.dart';
 
 /// OEmbed API client for X (formerly Twitter).
 class XEmbedApi extends BaseEmbedApi {
-  const XEmbedApi({this.xParams});
+  const XEmbedApi({this.xParams, super.proxyUrl});
 
   final XEmbedParams? xParams;
 

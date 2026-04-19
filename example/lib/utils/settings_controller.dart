@@ -14,6 +14,7 @@ class ExampleSettings {
   final SoundCloudEmbedParams soundCloudParams;
   final TikTokEmbedParams tiktokParams;
   final YoutubeEmbedParams youtubeParams;
+  final String? proxyUrl;
 
   const ExampleSettings({
     this.locale = 'en',
@@ -33,6 +34,7 @@ class ExampleSettings {
     this.soundCloudParams = const SoundCloudEmbedParams(),
     this.tiktokParams = const TikTokEmbedParams(),
     this.youtubeParams = const YoutubeEmbedParams(),
+    this.proxyUrl,
   });
 
   ExampleSettings copyWith({
@@ -46,6 +48,7 @@ class ExampleSettings {
     SoundCloudEmbedParams? soundCloudParams,
     TikTokEmbedParams? tiktokParams,
     YoutubeEmbedParams? youtubeParams,
+    String? proxyUrl,
   }) {
     return ExampleSettings(
       locale: locale ?? this.locale,
@@ -58,6 +61,7 @@ class ExampleSettings {
       soundCloudParams: soundCloudParams ?? this.soundCloudParams,
       tiktokParams: tiktokParams ?? this.tiktokParams,
       youtubeParams: youtubeParams ?? this.youtubeParams,
+      proxyUrl: proxyUrl ?? this.proxyUrl,
     );
   }
 
@@ -66,6 +70,7 @@ class ExampleSettings {
       locale: locale,
       brightness: brightness,
       scrollable: scrollable,
+      proxyUrl: proxyUrl,
     );
   }
 
@@ -124,6 +129,11 @@ class ExampleSettingsController extends ChangeNotifier {
 
   void updateYoutube(YoutubeEmbedParams params) {
     _settings = _settings.copyWith(youtubeParams: params);
+    notifyListeners();
+  }
+
+  void updateProxyUrl(String? url) {
+    _settings = _settings.copyWith(proxyUrl: url);
     notifyListeners();
   }
 }

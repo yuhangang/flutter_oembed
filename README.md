@@ -7,13 +7,12 @@
 >
 > Contributions are welcome! Please feel free to raise issues for any bugs you encounter, or submit pull requests with ideas, suggestions, and code improvements.
 
-A Flutter package for embedding rich social and media content with oEmbed APIs and WebView rendering.
+A Flutter package for embedding rich social and media content with oEmbed APIs, using platform WebView rendering on mobile and iframe rendering on Flutter Web.
 
 ## Current Package Status
 
-- Current package version: `1.0.1-alpha.2`
-- Verified platforms: Android, iOS
-- Not supported currently: Flutter Web
+- Current package version: `1.0.1-alpha.5`
+- Verified platforms: Android, iOS, Flutter Web
 - Not yet verified for release: macOS, Windows, Linux
 
 Use the current stable line:
@@ -29,18 +28,19 @@ dependencies:
 - Automatic height adjustment for embedded content
 - Built-in response caching
 - Direct iframe rendering for selected providers such as YouTube and Spotify
+- Experimental Flutter Web rendering through HTML iframes
 - Per-provider render configuration and custom provider rules
 - Debug logging hooks for provider resolution, network requests, and WebView lifecycle
 
 ## Platform Support
 
-`flutter_oembed` currently targets mobile Flutter apps that can host a platform WebView.
+`flutter_oembed` uses a mobile WebView pipeline on Android/iOS and an iframe-backed pipeline on Flutter Web.
 
 | Platform | Status | Notes |
 | :--- | :--- | :--- |
 | Android | Supported | Verified in the current repo workflow |
 | iOS | Supported | Verified in the current repo workflow |
-| Flutter Web | Not supported | This package relies on `webview_flutter`; there is no iframe-based web fallback yet |
+| Flutter Web | Supported | Uses an iframe-backed renderer with modern `package:web` support |
 | macOS | Unverified | Not part of the current release verification matrix |
 | Windows | Unverified | Not part of the current release verification matrix |
 | Linux | Unverified | Not part of the current release verification matrix |
@@ -56,6 +56,7 @@ dependencies:
 - Provider media-control support is not uniform. YouTube, Vimeo, and TikTok's `player/v1` path are the most reliable. Meta-style embeds may still be best-effort only.
 - `EmbedController` exposes best-effort `pauseMedia()`, `resumeMedia()`, `muteMedia()`, and `unmuteMedia()` methods once an embed is attached. TikTok `player/v1` is the most complete implementation of that API in the current package.
 - To drive those controls from your own UI, pass the same `EmbedController` into `EmbedCard(controller: ...)`, `YoutubeEmbedPlayer`, or `TikTokEmbedPlayer` so the rendered embed can bind to it.
+- On Flutter Web, the package renders through an HTML iframe instead of `webview_flutter`. That means `webViewBuilder` remains mobile-only and some providers may expose less reliable sizing, navigation control, or media-control behavior.
 
 ### Brightness Support Matrix
 
@@ -176,6 +177,26 @@ finishes rendering.
 `embedHeight` is still accepted as a legacy shorthand, but new code should use
 `embedConstraints: EmbedConstraints(preferredHeight: ...)`.
 
+## Flutter Web and CORS Proxy
+
+On Flutter Web, browsers enforce Cross-Origin Resource Sharing (CORS) policies that prevent direct `fetch` requests to many oEmbed providers (like Reddit, TikTok, etc.) from an app's origin.
+
+While `flutter_oembed` attempts to use direct iframe rendering for well-known providers to avoid these checks, other providers still require an OEmbed API fetch. To support these providers on Web, you can configure a `proxyUrl`:
+
+```dart
+EmbedScope(
+  config: EmbedConfig(
+    // Prepend a CORS proxy URL to bypass browser-side fetch restrictions
+    proxyUrl: 'https://my-cors-proxy.com/',
+  ),
+  child: MyApp(),
+)
+```
+
+When a `proxyUrl` is set and the app is running on Web, all oEmbed API requests will be routed through the proxy (e.g., `https://my-cors-proxy.com/https://www.reddit.com/oembed...`).
+
+For local development, you can find a lightweight Dart-based proxy script in `example/tool/local_cors_proxy.dart`.
+
 ## Lazy Loading
 
 By default, `flutter_oembed` initializes the WebView as soon as the widget is
@@ -262,6 +283,11 @@ EmbedConfig(
   ),
 )
 ```
+
+On Flutter Web, `YouTube`, `Vimeo`, `Spotify`, and `TikTok` now default to
+`EmbedRenderMode.iframe` even without an explicit override. This avoids common
+browser CORS failures against provider oEmbed endpoints while still allowing you
+to force `EmbedRenderMode.oembed` manually when needed.
 
 ### Cache Management
 
@@ -493,10 +519,11 @@ See the example app in `/example` for concrete integration code.
 ## Troubleshooting
 
 - If Meta embeds fail, verify your App ID and Client Token first.
+- On Flutter Web, providers with a built-in iframe builder now default to iframe mode to sidestep CORS-blocked oEmbed fetches. Providers that still require API fetches may still need `proxyUrl`.
 - If a provider resolves but renders an empty frame, enable debug logging and inspect WebView/network events.
 - If taps should open inside your own router instead of the system browser/app, provide `onLinkTap` or a full `onNavigationRequest` override.
 - If a URL is not matched, provide a custom provider rule to support it.
-- If you need Flutter Web support, this package does not provide it yet.
+- If a provider works on mobile but not on Flutter Web, try forcing iframe-friendly providers first. Generic oEmbed HTML that depends on provider bootstrap scripts can still behave inconsistently across browsers.
 
 ## Additional Information
 

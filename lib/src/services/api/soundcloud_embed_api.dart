@@ -6,7 +6,7 @@ import 'package:flutter_oembed/src/utils/embed_errors.dart';
 
 /// OEmbed API client for SoundCloud.
 class SoundCloudEmbedApi extends BaseEmbedApi {
-  const SoundCloudEmbedApi(this.width, {this.soundCloudParams});
+  const SoundCloudEmbedApi(this.width, {this.soundCloudParams, super.proxyUrl});
 
   final double width;
   final SoundCloudEmbedParams? soundCloudParams;

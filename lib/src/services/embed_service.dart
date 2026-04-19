@@ -280,6 +280,7 @@ class EmbedServiceImpl implements IEmbedService {
       );
 
       final api = rule.apiFactory?.call(ctx) ?? rule.strategy.createApi(ctx);
+
       resolvedLogger.debug(
         'Using API handler',
         data: {

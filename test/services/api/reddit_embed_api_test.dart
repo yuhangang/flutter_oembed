@@ -28,5 +28,11 @@ void main() {
       expect(api.handleErrorResponse(http.Response('', 500)),
           isA<EmbedApisException>());
     });
+
+    test('should correctly store and expose proxyUrl', () {
+      const proxy = 'https://my-proxy.com';
+      const api = RedditEmbedApi(proxyUrl: proxy);
+      expect(api.proxyUrl, equals(proxy));
+    });
   });
 }
