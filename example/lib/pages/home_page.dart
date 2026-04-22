@@ -65,7 +65,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 _buildIntegrationCard(
                   context,
                   title: 'Markdown',
-                  subtitle: 'Embeds in markdown text',
+                  subtitle: 'Rich media rendering',
                   icon: Icons.description_rounded,
                   color: Colors.blue,
                   page: const MarkdownIntegrationPage(),
@@ -73,7 +73,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 _buildIntegrationCard(
                   context,
                   title: 'HTML',
-                  subtitle: 'Embeds in parsed HTML',
+                  subtitle: 'Rich media for HTML content',
                   icon: Icons.code_rounded,
                   color: Colors.orange,
                   page: const HtmlIntegrationPage(),
@@ -89,7 +89,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 _buildIntegrationCard(
                   context,
                   title: 'Quill Editor',
-                  subtitle: 'Embeds in rich text',
+                  subtitle: 'Interactive rich text editing',
                   icon: Icons.edit_note_rounded,
                   color: Colors.teal,
                   page: const QuillIntegrationPage(),

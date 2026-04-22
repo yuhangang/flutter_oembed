@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
 import 'dart:convert';
 import 'package:flutter_oembed/src/models/core/embed_data.dart';
 import 'package:flutter_oembed/src/models/core/embed_enums.dart';
@@ -40,11 +41,13 @@ void main() {
       expect(uri.path, contains('oembed'));
     });
 
-    test('constructUrl with proxyUrl', () {
-      const api = MetaEmbedApi(
-          EmbedType.facebook_post, width, appId, clientToken,
-          proxyUrl: 'https://myproxy.com');
-      final uri = api.constructUrl('https://facebook.com/post/1');
+    test('constructUrl with proxyUrl in config', () {
+      const api =
+          MetaEmbedApi(EmbedType.facebook_post, width, appId, clientToken);
+      final uri = api.constructUrl(
+        'https://facebook.com/post/1',
+        config: const EmbedConfig(proxyUrl: 'https://myproxy.com'),
+      );
 
       expect(uri.toString(), startsWith('https://myproxy.com'));
     });

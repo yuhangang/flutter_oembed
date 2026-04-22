@@ -124,6 +124,45 @@ const List<_CustomProviderExample> _examples = [
       ),
     ],
   ),
+  _CustomProviderExample(
+    title: 'New York Times',
+    providerName: 'New York Times',
+    description:
+        'Editorial content from The New York Times. While not offering a '
+        'documented public oEmbed endpoint, the service endpoint is '
+        'commonly used for rich link previews.',
+    notes: 'Requires a valid article URL. Some articles may be paywalled.',
+    pattern: r'^https?:\/\/(www\.)?nytimes\.com\/.*',
+    endpoint: 'https://www.nytimes.com/svc/oembed/json/',
+    inputLabel: 'NYT Article URL',
+    inputHint: 'https://www.nytimes.com/...',
+    suggestions: [
+      _CustomProviderSuggestion(
+        label: 'Article Preview',
+        url:
+            'https://www.nytimes.com/2026/04/17/business/media/nexstar-tegna-merger-freeze.html',
+      ),
+    ],
+  ),
+  _CustomProviderExample(
+    title: 'TED',
+    providerName: 'TED',
+    description:
+        'Ideas worth spreading. TED provides a standard oEmbed endpoint '
+        'for their talks, returning clean iframe embeds.',
+    notes: 'Works with talks hosted on ted.com.',
+    pattern: r'^https?:\/\/(?:www\.)?ted\.com\/talks\/.*',
+    endpoint: 'https://www.ted.com/services/v1/oembed.json',
+    inputLabel: 'TED Talk URL',
+    inputHint: 'https://www.ted.com/talks/...',
+    suggestions: [
+      _CustomProviderSuggestion(
+        label: 'Recent Talk',
+        url:
+            'https://www.ted.com/talks/bill_gates_the_next_outbreak_we_re_not_ready',
+      ),
+    ],
+  ),
 ];
 
 final Set<String> _exampleProviderNames =

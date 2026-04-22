@@ -204,7 +204,6 @@ class MetaProviderStrategy extends GenericEmbedProviderStrategy {
       context.width,
       context.facebookAppId,
       context.facebookClientToken,
-      proxyUrl: context.proxyUrl,
       metaParams: context.embedParams as MetaEmbedParams?,
     );
   }
@@ -302,7 +301,6 @@ class DailymotionProviderStrategy extends GenericEmbedProviderStrategy {
   BaseEmbedApi createApi(EmbedProviderContext context) {
     return GenericEmbedApi(
       context.resolvedEndpoint,
-      proxyUrl: context.proxyUrl,
       width: context.width,
     );
   }

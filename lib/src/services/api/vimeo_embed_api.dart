@@ -4,6 +4,7 @@ import 'package:flutter_oembed/src/models/core/embed_data.dart';
 import 'package:flutter_oembed/src/models/params/vimeo_embed_params.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
 
 /// OEmbed API client for Vimeo.
 class VimeoEmbedApi extends BaseEmbedApi {
@@ -21,6 +22,7 @@ class VimeoEmbedApi extends BaseEmbedApi {
     String locale = 'en',
     Brightness brightness = Brightness.light,
     Map<String, String>? queryParameters,
+    EmbedConfig? config,
   }) {
     final params = {
       'url': url,
@@ -36,7 +38,10 @@ class VimeoEmbedApi extends BaseEmbedApi {
       params.addAll(queryParameters);
     }
 
-    return Uri.parse(baseUrl).replace(
+    final proxyUrl = config?.proxyUrl;
+    final resolvedBaseUrl = proxyUrl != null ? '$proxyUrl/$baseUrl' : baseUrl;
+
+    return Uri.parse(resolvedBaseUrl).replace(
       queryParameters: params,
     );
   }

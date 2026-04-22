@@ -7,6 +7,7 @@ import 'package:flutter_oembed/src/models/core/embed_data.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter_oembed/src/models/params/meta_embed_params.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
 
 /// OEmbed API client for Meta platforms (Facebook + Instagram).
 class MetaEmbedApi extends BaseEmbedApi {
@@ -15,12 +16,10 @@ class MetaEmbedApi extends BaseEmbedApi {
     this.width,
     this.appId,
     this.clientToken, {
-    this.proxyUrl,
     this.endpoint,
     this.metaParams,
   });
 
-  final String? proxyUrl;
   final String? endpoint;
   final EmbedType embedType;
   final double width;
@@ -35,7 +34,6 @@ class MetaEmbedApi extends BaseEmbedApi {
 
   @override
   String get baseUrl {
-    if (proxyUrl != null) return proxyUrl!;
     if (embedType == EmbedType.threads) return 'https://graph.threads.net/v1.0';
     return 'https://graph.facebook.com/v25.0';
   }
@@ -46,6 +44,7 @@ class MetaEmbedApi extends BaseEmbedApi {
     String locale = 'en',
     Brightness brightness = Brightness.light,
     Map<String, String>? queryParameters,
+    EmbedConfig? config,
   }) {
     String endPoint;
 
@@ -87,7 +86,10 @@ class MetaEmbedApi extends BaseEmbedApi {
       params.addAll(queryParameters);
     }
 
-    return Uri.parse('$baseUrl/$endPoint').replace(
+    final proxyUrl = config?.proxyUrl;
+    final resolvedBaseUrl = proxyUrl ?? baseUrl;
+
+    return Uri.parse('$resolvedBaseUrl/$endPoint').replace(
       queryParameters: params,
     );
   }

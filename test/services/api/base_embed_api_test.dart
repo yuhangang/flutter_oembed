@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_oembed/src/core/embed_cache_provider.dart';
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
@@ -47,6 +48,7 @@ void main() {
       registerFallbackValue(Uri.parse('https://example.com'));
       registerFallbackValue(Uint8List(0));
       registerFallbackValue(const Duration(seconds: 1));
+      registerFallbackValue(const EmbedConfig());
     });
 
     group('constructUrl()', () {
@@ -78,15 +80,21 @@ void main() {
         expect(darkUri.queryParameters, equals(lightUri.queryParameters));
         expect(darkUri.queryParameters.containsKey('theme'), isFalse);
       });
+
+      test(
+          'should correctly handle and prepend a proxyUrl if provided in config',
+          () {
+        const api = GenericEmbedApi(endpoint);
+        final uri = api.constructUrl(
+          contentUrl,
+          config: const EmbedConfig(proxyUrl: 'https://proxy.com'),
+        );
+        expect(uri.toString(),
+            startsWith('https://proxy.com/https://example.com/oembed'));
+      });
     });
 
     group('baseUrl', () {
-      test('should correctly handle and prepend a proxyUrl if provided', () {
-        const api = GenericEmbedApi(endpoint, proxyUrl: 'https://proxy.com');
-        expect(api.baseUrl,
-            equals('https://proxy.com/https://example.com/oembed'));
-      });
-
       test('should correctly handle the {format} placeholder in the endpoint',
           () {
         const api = GenericEmbedApi('https://test.com/oembed.{format}');

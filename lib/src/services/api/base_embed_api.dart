@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_oembed/src/core/embed_cache_provider.dart';
 import 'package:flutter_oembed/src/logging/embed_logger.dart';
 import 'package:flutter_oembed/src/models/configs/embed_cache_config.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
 import 'package:flutter_oembed/src/models/core/embed_constant.dart';
 import 'package:flutter_oembed/src/models/core/embed_data.dart';
 import 'package:flutter_oembed/src/cache/in_memory_cache_provider.dart';
@@ -27,6 +28,7 @@ abstract class BaseEmbedApi {
     String locale = 'en',
     Brightness brightness = Brightness.light,
     Map<String, String>? queryParameters,
+    EmbedConfig? config,
   });
 
   /// Optional HTTP headers to include with every request.
@@ -115,44 +117,49 @@ abstract class BaseEmbedApi {
     EmbedLogger? logger,
     Map<String, String>? queryParameters,
     http.Client? httpClient,
+    EmbedConfig? config,
   }) async {
-    final config = cacheConfig ?? const EmbedCacheConfig();
+    final resolvedConfig = config ?? const EmbedConfig();
+    final resolvedCacheConfig = cacheConfig ?? resolvedConfig.cache;
+    final resolvedCacheProvider = cacheProvider ?? resolvedConfig.cacheProvider;
+    final resolvedLogger = logger ?? resolvedConfig.logger;
     final isInternalClient = httpClient == null;
-    final client = httpClient ?? http.Client();
+    final client = httpClient ?? resolvedConfig.httpClient ?? http.Client();
     final uri = constructUrl(
       url,
       locale: locale,
       brightness: brightness,
       queryParameters: queryParameters,
+      config: resolvedConfig,
     );
-    logger?.debug('Resolving OEmbed request', data: {
+    resolvedLogger.debug('Resolving OEmbed request', data: {
       'url': url,
       'endpoint': uri.toString(),
     });
 
-    if (config.enabled) {
+    if (resolvedCacheConfig.enabled) {
       final cached = await getCachedResult(
         uri,
-        cacheProvider: cacheProvider,
-        logger: logger,
+        cacheProvider: resolvedCacheProvider,
+        logger: resolvedLogger,
       );
       if (cached != null) {
-        logger?.info('Using cached OEmbed response', data: {'url': url});
+        resolvedLogger.info('Using cached OEmbed response', data: {'url': url});
         return cached;
       }
     } else {
-      logger?.debug('Cache disabled', data: {'url': url});
+      resolvedLogger.debug('Cache disabled', data: {'url': url});
     }
 
     try {
-      logger?.debug('Fetching OEmbed response from network', data: {
+      resolvedLogger.debug('Fetching OEmbed response from network', data: {
         'url': url,
         'uri': uri.toString(),
       });
       final response = await client.get(uri, headers: headers);
 
       if (response.statusCode == 200) {
-        logger?.debug('OEmbed response received', data: {
+        resolvedLogger.debug('OEmbed response received', data: {
           'url': url,
           'statusCode': response.statusCode,
           'body': response.body,
@@ -162,21 +169,21 @@ abstract class BaseEmbedApi {
           EmbedData.fromJson(json.decode(response.body)),
         );
 
-        if (config.enabled) {
-          final ttl = config.resolve(decoded.cacheAgeDuration);
+        if (resolvedCacheConfig.enabled) {
+          final ttl = resolvedCacheConfig.resolve(decoded.cacheAgeDuration);
           await setCachedResult(
             uri,
             decoded,
-            cacheProvider: cacheProvider,
+            cacheProvider: resolvedCacheProvider,
             maxAge: ttl,
-            logger: logger,
+            logger: resolvedLogger,
           );
         }
 
-        logger?.info('Fetched OEmbed response', data: {'url': url});
+        resolvedLogger.info('Fetched OEmbed response', data: {'url': url});
         return decoded;
       } else {
-        logger?.warning(
+        resolvedLogger.warning(
           'OEmbed request failed',
           data: {
             'url': url,
@@ -213,20 +220,14 @@ class GenericEmbedApi extends BaseEmbedApi {
     this.endpoint, {
     Map<String, String>? headers,
     this.width,
-    this.proxyUrl,
   }) : _headers = headers ?? const {};
 
   final String endpoint;
-  final String? proxyUrl;
   final Map<String, String> _headers;
   final double? width;
 
   @override
-  String get baseUrl {
-    // Standardize URL by handling format placeholder
-    final resolved = endpoint.replaceAll('{format}', 'json');
-    return proxyUrl != null ? '$proxyUrl/$resolved' : resolved;
-  }
+  String get baseUrl => endpoint.replaceAll('{format}', 'json');
 
   @override
   Map<String, String> get headers => _headers;
@@ -237,8 +238,12 @@ class GenericEmbedApi extends BaseEmbedApi {
     String locale = 'en',
     Brightness brightness = Brightness.light,
     Map<String, String>? queryParameters,
+    EmbedConfig? config,
   }) {
-    final uri = Uri.parse(baseUrl);
+    final proxyUrl = config?.proxyUrl;
+    final resolvedBaseUrl =
+        proxyUrl != null ? '$proxyUrl?url=$baseUrl' : baseUrl;
+    final uri = Uri.parse(resolvedBaseUrl);
     final params = Map<String, String>.from(uri.queryParameters);
     params['url'] = url;
     // Always request JSON format unless specified otherwise

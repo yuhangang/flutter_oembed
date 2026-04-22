@@ -57,6 +57,7 @@ class EmbedServiceImpl implements IEmbedService {
       logger: resolvedLogger,
       queryParameters: param.queryParameters,
       httpClient: httpClient,
+      config: config,
     );
   }
 
@@ -92,6 +93,7 @@ class EmbedServiceImpl implements IEmbedService {
         locale: config?.locale ?? 'en',
         brightness: config?.brightness ?? Brightness.light,
         queryParameters: queryParameters,
+        config: config,
       );
     } on EmbedProviderNotFoundException {
       return null;
@@ -143,7 +145,6 @@ class EmbedServiceImpl implements IEmbedService {
         providerName: rule.providerName,
         variant: variant,
         capabilities: capabilities,
-        proxyUrl: config?.proxyUrl,
         embedParams: embedParams,
         iframeUrl: iframeUrl,
         embedType: embedType,
@@ -274,7 +275,6 @@ class EmbedServiceImpl implements IEmbedService {
         providerName: rule.providerName,
         variant: variant,
         capabilities: capabilities,
-        proxyUrl: config?.proxyUrl,
         embedParams: param.embedParams,
         embedType: param.embedType,
       );
@@ -301,7 +301,6 @@ class EmbedServiceImpl implements IEmbedService {
       );
       return GenericEmbedApi(
         param.url,
-        proxyUrl: config?.proxyUrl,
         width: param.width,
       );
     }

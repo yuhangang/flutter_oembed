@@ -37,17 +37,6 @@ void main() {
       );
     });
 
-    test('The New York Times pattern matches standard article URLs', () {
-      final nytRules = kDefaultEmbedProviders.where(
-        (r) => r.providerName == 'The New York Times',
-      );
-      expect(
-        nytRules.any((r) => r.matches(
-            'https://www.nytimes.com/2023/01/01/world/europe/ukraine-russia-war.html')),
-        isTrue,
-      );
-    });
-
     test('TikTok iframeUrlBuilder returns v3 embed URL for videos', () {
       final tiktok = kDefaultEmbedProviders.firstWhere(
         (r) => r.providerName == 'TikTok',

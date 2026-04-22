@@ -9,6 +9,24 @@ flutter pub get
 flutter run
 ```
 
+## Local CORS Proxy (Development)
+
+For Flutter Web development, you may encounter CORS restrictions when fetching oEmbed data or assets. A local proxy is provided to bypass these during development.
+
+### 1. Start the proxy
+
+```bash
+# From the project root
+dart example/tools/local_proxy.dart
+```
+
+### 2. Configure the Example App
+
+In the example app, go to **Settings > Global Settings** and set the **Proxy URL** to `http://localhost:8080/`.
+
+> [!NOTE]
+> This proxy is intended for local development only and should not be used in production.
+
 ## What To Check
 
 1. Main list shows direct `EmbedCard` usage across providers.

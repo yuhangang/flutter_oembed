@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_oembed/src/services/api/base_embed_api.dart';
 import 'package:flutter_oembed/src/utils/embed_errors.dart';
+import 'package:flutter_oembed/src/models/configs/embed_config.dart';
 
 /// OEmbed API client for Spotify.
 class SpotifyEmbedApi extends BaseEmbedApi {
@@ -16,6 +17,7 @@ class SpotifyEmbedApi extends BaseEmbedApi {
     String locale = 'en',
     Brightness brightness = Brightness.light,
     Map<String, String>? queryParameters,
+    EmbedConfig? config,
   }) {
     final params = {
       'url': url,
@@ -24,7 +26,11 @@ class SpotifyEmbedApi extends BaseEmbedApi {
     if (queryParameters != null) {
       params.addAll(queryParameters);
     }
-    return Uri.parse(baseUrl).replace(queryParameters: params);
+
+    final proxyUrl = config?.proxyUrl;
+    final resolvedBaseUrl = proxyUrl != null ? '$proxyUrl/$baseUrl' : baseUrl;
+
+    return Uri.parse(resolvedBaseUrl).replace(queryParameters: params);
   }
 
   @override

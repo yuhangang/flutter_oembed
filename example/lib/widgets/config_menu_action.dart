@@ -35,6 +35,35 @@ class _SettingsSheet extends StatefulWidget {
 }
 
 class _SettingsSheetState extends State<_SettingsSheet> {
+  late TextEditingController _proxyController;
+
+  @override
+  void initState() {
+    super.initState();
+    final settings =
+        ExampleSettingsProvider.of(context, listen: false).settings;
+    _proxyController = TextEditingController(text: settings.proxyUrl ?? '');
+  }
+
+  @override
+  void dispose() {
+    _proxyController.dispose();
+    super.dispose();
+  }
+
+  String? get _proxyError {
+    final text = _proxyController.text.trim();
+    if (text.isEmpty) return null;
+    final uri = Uri.tryParse(text);
+    if (uri == null ||
+        !uri.hasScheme ||
+        !uri.hasAuthority ||
+        !text.startsWith('http')) {
+      return 'Enter a valid URL (e.g., http://localhost:8080/)';
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -173,7 +202,75 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    _buildSection(
+                      context,
+                      title: 'API Proxy URL',
+                      icon: Icons.dns_outlined,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text(
+                            'Use a local or remote proxy to bypass CORS, protect API credentials, or centralize rate limiting.',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            decoration: InputDecoration(
+                              hintText: 'e.g., http://localhost:8080/',
+                              errorText: _proxyError,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              isDense: true,
+                              suffixIcon:
+                                  settings.proxyUrl != null &&
+                                          settings.proxyUrl!.isNotEmpty
+                                      ? IconButton(
+                                        icon: const Icon(Icons.clear, size: 18),
+                                        onPressed: () {
+                                          _proxyController.clear();
+                                          controller.updateGeneral(
+                                            proxyUrl: null,
+                                          );
+                                          setState(() {});
+                                        },
+                                      )
+                                      : null,
+                            ),
+                            controller: _proxyController,
+                            onChanged: (val) {
+                              controller.updateGeneral(
+                                proxyUrl: val.isEmpty ? null : val,
+                              );
+                              setState(() {});
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: ActionChip(
+                              avatar: const Icon(Icons.flash_on, size: 14),
+                              label: const Text(
+                                'Use Local (8080)',
+                                style: TextStyle(fontSize: 12),
+                              ),
+                              backgroundColor:
+                                  theme.colorScheme.secondaryContainer,
+                              onPressed: () {
+                                const localUrl = 'http://localhost:8080/';
+                                _proxyController.text = localUrl;
+                                controller.updateGeneral(proxyUrl: localUrl);
+                                setState(() {});
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     _buildSection(
                       context,
