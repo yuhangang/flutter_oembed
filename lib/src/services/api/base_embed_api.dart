@@ -241,8 +241,7 @@ class GenericEmbedApi extends BaseEmbedApi {
     EmbedConfig? config,
   }) {
     final proxyUrl = config?.proxyUrl;
-    final resolvedBaseUrl =
-        proxyUrl != null ? '$proxyUrl?url=$baseUrl' : baseUrl;
+    final resolvedBaseUrl = proxyUrl != null ? '$proxyUrl/$baseUrl' : baseUrl;
     final uri = Uri.parse(resolvedBaseUrl);
     final params = Map<String, String>.from(uri.queryParameters);
     params['url'] = url;

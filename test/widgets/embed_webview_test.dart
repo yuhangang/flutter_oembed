@@ -758,6 +758,9 @@ void main() {
       await capturedControls.reload();
       expect(fakePlatform.lastCreatedController?.reloadCount, 1);
 
+      // Reset state to loaded after reload (which resets it to loading)
+      controller.setLoadingState(EmbedLoadingState.loaded);
+
       // Verify media controls trigger media actions
       // (Using resumeMedia which calls 'play' in the fake platform)
       await capturedControls.resumeMedia();

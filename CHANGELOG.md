@@ -4,6 +4,8 @@
 - **Lazy loading**: Fixed `LazyEmbedNode` so reused `EmbedCard` instances reset lazy visibility when their URL changes and can become immediately visible when a preloaded controller is already loaded.
 - **Config reloads**: Fixed `EmbedDataLoader` so swapping runtime-only config identities such as `httpClient` invalidates the active fetch instead of reusing stale request state.
 - **Accessibility**: Restored semantics labels for terminal embed errors surfaced by `EmbedWidgetLoader` after retry exhaustion.
+- **Example**: Added an expandable embed showcase demonstrating how to use `webViewBuilder` to limit initial render height (e.g., 150px) with a "Show More" expansion toggle.
+
 
 ## 1.0.1-alpha.5
 

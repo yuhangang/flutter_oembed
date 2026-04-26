@@ -101,7 +101,7 @@ void main() {
       const api = TikTokEmbedApi();
       expect(
         api.handleErrorResponse(http.Response('', 404)),
-        isA<EmbedApisException>(),
+        isA<EmbedNotFoundException>(),
       );
     });
 
