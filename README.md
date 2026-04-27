@@ -2,16 +2,15 @@
 
 [![pub package](https://img.shields.io/pub/v/flutter_oembed.svg)](https://pub.dev/packages/flutter_oembed)
 
-> [!WARNING]
-> **This library is still in development. The API might change in future updates.**
->
-> Contributions are welcome! Please feel free to raise issues for any bugs you encounter, or submit pull requests with ideas, suggestions, and code improvements.
-
 A Flutter package for embedding rich social and media content with oEmbed APIs and WebView rendering.
+
+This library is still in development. The API might change in future updates.
+
+Contributions are welcome! Please feel free to raise issues for any bugs you encounter, or submit pull requests with ideas, suggestions, and code improvements.   
 
 ## Current Package Status
 
-- Current package version: `1.0.1-alpha.2`
+- Current package version: `1.0.1-beta.2`
 - Verified platforms: Android, iOS
 - Not supported currently: Flutter Web
 - Not yet verified for release: macOS, Windows, Linux
@@ -20,7 +19,7 @@ Use the current stable line:
 
 ```yaml
 dependencies:
-  flutter_oembed: ^1.0.1-alpha.2
+  flutter_oembed: ^1.0.1-beta.2
 ```
 
 ## Features

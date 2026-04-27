@@ -1,3 +1,7 @@
+## 1.0.1-beta.2
+
+- Second beta release
+
 ## 1.0.1-alpha.6
 
 - **WebView refresh**: Fixed manual WebView reloads so they re-enter the loading lifecycle before the existing navigation delegate evaluates the next main-frame request, preventing trusted refresh navigations from being misrouted as external links.
