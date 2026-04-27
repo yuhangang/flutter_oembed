@@ -1,8 +1,11 @@
 # flutter_oembed
 
+
 [![pub package](https://img.shields.io/pub/v/flutter_oembed.svg)](https://pub.dev/packages/flutter_oembed)
 
 A Flutter package for embedding rich social and media content with oEmbed APIs and WebView rendering.
+
+<img width="461" height="653" alt="Screenshot 2026-04-27 at 3 08 30 PM" src="https://github.com/user-attachments/assets/685185f2-a503-4f22-b53b-906ba18a335e" />
 
 This library is still in development. The API might change in future updates.
 
