@@ -6,8 +6,10 @@ import 'package:flutter_oembed/src/models/configs/embed_config.dart';
 import 'package:flutter_oembed/src/models/configs/embed_provider_config.dart';
 import 'package:flutter_oembed/src/models/core/embed_data.dart';
 import 'package:flutter_oembed/src/models/core/embed_enums.dart';
+import 'package:flutter_oembed/src/models/core/embed_strings.dart';
 import 'package:flutter_oembed/src/models/core/embed_renderer.dart';
 import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
+import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter_oembed/src/widgets/embed_data_loader.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_oembed/src/widgets/embed_widget_loader.dart';
@@ -381,6 +383,60 @@ void main() {
         expect(fakePlatform.lastCreatedController?.loadHtmlCount, 1);
       } finally {
         controller.dispose();
+      }
+    });
+
+    testWidgets('retained terminal error keeps semantics label',
+        (tester) async {
+      final semanticsHandle = tester.ensureSemantics();
+      const config = EmbedConfig(
+        strings: EmbedStrings(
+          networkErrorSemanticsLabel: 'Network failure for embed',
+        ),
+      );
+      final controller = buildController(
+        param: SocialEmbedParam(
+          url: 'https://example.com/post/1',
+          embedType: EmbedType.other,
+        ),
+      );
+
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: EmbedScope(
+              config: config,
+              child: Scaffold(
+                body: EmbedWidgetLoader(
+                  param: SocialEmbedParam(
+                    url: 'https://example.com/post/1',
+                    embedType: EmbedType.other,
+                  ),
+                  controller: controller,
+                ),
+              ),
+            ),
+          ),
+        );
+
+        controller.setLoadingState(
+          EmbedLoadingState.error,
+          error: const EmbedNetworkException(),
+        );
+        controller.setDidRetry();
+        await tester.pump();
+
+        expect(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is Semantics &&
+                widget.properties.label == 'Network failure for embed',
+          ),
+          findsOneWidget,
+        );
+      } finally {
+        controller.dispose();
+        semanticsHandle.dispose();
       }
     });
   });

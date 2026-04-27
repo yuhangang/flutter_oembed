@@ -17,6 +17,21 @@ void main() {
         expect(uri.path, equals('/oembed'));
       });
 
+      test('should return the correct URI for a TikTok creator profile URL',
+          () {
+        const api = TikTokEmbedApi();
+        final uri = api.constructUrl('https://www.tiktok.com/@scout2015');
+
+        expect(
+          uri.toString(),
+          contains(
+            'url=${Uri.encodeComponent('https://www.tiktok.com/@scout2015')}',
+          ),
+        );
+        expect(uri.host, equals('www.tiktok.com'));
+        expect(uri.path, equals('/oembed'));
+      });
+
       test('should inclusion TikTokEmbedParams in the query parameters', () {
         const api = TikTokEmbedApi(
           tiktokParams: TikTokEmbedParams(

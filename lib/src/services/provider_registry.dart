@@ -57,17 +57,6 @@ EmbedVariant _facebookVariantResolver(
   return EmbedVariant.standard;
 }
 
-EmbedProviderCapabilities _facebookCapabilitiesResolver(
-  String url,
-  Object? embedParams,
-  EmbedType? embedType,
-) {
-  final variant = _facebookVariantResolver(url, embedParams, embedType);
-  return EmbedProviderCapabilities(
-    isVideo: variant == EmbedVariant.facebookVideo,
-  );
-}
-
 EmbedVariant _tiktokVariantResolver(
   String url,
   Object? embedParams,
@@ -175,7 +164,6 @@ const List<EmbedProviderRule> kDefaultEmbedProviders = [
     providerName: 'Facebook',
     strategy: MetaProviderStrategy(EmbedType.facebook),
     shouldAllowNavigation: _facebookNavigationCheck,
-    capabilitiesResolver: _facebookCapabilitiesResolver,
     variantResolver: _facebookVariantResolver,
     isVerified: true,
     subRules: [
@@ -291,12 +279,6 @@ const List<EmbedProviderRule> kDefaultEmbedProviders = [
     pattern: r'https?:\/\/media\.giphy\.com\/media\/.*\/giphy\.gif',
     endpoint: 'https://giphy.com/services/oembed',
     providerName: 'Giphy',
-    isVerified: true,
-  ),
-  EmbedProviderRule(
-    pattern: r'^https?:\/\/(?:www\.)?nytimes\.com\/.*',
-    endpoint: 'https://www.nytimes.com/svc/oembed/json/',
-    providerName: 'The New York Times',
     isVerified: true,
   ),
 ];

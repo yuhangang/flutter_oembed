@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:flutter_oembed/flutter_oembed.dart';
 
+import '../widgets/expandable_embed.dart';
+
 String? _extractEmbedUrlFromHtml(ExtensionContext context) {
   final attributes = context.attributes;
   final candidates = <String?>[
@@ -62,22 +64,33 @@ class EmbedExtension extends HtmlExtension {
     if (url == null) return const TextSpan(text: "");
 
     final settings = ExampleSettingsProvider.of(context.buildContext!).settings;
+    final isExpandable = context.attributes['expandable'] == 'true';
+    final collapsedHeight =
+        double.tryParse(context.attributes['collapsed-height'] ?? '') ?? 150.0;
+
+    final embedCard = EmbedCard.url(
+      url,
+      controller: controllerForUrl?.call(url),
+      scrollable: settings.scrollable,
+      lazyLoad: true,
+      style: EmbedStyle(
+        loadingBuilder:
+            (context) => SocialEmbedPlaceholder(
+              embedType: getEmbedTypeFromUrl(url) ?? EmbedType.other,
+            ),
+      ),
+    );
 
     return WidgetSpan(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8.0),
-        child: EmbedCard.url(
-          url,
-          controller: controllerForUrl?.call(url),
-          scrollable: settings.scrollable,
-          lazyLoad: true,
-          style: EmbedStyle(
-            loadingBuilder:
-                (context) => SocialEmbedPlaceholder(
-                  embedType: getEmbedTypeFromUrl(url) ?? EmbedType.other,
-                ),
-          ),
-        ),
+        child:
+            isExpandable
+                ? ExpandableEmbed(
+                  collapsedHeight: collapsedHeight,
+                  child: embedCard,
+                )
+                : embedCard,
       ),
     );
   }
@@ -131,6 +144,11 @@ class _HtmlIntegrationPageState extends State<HtmlIntegrationPage> {
 <h3>GIPHY Embed</h3>
 <div class="embed-card">
   <oembed url="https://giphy.com/gifs/moodman-monkey-side-eye-sideeye-H5C8CevNMbpBqNqFjl"></oembed>
+</div>
+
+<h3>Expandable Embed (Limited to 150px)</h3>
+<div class="embed-card">
+  <oembed expandable="true" collapsed-height="150" url="https://x.com/NASA/status/2037551448439787917"></oembed>
 </div>
 
 <p>The <code>&lt;oembed&gt;</code> tag and <code>title="embed"</code> attribute are mapped to <code>EmbedCard</code> using a custom <code>HtmlExtension</code>. URL can come from <code>url</code>, <code>href</code>, <code>src</code>, <code>data-url</code>, or inner text.</p>

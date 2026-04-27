@@ -170,31 +170,33 @@ class _MarkdownIntegrationPageState extends State<MarkdownIntegrationPage> {
   Widget build(BuildContext context) {
     final settings = ExampleSettingsProvider.of(context).settings;
     const markdownData = '''
-# Markdown Integration Example
+# Markdown Media Rendering
 
-This example demonstrates how to use the `oembed` package within a `markdown_widget`.
+Bring your Markdown documents to life by embedding social media and rich content directly into the text flow. This example showcases how to use custom block syntaxes and span nodes with the `markdown_widget` package to render interactive media cards.
 
-## Twitter Embed
+## Dynamic X (Twitter) Feed
 <oembed url="https://twitter.com/X/status/1328842765115920384"></oembed>
 
-## YouTube Embed
+## Interactive YouTube Player
 <oembed>https://www.youtube.com/watch?v=dQw4w9WgXcQ</oembed>
 
-## TikTok Embed
+## TikTok Video Stream
 <oembed data-url="https://www.tiktok.com/@scout2015/video/6718335390845095173" />
 
-## X (Twitter) Embed
-<oembed>https://x.com/X/status/1328842765115920384</oembed>
-
-## GIPHY Embed
+## GIPHY Integration
 <oembed url="https://giphy.com/gifs/moodman-monkey-side-eye-sideeye-H5C8CevNMbpBqNqFjl"></oembed>
 
-You can add any OEmbed-supported URL using `url`, `href`, `src`, `data-url`, as inner text, or using the `[embed](url)` / `[title](url "embed")` link syntax.
+### Native Link Integration
+Using the "embed" keyword: [embed](https://x.com/NASA/status/2037551448439787917)
+<br/<
+Using the title attribute: [Official NASA Post](https://x.com/NASA/status/2037551448439787917 "embed")
+
+**Integration Note:** This implementation supports `url`, `href`, `src`, and `data-url` attributes within the `<oembed>` tag, as well as inner text URLs.
 ''';
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Markdown Integration'),
+        title: const Text('Markdown Media'),
         actions: const [ConfigMenuAction()],
       ),
       body: MarkdownWidget(

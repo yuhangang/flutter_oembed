@@ -119,7 +119,6 @@ class GenericEmbedProviderStrategy extends EmbedProviderStrategy {
   BaseEmbedApi createApi(EmbedProviderContext context) {
     return GenericEmbedApi(
       context.resolvedEndpoint,
-      proxyUrl: context.proxyUrl,
       width: context.width,
     );
   }

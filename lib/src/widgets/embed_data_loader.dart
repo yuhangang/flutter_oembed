@@ -63,7 +63,8 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
     super.didChangeDependencies();
     final config = widget.config ?? EmbedScope.configOf(context);
 
-    if (!_isInitialized || _resolvedConfig != config) {
+    if (!_isInitialized ||
+        !EmbedConfig.runtimeEqualsNullable(_resolvedConfig, config)) {
       _isInitialized = true;
       _resolvedConfig = config;
       _loadData(config: config);
@@ -73,12 +74,14 @@ class _EmbedDataLoaderState extends State<EmbedDataLoader> {
   @override
   void didUpdateWidget(covariant EmbedDataLoader oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final nextConfig =
+        widget.config ?? _resolvedConfig ?? EmbedScope.configOf(context);
     if (oldWidget.loaderParam != widget.loaderParam ||
-        oldWidget.config != widget.config ||
+        !EmbedConfig.runtimeEqualsNullable(oldWidget.config, widget.config) ||
         oldWidget.cacheConfig != widget.cacheConfig) {
+      _resolvedConfig = nextConfig;
       _loadData(
-        config:
-            widget.config ?? _resolvedConfig ?? EmbedScope.configOf(context),
+        config: nextConfig,
       );
     }
   }

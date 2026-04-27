@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_oembed/flutter_oembed.dart';
 
 class ExampleSettings {
+  static const Object _unset = Object();
+
   final String locale;
   final Brightness brightness;
   final bool scrollable;
   final bool showFooter;
+  final String? proxyUrl;
 
   // Provider-specific params
   final VimeoEmbedParams vimeoParams;
@@ -20,6 +23,7 @@ class ExampleSettings {
     this.brightness = Brightness.light,
     this.scrollable = false,
     this.showFooter = false,
+    this.proxyUrl,
     this.vimeoParams = const VimeoEmbedParams(),
     this.xParams = const XEmbedParams(
       dnt: true,
@@ -40,6 +44,7 @@ class ExampleSettings {
     Brightness? brightness,
     bool? scrollable,
     bool? showFooter,
+    Object? proxyUrl = _unset,
     VimeoEmbedParams? vimeoParams,
     XEmbedParams? xParams,
     MetaEmbedParams? metaParams,
@@ -52,6 +57,8 @@ class ExampleSettings {
       brightness: brightness ?? this.brightness,
       scrollable: scrollable ?? this.scrollable,
       showFooter: showFooter ?? this.showFooter,
+      proxyUrl:
+          identical(proxyUrl, _unset) ? this.proxyUrl : proxyUrl as String?,
       vimeoParams: vimeoParams ?? this.vimeoParams,
       xParams: xParams ?? this.xParams,
       metaParams: metaParams ?? this.metaParams,
@@ -66,6 +73,7 @@ class ExampleSettings {
       locale: locale,
       brightness: brightness,
       scrollable: scrollable,
+      proxyUrl: proxyUrl,
     );
   }
 
@@ -87,12 +95,14 @@ class ExampleSettingsController extends ChangeNotifier {
     Brightness? brightness,
     bool? scrollable,
     bool? showFooter,
+    String? proxyUrl,
   }) {
     _settings = _settings.copyWith(
       locale: locale,
       brightness: brightness,
       scrollable: scrollable,
       showFooter: showFooter,
+      proxyUrl: proxyUrl,
     );
     notifyListeners();
   }
@@ -136,9 +146,15 @@ class ExampleSettingsProvider
     required super.child,
   });
 
-  static ExampleSettingsController of(BuildContext context) {
+  static ExampleSettingsController of(
+    BuildContext context, {
+    bool listen = true,
+  }) {
     final provider =
-        context.dependOnInheritedWidgetOfExactType<ExampleSettingsProvider>();
+        listen
+            ? context
+                .dependOnInheritedWidgetOfExactType<ExampleSettingsProvider>()
+            : context.getInheritedWidgetOfExactType<ExampleSettingsProvider>();
     assert(provider != null, 'No ExampleSettingsProvider found in context');
     return provider!.notifier!;
   }

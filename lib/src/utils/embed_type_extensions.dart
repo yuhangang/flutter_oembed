@@ -32,8 +32,6 @@ extension EmbedTypeExtension on EmbedType {
         return 'Reddit';
       case EmbedType.giphy:
         return 'GIPHY';
-      case EmbedType.nytimes:
-        return 'NYTimes';
       case EmbedType.codepen:
         return 'Codepen';
     }

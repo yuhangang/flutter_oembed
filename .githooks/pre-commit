@@ -2,14 +2,14 @@
 # Pre-commit hook to format and analyze Dart/Flutter code
 
 echo "Running dart format..."
-dart format --output=none --set-exit-if-changed .
-FORMAT_EXIT_CODE=$?
+dart format .
 
-if [ $FORMAT_EXIT_CODE -ne 0 ]; then
-  echo "\n[ERROR] Formatting failed. Please format your files before committing."
-  echo "You can run 'dart format .' to automatically format the code."
-  exit 1
+# Re-add modified dart files to the commit
+STAGED_DART_FILES=$(git diff --name-only --cached --diff-filter=d | grep '\.dart$')
+if [ -n "$STAGED_DART_FILES" ]; then
+    git add $STAGED_DART_FILES
 fi
+
 
 echo "\nRunning flutter analyze..."
 flutter analyze

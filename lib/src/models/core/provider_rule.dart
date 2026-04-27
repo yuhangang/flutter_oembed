@@ -47,7 +47,6 @@ class EmbedProviderContext {
   final Brightness brightness;
   final String? facebookAppId;
   final String? facebookClientToken;
-  final String? proxyUrl;
   final BaseEmbedParams? embedParams;
   final EmbedProviderStrategy strategy;
   final String providerName;
@@ -70,7 +69,6 @@ class EmbedProviderContext {
     required this.rule,
     required this.variant,
     required this.capabilities,
-    this.proxyUrl,
     this.embedParams,
     this.iframeUrl,
     this.embedType,

@@ -339,6 +339,64 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
     });
 
+    testWidgets('reloads when only the http client changes', (tester) async {
+      final firstClient = MockHttpClient();
+      final secondClient = MockHttpClient();
+      final firstCompleter = Completer<http.Response>();
+
+      when(() => firstClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer((_) => firstCompleter.future);
+      when(() => secondClient.get(any(), headers: any(named: 'headers')))
+          .thenAnswer((_) async => http.Response('{}', 200));
+
+      final config1 = EmbedConfig(
+        httpClient: firstClient,
+        cache: const EmbedCacheConfig(enabled: false),
+      );
+      final config2 = EmbedConfig(
+        httpClient: secondClient,
+        cache: const EmbedCacheConfig(enabled: false),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedDataLoader(
+              param: param,
+              loaderParam: loaderParam,
+              controller: controller,
+              config: config1,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      verify(() => firstClient.get(any(), headers: any(named: 'headers')))
+          .called(1);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: EmbedDataLoader(
+              param: param,
+              loaderParam: loaderParam,
+              controller: controller,
+              config: config2,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      verify(() => secondClient.get(any(), headers: any(named: 'headers')))
+          .called(1);
+
+      firstCompleter.complete(http.Response('{}', 200));
+      await tester.pumpAndSettle();
+    });
+
     testWidgets('shows custom loading widget', (tester) async {
       final completer = Completer<http.Response>();
       when(() => mockClient.get(any(), headers: any(named: 'headers')))

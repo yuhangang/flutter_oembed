@@ -36,6 +36,8 @@ class _MyAppState extends State<MyApp> {
             config: EmbedConfig(
               locale: settings.locale,
               brightness: settings.brightness,
+              scrollable: settings.scrollable,
+              proxyUrl: settings.proxyUrl,
               providers: EmbedProviderConfig(
                 // Overriding providers list (e.g. tracking only certain providers)
                 // providers: EmbedProviders.verified.where((r) => {'YouTube', 'Spotify'}.contains(r.providerName)).toList(),

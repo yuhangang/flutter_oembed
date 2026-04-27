@@ -79,7 +79,7 @@ dependencies:
 
 | Category | Providers |
 | :--- | :--- |
-| Social | X, Facebook, Instagram, Threads, Reddit, TikTok, Tumblr |
+| Social | X, Facebook, Instagram, Threads, Reddit, TikTok videos and creator profiles, Tumblr |
 | Video | YouTube, Vimeo, Dailymotion |
 | Audio | Spotify, SoundCloud |
 | Media / News | Flickr, Giphy, The New York Times |
@@ -486,6 +486,7 @@ The repository example app includes working integrations for:
 - `markdown_widget`
 - `flutter_html`
 - Quill-based editors
+- direct TikTok video and creator profile samples using the same TikTok oEmbed flow
 
 See the example app in `/example` for concrete integration code.
 

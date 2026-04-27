@@ -8,9 +8,11 @@ import 'package:flutter_oembed/src/models/core/embed_data.dart';
 import 'package:flutter_oembed/src/models/core/embed_enums.dart';
 import 'package:flutter_oembed/src/models/core/embed_loader_param.dart';
 import 'package:flutter_oembed/src/models/core/embed_renderer.dart';
+import 'package:flutter_oembed/src/models/core/embed_strings.dart';
 import 'package:flutter_oembed/src/models/core/embed_style.dart';
 import 'package:flutter_oembed/src/models/core/embed_webview_controls.dart';
 import 'package:flutter_oembed/src/models/params/social_embed_param.dart';
+import 'package:flutter_oembed/src/utils/embed_errors.dart';
 import 'package:flutter_oembed/src/widgets/embed_data_loader.dart';
 import 'package:flutter_oembed/src/widgets/embed_webview.dart';
 import 'package:flutter_oembed/src/widgets/native_renderer_registry.dart';
@@ -134,6 +136,19 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
     super.dispose();
   }
 
+  String _errorSemanticsLabel(Object? error, EmbedStrings strings) {
+    if (error is EmbedDataNotFoundException) {
+      return strings.notFoundSemanticsLabel;
+    }
+    if (error is EmbedDataRestrictedAccessException) {
+      return strings.restrictedSemanticsLabel;
+    }
+    if (error is EmbedNetworkException) {
+      return strings.networkErrorSemanticsLabel;
+    }
+    return strings.genericLoadErrorSemanticsLabel;
+  }
+
   @override
   Widget build(BuildContext context) {
     // Prefer explicit config override, then controller config, then scope.
@@ -141,6 +156,7 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
         widget.config ?? _controller.config ?? EmbedScope.configOf(context);
     final style = widget.style ?? config?.style;
     final logger = config?.logger;
+    final strings = config?.strings ?? const EmbedStrings();
 
     return AnimatedBuilder(
       animation: _controller,
@@ -154,7 +170,12 @@ class _EmbedWidgetLoaderState extends State<EmbedWidgetLoader> {
         if (showErrorWidget) {
           final errorWidget =
               style?.errorBuilder?.call(context, _controller.lastError);
-          return errorWidget ?? const Icon(Icons.error_outline);
+          return Semantics(
+            container: true,
+            liveRegion: true,
+            label: _errorSemanticsLabel(_controller.lastError, strings),
+            child: errorWidget ?? const Icon(Icons.error_outline),
+          );
         }
 
         return LayoutBuilder(

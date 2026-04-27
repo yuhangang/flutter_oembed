@@ -60,11 +60,16 @@ class _QuillIntegrationPageState extends State<QuillIntegrationPage> {
   void _initializeController() {
     final delta =
         Delta()
-          ..insert('Flutter Quill Integration\n', {'header': 1})
-          ..insert('This example shows how to use ')
+          ..insert('Rich Text Media Integration\n', {'header': 1})
+          ..insert(
+            'Enhance your content creation experience by embedding live media directly within the editor. This implementation demonstrates a seamless ',
+          )
+          ..insert('WYSIWYG', {'bold': true})
+          ..insert(' experience using ')
           ..insert('flutter_oembed', {'bold': true})
-          ..insert(' inside a rich text editor.\n\n')
-          ..insert('Here is an embedded YouTube video:\n')
+          ..insert('.\n\n')
+          ..insert('Interactive Video Support\n', {'header': 2})
+          ..insert('Embed high-quality video content from YouTube:\n')
           ..insert(
             BlockEmbed.custom(
               const OEmbedBlockEmbed(
@@ -72,7 +77,7 @@ class _QuillIntegrationPageState extends State<QuillIntegrationPage> {
               ),
             ).toJson(),
           )
-          ..insert('\nAnd a TikTok video:\n')
+          ..insert('\nOr trending clips from TikTok:\n')
           ..insert(
             BlockEmbed.custom(
               const OEmbedBlockEmbed(
@@ -80,8 +85,10 @@ class _QuillIntegrationPageState extends State<QuillIntegrationPage> {
               ),
             ).toJson(),
           )
+          ..insert('\n')
+          ..insert('Create Your Own Content\n', {'header': 3})
           ..insert(
-            '\nTry adding your own embed below using the plus button.\n',
+            'Use the teal link icon in the toolbar above to insert dynamic social media cards. Try pasting a URL from X (Twitter), GIPHY, or other supported providers.\n',
           );
 
     _controller = QuillController(
@@ -223,7 +230,7 @@ class _QuillIntegrationPageState extends State<QuillIntegrationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Quill Integration'),
+        title: const Text('Rich Text Editor'),
         actions: const [ConfigMenuAction()],
       ),
       body: Column(
